@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="en">
+<head>@include('partials.head', ['title' => 'Verify email'])</head>
+<body class="auth-page"><div class="auth-wrap"><a class="brand auth-brand" href="{{ route('landing') }}"><span class="brand-mark">H</span><span>host<span class="brand-accent">nova</span></span></a><div class="login-panel"><div class="eyebrow">Almost there</div><h1>Verify your email.</h1><p>We sent a verification link to <strong>{{ $email ?? (Auth::user()->email ?? session('customer.email')) }}</strong>. Click the link in that email to activate your account.</p>@if($errors->any())<div class="form-error">{{ $errors->first() }}</div>@endif @if(session('resent'))<div class="domain-alert success" style="margin-bottom:18px">A fresh verification link has been sent to your email.</div>@endif @if(session('success'))<div class="domain-alert success" style="margin-bottom:18px">{{ session('success') }}</div>@endif<form method="POST" action="{{ route('verification.resend') }}">@csrf<button class="button form-button" type="submit">Resend verification email <span>↗</span></button></form><div class="login-note">Already verified? <a href="{{ route('login') }}">Sign in</a> after clicking the link in your email.</div></div><a class="back-link" href="{{ route('landing') }}">← Back to homepage</a></div>
+</body>
+</html>
