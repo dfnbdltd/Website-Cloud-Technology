@@ -2,130 +2,232 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\BkashClient;
 use App\Models\DomainOrder;
 use App\Models\Payment;
+use App\Services\BkashClient;
 use App\Services\ResellerClubClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * bKash payment via the direct bKash Checkout (PGW popup) API v1.2.0-beta.
+ *
+ * Flow (see app/Services/BkashClient.php):
+ *   1) /bkash/pay      -> renders the payment page with bKash's checkout script
+ *   2) /bkash/create   -> AJAX: server creates the payment (token grant + /checkout/payment/create)
+ *   3) bKash popup     -> customer enters wallet number, OTP and PIN
+ *   4) /bkash/execute  -> AJAX: server executes the payment after authorization
+ *   5) /bkash/query    -> AJAX fallback while execute reports "progressing"
+ *
+ * Credentials stay server-side; the browser only ever talks to this app.
+ */
 class BkashController extends Controller
 {
     private $bkash;
-    private $resellerClub;
 
-    public function __construct(BkashClient $bkash, ResellerClubClient $resellerClub)
+    public function __construct(BkashClient $bkash)
     {
         $this->bkash = $bkash;
-        $this->resellerClub = $resellerClub;
     }
 
-    public function createPayment(Request $request)
+    /**
+     * Payment page: the customer completes the payment in bKash's own popup.
+     */
+    public function pay(Request $request)
     {
-        if (!$request->session()->get('customer')) {
-            return redirect()->route('login');
-        }
-
         $order = $request->session()->get('last_domain_order');
         if (!$order || ($order['customer']['payment_method'] ?? null) !== 'bkash') {
-            return redirect()->route('domains.index')->withErrors(['domain' => 'Start a bKash order before paying.']);
+            return redirect()->route('domains.index')->withErrors(['payment' => 'Start a bKash order before paying.']);
         }
-        if ($request->query('invoice') && $request->query('invoice') !== $order['reference']) {
-            return redirect()->route('domains.index')->withErrors(['payment' => 'The payment invoice does not match the order.']);
+
+        $databaseOrder = isset($order['database_id']) ? DomainOrder::find($order['database_id']) : null;
+        if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
+            return view('domains.confirmation', ['order' => $order, 'paid' => true]);
         }
+
+        return view('domains.bkash-payment', [
+            'order' => $order,
+            'gatewayReady' => $this->bkash->isConfigured(),
+        ]);
+    }
+
+    /**
+     * AJAX (called by the bKash popup's createRequest): create the payment server-side.
+     */
+    public function create(Request $request)
+    {
+        $order = $request->session()->get('last_domain_order');
+
+        if (!$order || ($order['payment']['method'] ?? null) !== 'bkash') {
+            return response()->json(['errorMessage' => 'No bKash order is in progress for this session.'], 409);
+        }
+
+        $databaseOrder = isset($order['database_id']) ? DomainOrder::find($order['database_id']) : null;
+        if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
+            return response()->json(['errorMessage' => 'This order is already paid.'], 409);
+        }
+
         if (!$this->bkash->isConfigured()) {
-            return redirect()->route('domains.index')->withErrors(['payment' => 'bKash is not configured on this server yet.']);
+            Log::warning('bKash attempted without BKASH_* configuration');
+
+            return response()->json(['errorMessage' => 'bKash is not configured on this server yet. Our billing team will contact you with payment instructions for reference ' . $order['reference'] . '.'], 503);
         }
 
-        $response = $this->bkash->createPayment($order['total'], $order['reference'], $order['customer']['phone']);
-        $paymentUrl = $response['bkashURL'] ?? ($response['paymentURL'] ?? null);
-        if (!$paymentUrl || empty($response['paymentID'])) {
-            $reason = trim($response['statusMessage'] ?? $response['errorMessage'] ?? $this->bkash->lastStatusMessage() ?? '');
-            \Log::warning('bKash createPayment failed', ['response' => $response, 'order' => $order['reference']]);
+        $response = $this->bkash->createPayment(
+            $order['total'],
+            $order['reference'],
+            $order['reference']
+        );
 
-            $hint = stripos($reason, 'invalid or unrecognized') !== false
-                ? ' The bKash API rejected the configured credentials — they may have expired. Please generate fresh credentials in the bKash developer portal and update BKASH_* values in .env.'
-                : '';
+        if (!is_array($response) || empty($response['paymentID'])) {
+            $reason = (string) ($response['errorMessage'] ?? $response['statusMessage'] ?? $response['msg'] ?? $response['message'] ?? $this->bkash->lastStatusMessage() ?? '');
+            Log::warning('bKash payment create failed', ['order' => $order['reference'], 'response' => $response]);
 
-            return view('domains.confirmation', [
-                'order' => $order,
-                'gatewayWarning' => 'bKash could not start the payment session'
-                    . ($reason ? '. Gateway said: “' . $reason . '”' : '.')
-                    . $hint
-                    . ' Your order is saved and our billing team will contact you with payment instructions for reference ' . $order['reference'] . '.',
+            return response()->json(['errorMessage' => 'bKash could not start the payment' . ($reason !== '' ? ': ' . $reason : '.')], 502);
+        }
+
+        // Record the attempt server-side before the popup opens.
+        $order['payment']['status'] = 'initiated';
+        $order['payment']['paymentID'] = $response['paymentID'];
+        $request->session()->put('last_domain_order', $order);
+        if ($databaseOrder) {
+            $databaseOrder->update([
+                'payment_status' => 'initiated',
+                'provider_payment_id' => $response['paymentID'],
+            ]);
+            Payment::where('domain_order_id', $databaseOrder->id)->update([
+                'provider_payment_id' => $response['paymentID'],
+                'status' => 'initiated',
             ]);
         }
 
-        $order['payment']['payment_id'] = $response['paymentID'];
-        $order['payment']['status'] = 'initiated';
-        $request->session()->put('last_domain_order', $order);
-
-        return redirect()->away($paymentUrl);
+        return response()->json([
+            'paymentID' => $response['paymentID'],
+            'amount' => $response['amount'] ?? $order['total'],
+        ]);
     }
 
-    public function callback(Request $request)
+    /**
+     * AJAX (called by the bKash popup's executeRequestOnAuthorization): execute the payment.
+     */
+    public function execute(Request $request)
     {
-        $paymentId = $request->query('paymentID');
         $order = $request->session()->get('last_domain_order');
-        if (!$paymentId || !$order || ($request->query('invoice') && $request->query('invoice') !== $order['reference'])) {
-            return redirect()->route('domains.index')->withErrors(['payment' => 'The bKash callback could not be matched to an order.']);
+        $paymentId = $order['payment']['paymentID'] ?? null;
+
+        if (!$order || ($order['payment']['method'] ?? null) !== 'bkash' || !$paymentId) {
+            return response()->json(['errorMessage' => 'No bKash payment is in progress for this session.'], 409);
         }
 
-        $status = strtolower($request->query('status', ''));
-        $response = $status === 'success' ? $this->bkash->executePayment($paymentId) : null;
-        if (!$this->isSuccessful($response)) {
-            $response = $this->bkash->queryPayment($paymentId);
-        }
-        $order['payment']['payment_id'] = $paymentId;
-        $order['payment']['status'] = $this->isSuccessful($response) ? 'paid' : ($status === 'cancel' ? 'cancelled' : 'failed');
-        $order['payment']['provider_response'] = $response;
-        $request->session()->put('last_domain_order', $order);
         $databaseOrder = isset($order['database_id']) ? DomainOrder::find($order['database_id']) : null;
+        if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
+            return response()->json(['status' => 'success']);
+        }
+
+        $response = $this->bkash->executePayment($paymentId);
+        $status = strtolower((string) ($response['transactionStatus'] ?? ''));
+
+        if ($status === 'completed' || ($response['statusCode'] ?? null) === '0000') {
+            return $this->markPaid(
+                $request,
+                $order,
+                $databaseOrder,
+                $response['trxID'] ?? ('BKASH-' . $paymentId),
+                $response
+            );
+        }
+
+        if (in_array($status, ['initiated', 'pending', 'progressing'], true)) {
+            return response()->json(['status' => 'pending']);
+        }
+
+        $reason = (string) ($response['statusMessage'] ?? $response['errorMessage'] ?? $response['msg'] ?? $response['message'] ?? $this->bkash->lastStatusMessage() ?? '');
+        Log::warning('bKash execute did not complete', ['paymentID' => $paymentId, 'order' => $order['reference'], 'response' => $response]);
+
+        return response()->json(['errorMessage' => 'Payment was not completed' . ($reason !== '' ? ': ' . $reason : '.')], 402);
+    }
+
+    /**
+     * AJAX fallback: query the payment status while execute reports progressing.
+     */
+    public function query(Request $request)
+    {
+        $order = $request->session()->get('last_domain_order');
+        $paymentId = $order['payment']['paymentID'] ?? null;
+
+        if (!$order || !$paymentId) {
+            return response()->json(['errorMessage' => 'No bKash payment is in progress for this session.'], 409);
+        }
+
+        $databaseOrder = isset($order['database_id']) ? DomainOrder::find($order['database_id']) : null;
+        if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
+            return response()->json(['status' => 'success']);
+        }
+
+        $response = $this->bkash->queryPayment($paymentId);
+        $status = strtolower((string) ($response['transactionStatus'] ?? ''));
+
+        if ($status === 'completed') {
+            return $this->markPaid(
+                $request,
+                $order,
+                $databaseOrder,
+                $response['trxID'] ?? ('BKASH-' . $paymentId),
+                $response
+            );
+        }
+
+        return response()->json(['status' => 'pending']);
+    }
+
+    /**
+     * Record the successful payment against the order (DB + session).
+     */
+    private function markPaid(Request $request, array $order, $databaseOrder, $transactionId, $raw)
+    {
+        $order['payment']['status'] = 'paid';
+        $order['payment']['transaction_id'] = $transactionId;
+        $order['payment']['provider_response'] = $raw;
+        $request->session()->put('last_domain_order', $order);
+
         if ($databaseOrder) {
             $databaseOrder->update([
-                'payment_status' => $order['payment']['status'],
-                'status' => $order['payment']['status'] === 'paid' ? 'paid' : 'payment_failed',
-                'provider_payment_id' => $paymentId,
+                'payment_status' => 'paid',
+                'status' => 'paid',
+                'provider_payment_id' => $transactionId,
                 'payload' => json_encode($order),
             ]);
             Payment::where('domain_order_id', $databaseOrder->id)->update([
-                'provider_payment_id' => $paymentId,
-                'status' => $order['payment']['status'],
-                'raw_response' => json_encode($response),
+                'provider_payment_id' => $transactionId,
+                'status' => 'paid',
+                'raw_response' => json_encode($raw),
             ]);
-            if ($order['payment']['status'] === 'paid' && config('services.resellerclub.auto_register')) {
-                $registrationComplete = true;
-                foreach ($databaseOrder->items as $item) {
-                    $registration = $this->resellerClub->registerDomain($item->domain, $item->years);
-                    if (!is_array($registration) || isset($registration['error'])) {
-                        $registrationComplete = false;
-                    }
-                }
-                $databaseOrder->update(['status' => $registrationComplete ? 'active' : 'registration_pending']);
+
+            $this->registerDomains($databaseOrder);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'redirect' => route('domains.confirmation', ['reference' => $order['reference']]),
+        ]);
+    }
+
+    /**
+     * Best-effort ResellerClub registration after a verified payment.
+     */
+    private function registerDomains(DomainOrder $databaseOrder)
+    {
+        if (!config('services.resellerclub.auto_register')) {
+            return;
+        }
+
+        $registrationComplete = true;
+        foreach ($databaseOrder->items as $item) {
+            $registration = app(ResellerClubClient::class)->registerDomain($item->domain, $item->years);
+            if (!is_array($registration) || isset($registration['error'])) {
+                $registrationComplete = false;
             }
         }
-
-        return view('domains.confirmation', ['order' => $order]);
-    }
-
-    public function query(Request $request, $paymentId)
-    {
-        if (!$request->session()->get('customer')) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-        if (!$this->bkash->isConfigured()) {
-            return response()->json(['message' => 'bKash is not configured'], 503);
-        }
-
-        return response()->json($this->bkash->queryPayment($paymentId) ?: ['message' => 'Unable to query bKash']);
-    }
-
-    private function isSuccessful($response)
-    {
-        if (!is_array($response)) {
-            return false;
-        }
-
-        return strtolower($response['transactionStatus'] ?? '') === 'completed'
-            || strtolower($response['statusCode'] ?? '') === '0000';
+        $databaseOrder->update(['status' => $registrationComplete ? 'active' : 'registration_pending']);
     }
 }

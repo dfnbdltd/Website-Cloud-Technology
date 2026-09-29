@@ -54,16 +54,26 @@ return [
         ],
     ],
 
+    // -------------------------------------------------------------------------
+    // (Removed) DFN ERP middleware — bKash now runs directly via services.bkash.
+    // -------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    // bKash Checkout (PGW popup) API — direct integration, production URLs.
+    // Server-side flow (see app/Services/BkashClient.php):
+    //   POST {base}/checkout/token/grant         -> id_token (headers: username, password)
+    //   POST {base}/checkout/payment/create      -> paymentID (called via bKash JS popup)
+    //   POST {base}/checkout/payment/execute/{id}-> finalizes after popup authorization
+    // Frontend loads https://scripts.pay.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout.js
+    // and calls bKash.init({paymentMode:'checkout'}). Credentials stay server-side.
+    // -------------------------------------------------------------------------
     'bkash' => [
-        'sandbox' => env('BKASH_SANDBOX', true),
-        'base_url' => env('BKASH_BASE_URL', 'https://tokenized.sandbox.bka.sh/v1.2.0-beta'),
+        'sandbox' => env('BKASH_SANDBOX', false),
+        'base_url' => env('BKASH_BASE_URL', 'https://checkout.pay.bka.sh/v1.2.0-beta'),
         'app_key' => env('BKASH_APP_KEY'),
         'app_secret' => env('BKASH_APP_SECRET'),
         'username' => env('BKASH_USERNAME'),
         'password' => env('BKASH_PASSWORD'),
-        // bKash needs an absolute callback URL. Do NOT use route() here — config loads
-        // before routes are registered (same approach as the dfninternet project).
-        'callback_url' => env('BKASH_CALLBACK_URL') ?: rtrim(env('APP_URL', ''), '/') . '/bkash/callback',
     ],
 
     'recaptcha' => [

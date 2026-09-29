@@ -40,20 +40,13 @@ class AuthController extends Controller
             Auth::login($user, $remember);
         }
 
-        if (!Auth::user()->hasVerifiedEmail()) {
-            Auth::user()->sendEmailVerificationNotification();
-
-            return redirect()
-                ->route('verification.notice')
-                ->withErrors(['email' => 'Please verify your email address before signing in. We sent you a fresh verification link.']);
-        }
-
         $request->session()->regenerate();
         $user = Auth::user();
         $request->session()->put('customer', [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'phone' => (string) $user->phone,
             'plan' => 'BDIX Premium',
         ]);
 
@@ -108,26 +101,13 @@ class AuthController extends Controller
             'newsletter' => $request->boolean('newsletter'),
         ]);
         Auth::login($user);
-        $user->sendEmailVerificationNotification();
-        $request->session()->put('customer', ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'plan' => 'BDIX Premium']);
+        $request->session()->put('customer', ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'phone' => (string) $user->phone, 'plan' => 'BDIX Premium']);
 
         return redirect()
-            ->route('verification.notice')
-            ->with('success', 'Registration complete! We sent a verification link to ' . $user->email . '.');
+            ->route('dashboard')
+            ->with('success', 'Welcome aboard, ' . $user->first_name . '! Your account is ready.');
     }
 
-    public function showVerificationNotice()
-    {
-        if (!Auth::check() && !session('customer')) {
-            return redirect()->route('login');
-        }
-        $user = Auth::user();
-        if ($user && $user->hasVerifiedEmail()) {
-            return redirect()->route('dashboard');
-        }
-
-        return view('auth.verify-email');
-    }
 
     public function logout(Request $request)
     {

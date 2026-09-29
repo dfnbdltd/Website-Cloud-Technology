@@ -7,7 +7,6 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BkashController;
 use App\Http\Controllers\ContactController;
-use App\Http\Controllers\Auth\VerificationController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     return view('home', ['catalog' => $resellerClub->catalog()]);
@@ -19,11 +18,7 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::get('/email/verify', [VerificationController::class, 'show'])->name('verification.notice');
-Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify')->middleware('signed');
-Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
-
-Route::middleware(['customer.verified'])->group(function () {
+Route::middleware(['web'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
     Route::get('/coming-soon/{section?}', function ($section = 'This section') {
         return view('under-construction', ['section' => str_replace('-', ' ', ucfirst($section))]);
@@ -41,9 +36,13 @@ Route::middleware(['customer.verified'])->group(function () {
     });
 });
 
-Route::get('/bkash/create-payment', [BkashController::class, 'createPayment'])->name('bkash.create-payment');
-Route::get('/bkash/callback', [BkashController::class, 'callback'])->name('bkash.callback');
-Route::get('/bkash/query/{paymentId}', [BkashController::class, 'query'])->name('bkash.query');
+// bKash direct checkout (popup) — see app/Services/BkashClient.php
+Route::get('/bkash/pay', [BkashController::class, 'pay'])->name('bkash.pay');
+Route::post('/bkash/create', [BkashController::class, 'create'])->name('bkash.create');
+Route::post('/bkash/execute', [BkashController::class, 'execute'])->name('bkash.execute');
+Route::post('/bkash/query', [BkashController::class, 'query'])->name('bkash.query');
+
+Route::get('/domains/confirmation/{reference}', [DomainController::class, 'confirmation'])->name('domains.confirmation');
 Route::post('/send-message', [ContactController::class, 'sendMessage'])->name('contact.send');
 Route::get('/admin/login', [AdminController::class, 'loginForm'])->name('admin.login');
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.submit');

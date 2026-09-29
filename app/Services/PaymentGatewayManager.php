@@ -15,11 +15,7 @@ class PaymentGatewayManager
     public function gatewayConfigured($gateway)
     {
         if ($gateway === 'bkash') {
-            $config = config('services.bkash');
-
-            return !empty($config['app_key']) && !empty($config['app_secret'])
-                && !empty($config['username']) && !empty($config['password'])
-                && !empty($config['callback_url']);
+            return app(BkashClient::class)->isConfigured();
         }
 
         return false;

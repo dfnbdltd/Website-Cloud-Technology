@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>@include('partials.head', ['title' => 'Dashboard'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}"></head><body class="domain-app">@include('partials.sidebar', ['active' => 'dashboard', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <main class="domain-main" id="mainArea">
-@include('partials.topbar', ['title' => 'Dashboard', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', []))])
+@include('partials.topbar', ['title' => 'Dashboard', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <div class="domain-content">@if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
 <div class="domain-hero"><div><span class="domain-kicker">CLIENT AREA</span><h1>Good to see you,<br><em>{{ session('customer.name', 'Client') }}.</em></h1><p>Manage your domains, invoices and support requests from one workspace.</p></div><div class="domain-orbit"><span>.com</span><span>.net</span><span>.bd</span><strong>◎</strong></div></div>
 <section class="stats-grid-domain">

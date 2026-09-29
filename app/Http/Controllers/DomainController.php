@@ -112,11 +112,15 @@ class DomainController extends Controller
             return redirect()->route('domains.index')->withErrors(['domain' => 'Add a domain before checkout.']);
         }
 
+        $user = $request->user();
+
         return view('domains.checkout', [
             'cart' => $cart,
             'total' => $this->total($cart),
             'methods' => $this->payments->methods(),
             'gatewayReady' => $this->payments->gatewayConfigured('bkash'),
+            // Prefill contact details already on file — editable, not re-asked.
+            'contactPhone' => (string) ($user ? $user->phone : session('customer.phone', '')),
         ]);
     }
 
@@ -130,9 +134,6 @@ class DomainController extends Controller
         }
 
         $user = $request->user();
-        if ($user && !$user->hasVerifiedEmail()) {
-            return redirect()->route('verification.notice')->withErrors(['email' => 'Verify your email address before placing an order.']);
-        }
 
         $cart = $request->session()->get('domain_cart', []);
         if (!$cart) {
@@ -200,10 +201,28 @@ class DomainController extends Controller
                 ]);
             }
 
-            return redirect()->route('bkash.create-payment', ['invoice' => $order['reference']]);
+            return redirect()->route('bkash.pay', ['invoice' => $order['reference']]);
         }
 
         return view('domains.confirmation', ['order' => $order]);
+    }
+
+    /**
+     * Renderable order confirmation page (also the bKash popup success target).
+     */
+    public function confirmation(Request $request, $reference)
+    {
+        $order = $request->session()->get('last_domain_order');
+        if (!$order || ($order['reference'] ?? null) !== $reference) {
+            return redirect()->route('domains.index')->withErrors(['payment' => 'Order not found in this session.']);
+        }
+
+        $databaseOrder = isset($order['database_id']) ? DomainOrder::find($order['database_id']) : null;
+
+        return view('domains.confirmation', [
+            'order' => $order,
+            'paid' => $databaseOrder ? $databaseOrder->payment_status === 'paid' : (($order['payment']['status'] ?? null) === 'paid'),
+        ]);
     }
 
     private function total(array $cart)
