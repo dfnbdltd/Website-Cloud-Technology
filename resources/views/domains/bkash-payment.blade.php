@@ -26,7 +26,7 @@
 .bkash-foot small{color:#8a90a3;font-size:12px}
 .bkash-foot a{font-size:13px;color:#3b62e0;text-decoration:none}
 </style></head><body class="domain-app"><main class="checkout-page">
-<a class="domain-brand checkout-brand" href="{{ route('domains.index') }}"><span class="domain-logo">H</span><span>HOST<span>NOVA</span></span></a>
+<a class="domain-brand checkout-brand" href="{{ route('domains.index') }}">@include('partials.logo', ['gid' => 'b'])</a>
 <div class="checkout-head"><div><span class="domain-kicker">SECURE PAYMENT</span><h1>Pay with bKash.</h1><p>Complete the payment in the official bKash window — wallet number, then the OTP and PIN.</p></div></div>
 
 <div class="bkash-shell">

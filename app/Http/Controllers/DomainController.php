@@ -146,7 +146,7 @@ class DomainController extends Controller
         ]);
 
         $order = [
-            'reference' => 'HS-' . date('Ymd') . '-' . strtoupper(substr(sha1(uniqid('', true)), 0, 6)),
+            'reference' => 'CT-' . date('Ymd') . '-' . strtoupper(substr(sha1(uniqid('', true)), 0, 6)),
             'items' => array_values($cart),
             'total' => $this->total($cart),
             'customer' => $data,

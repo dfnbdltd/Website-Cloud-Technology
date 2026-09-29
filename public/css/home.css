@@ -64,3 +64,13 @@
 .home-cta p{font-size:16px}
 .home-footer{font-size:13px}
 @media(max-width:850px){.landing-copy h1{font-size:44px}}
+
+/* ---------------------------------------------------------------------------
+   CloudTech logo (landing header + footer)
+   ------------------------------------------------------------------------- */
+.host-logo{display:flex;align-items:center}
+.ct-header-logo .ct-logo-mark{width:44px;height:44px}
+.ct-header-logo .ct-logo-text{font:800 34px 'Manrope',sans-serif;letter-spacing:-2px;color:#fff}
+.ct-footer-logo .ct-logo-mark{width:30px;height:30px}
+.ct-footer-logo .ct-logo-text{font:800 24px 'Manrope',sans-serif;letter-spacing:-1.5px;color:#fff}
+.ct-logo-text .ct-logo-accent{color:#38bdf8}
