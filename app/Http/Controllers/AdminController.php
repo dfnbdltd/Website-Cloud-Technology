@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMail;
 use App\Models\ChatMessage;
 use App\Models\DomainOrder;
+use App\Models\Setting;
 use App\Models\SupportTicket;
 use App\Models\Topup;
+use App\Services\Notifier;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +47,19 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
         $data = $request->validate(['status' => ['required', 'in:payment_pending,paid,registration_pending,active,failed,refunded']]);
+        $wasPaid = $order->payment_status === 'paid';
         $order->update(['status' => $data['status']]);
+
+        // Manual payments (bank / Nagad) are confirmed here: mark paid and email the invoice.
+        if ($data['status'] === 'paid' && !$wasPaid) {
+            $order->update(['payment_status' => 'paid']);
+            if ($order->customer_email) {
+                Notifier::send($order->customer_email, new InvoiceMail($order->fresh()));
+            }
+
+            return redirect()->route('admin.dashboard')->with('success', 'Order marked paid and the invoice was emailed to the customer.');
+        }
+
         return redirect()->route('admin.dashboard')->with('success', 'Order status updated.');
     }
 
@@ -101,7 +116,7 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
         if ($topup->status !== 'pending') {
-            return redirect()->route('admin.dashboard')->withErrors(['status' => 'This request was already processed.']);
+            return back()->withErrors(['status' => 'This request was already processed.']);
         }
 
         DB::transaction(function () use ($request, $topup) {
@@ -114,14 +129,14 @@ class AdminController extends Controller
             ])->save();
         });
 
-        return redirect()->route('admin.dashboard')->with('success', 'Top-up ' . $topup->reference . ' approved and balance credited.');
+        return back()->with('success', 'Top-up ' . $topup->reference . ' approved and balance credited.');
     }
 
     public function rejectTopup(Request $request, Topup $topup)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
         if ($topup->status !== 'pending') {
-            return redirect()->route('admin.dashboard')->withErrors(['status' => 'This request was already processed.']);
+            return back()->withErrors(['status' => 'This request was already processed.']);
         }
 
         $topup->forceFill([
@@ -130,7 +145,60 @@ class AdminController extends Controller
             'admin_note' => 'Rejected by ' . session('admin.email'),
         ])->save();
 
-        return redirect()->route('admin.dashboard')->with('success', 'Top-up ' . $topup->reference . ' rejected.');
+        return back()->with('success', 'Top-up ' . $topup->reference . ' rejected.');
+    }
+
+    /**
+     * CMS: edit the public site's text content (stored in the settings table).
+     */
+    public function content(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        return view('admin.content', ['groups' => Setting::fields(), 'values' => Setting::allValues()]);
+    }
+
+    public function updateContent(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $keys = [];
+        foreach (Setting::fields() as $group) {
+            $keys = array_merge($keys, array_keys($group));
+        }
+        $rules = array_fill_keys($keys, ['nullable', 'string', 'max:2000']);
+        $data = $request->validate($rules);
+
+        Setting::put(array_map(function ($value) {
+            return trim((string) $value);
+        }, array_intersect_key($data, array_flip($keys))));
+
+        return redirect()->route('admin.content')->with('success', 'Site content saved — the public site is updated.');
+    }
+
+    public function customers(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $search = trim((string) $request->query('q'));
+        $customers = User::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('customer_uid', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(25)
+            ->appends(['q' => $search]);
+
+        return view('admin.customers', [
+            'customers' => $customers,
+            'search' => $search,
+            'topups' => Topup::with('user')->latest()->take(15)->get(),
+        ]);
     }
 
     public function logout(Request $request)

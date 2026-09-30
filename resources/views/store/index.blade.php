@@ -5,23 +5,9 @@
 @if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
 
 <div class="store-balance-row" id="balance">
-<div class="balance-card"><small>AVAILABLE BALANCE</small><strong>৳ {{ number_format(session('customer.balance', 0), 2) }}</strong><span>{{ $pendingTopup ? $pendingTopup . ' top-up awaiting approval' : 'Instant use on invoices & renewals' }}</span></div>
+<div class="balance-card"><small>AVAILABLE BALANCE</small><strong>৳ {{ number_format(session('customer.balance', 0), 2) }}</strong><span>{{ $pendingTopup ? $pendingTopup . ' top-up awaiting approval' : 'Top up instantly with bKash' }}</span></div>
 <div class="balance-card alt"><small>PAID TO DATE</small><strong>৳ {{ number_format($paidTotal, 2) }}</strong><span>{{ $domainCount }} domain order{{ $domainCount === 1 ? '' : 's' }} placed</span></div>
-<button class="add-balance-toggle button-like" type="button" onclick="toggleAddBalance()">＋ Add Balance</button>
-</div>
-
-<div class="store-panel add-balance-box" id="add-balance">
-<h2>Add Balance</h2>
-<p>Send money to <b>01713-401914</b> (bKash / Nagad personal) or transfer to our bank, then submit the details below. Our billing team verifies and credits your balance.</p>
-<form method="POST" action="{{ route('mystore.add-balance') }}">@csrf
-<div class="store-fields">
-<label>Amount (BDT) *<input type="number" name="amount" min="10" step="0.01" placeholder="e.g. 1000" required></label>
-<label>Payment method *<select name="method" required><option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="bank">Bank transfer</option></select></label>
-<label>Sender number / Account<input type="text" name="sender_number" placeholder="01XXXXXXXXX"></label>
-<label>Transaction ID<input type="text" name="transaction_id" placeholder="e.g. 9F7HK2LM"></label>
-</div>
-<button class="checkout-submit" type="submit">Submit request <b>→</b></button>
-</form>
+<a class="add-balance-toggle button-like" href="{{ route('wallet.index') }}#add-balance">＋ Add Balance</a>
 </div>
 
 <div class="store-grid">
@@ -51,24 +37,12 @@
 @forelse($payments as $payment)
 <div class="order-row"><span class="order-icon {{ $payment->status === 'approved' ? 'ok' : '' }}">৳</span><div><strong>{{ $payment->reference }}</strong><small>{{ ucfirst($payment->method) }} · {{ $payment->created_at->format('d M Y') }}</small></div><b>৳ {{ number_format($payment->amount, 2) }}</b><b class="table-status {{ $payment->status }}">{{ ucfirst($payment->status) }}</b></div>
 @empty
-<div class="table-empty">No payments yet. Use “Add Balance” above.</div>
+<div class="table-empty">No payments yet. <a href="{{ route('wallet.index') }}#add-balance">Add balance →</a></div>
 @endforelse
 </section>
 </div>
 </div>
 </main>
-<script>
-function toggleAddBalance(){
-  var box = document.getElementById('add-balance');
-  if (!box) return;
-  box.classList.toggle('open');
-  if (box.classList.contains('open')) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-// Sidebar "Add Balance" link lands here with #add-balance — open the form.
-if (window.location.hash === '#add-balance') {
-  var box = document.getElementById('add-balance');
-  if (box) { box.classList.add('open'); }
-}
-</script>
+
 @include('partials.chat')
 </body></html>

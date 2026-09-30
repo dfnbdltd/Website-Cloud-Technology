@@ -96,21 +96,42 @@ class DomainController extends Controller
         $price = $plan ? $plan['price'] : (float) $data['price'];
 
         $cart = $request->session()->get('domain_cart', []);
-        $cart[$data['domain']] = ['domain' => strtolower($data['domain']), 'price' => $price, 'years' => 1];
+        $cart[strtolower($data['domain'])] = ['domain' => strtolower($data['domain']), 'price' => $price, 'years' => 1];
         $request->session()->put('domain_cart', $cart);
 
-        return redirect()->route('domains.index')->with('success', 'Domain added to your cart.');
+        return redirect()->back()->with('cart_added', strtolower($data['domain']));
+    }
+
+    /**
+     * Stand-alone cart page (the cart no longer lives beside the search).
+     */
+    public function cart(Request $request)
+    {
+        $cart = $request->session()->get('domain_cart', []);
+
+        return view('cart.index', ['cart' => $cart, 'total' => $this->total($cart)]);
+    }
+
+    public function removeFromCart(Request $request)
+    {
+        $domain = strtolower((string) $request->input('domain'));
+        $cart = $request->session()->get('domain_cart', []);
+        unset($cart[$domain]);
+        $request->session()->put('domain_cart', $cart);
+
+        return redirect()->route('cart.index')->with('success', $domain . ' was removed from your cart.');
     }
 
     public function checkout(Request $request)
     {
         if (!$this->isCustomer($request)) {
-            return redirect()->route('login');
+            return redirect()->guest(route('login'))
+                ->with('success', 'Please sign in or create an account to complete your purchase. Your cart is saved.');
         }
 
         $cart = $request->session()->get('domain_cart', []);
         if (!$cart) {
-            return redirect()->route('domains.index')->withErrors(['domain' => 'Add a domain before checkout.']);
+            return redirect()->route('cart.index')->withErrors(['domain' => 'Add a domain before checkout.']);
         }
 
         $user = $request->user();
@@ -130,7 +151,7 @@ class DomainController extends Controller
         // Login is enforced HERE, right before payment.
         if (!$request->user() && !session('customer')) {
             return redirect()
-                ->route('login')
+                ->guest(route('login'))
                 ->with('success', 'Please sign in or create an account to complete your purchase. Your cart is saved.');
         }
 

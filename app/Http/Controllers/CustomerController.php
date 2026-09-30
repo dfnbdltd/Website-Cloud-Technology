@@ -79,7 +79,7 @@ class CustomerController extends Controller
         ]);
 
         return redirect()
-            ->route('mystore')
+            ->route('wallet.index')
             ->with('success', 'Add-balance request received. Our billing team will verify it and credit your balance shortly.');
     }
 

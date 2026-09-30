@@ -6,9 +6,9 @@
 
 <div class="profile-id-card">
 <div class="profile-id-avatar">
-@if($user->logo)<img src="{{ asset('storage/' . $user->logo) }}" alt="{{ $user->name }}">@else{{ strtoupper(substr($user->name, 0, 2)) }}@endif
+@if($user->logo)<img src="{{ asset('storage/' . $user->logo) }}" alt="{{ $user->name }}">@else<span>{{ \App\User::initials($user->name) }}</span>@endif
 </div>
-<div><small>CLOUDTECH CLIENT</small><strong>{{ $user->name }}</strong><span>{{ $user->email }}</span><span class="profile-uid">Unique ID: <b>{{ $user->customer_uid }}</b></span></div>
+<div><strong>{{ $user->name }}</strong><span>{{ $user->email }}</span><span class="profile-uid">Unique ID: <b>{{ $user->customer_uid }}</b></span></div>
 </div>
 
 <form class="store-panel profile-form" method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">@csrf
@@ -24,7 +24,7 @@
 <label>City *<input type="text" name="city" value="{{ old('city', $user->city) }}" required></label>
 <label>State / Division<input type="text" name="state" value="{{ old('state', $user->state) }}"></label>
 <label>Postcode *<input type="text" name="postcode" value="{{ old('postcode', $user->postcode) }}" required></label>
-<label>Country *<select name="country" required>@foreach(['Bangladesh', 'India', 'Pakistan', 'United States', 'United Kingdom', 'Other'] as $countryOption)<option value="{{ $countryOption }}" @selected(old('country', $user->country) === $countryOption)>{{ $countryOption }}</option>@endforeach</select></label>
+<label>Country *<select name="country" required>@foreach(['Bangladesh', 'India', 'Pakistan', 'United States', 'United Kingdom', 'Other'] as $countryOption)<option value="{{ $countryOption }}" {{ (old('country', $user->country) === $countryOption) ? 'selected' : '' }}>{{ $countryOption }}</option>@endforeach</select></label>
 <label>Profile logo<br><input type="file" name="logo" accept="image/*"></label>
 </div>
 <button class="checkout-submit" type="submit">Save changes <b>→</b></button>

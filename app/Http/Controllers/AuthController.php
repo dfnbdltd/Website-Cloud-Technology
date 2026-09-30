@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AccountReady;
+use App\Mail\VerifyEmail;
+use App\Services\Notifier;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
 
 class AuthController extends Controller
 {
@@ -37,11 +41,23 @@ class AuthController extends Controller
                 ['email' => $demoEmail],
                 ['name' => 'M Hafuz', 'password' => Hash::make($demoPassword)]
             );
+            if (!$user->email_verified_at) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
             Auth::login($user, $remember);
         }
 
-        $request->session()->regenerate();
         $user = Auth::user();
+        if (!$user->email_verified_at) {
+            Auth::logout();
+
+            return back()
+                ->withErrors(['email' => 'Please verify your email address first — check your inbox for the verification link.'])
+                ->with('unverified_email', $user->email)
+                ->withInput();
+        }
+
+        $request->session()->regenerate();
         if (!$user->customer_uid) {
             $user->forceFill(['customer_uid' => User::generateUid()])->save();
         }
@@ -98,12 +114,58 @@ class AuthController extends Controller
             'newsletter' => $request->boolean('newsletter'),
         ]);
         $user->forceFill(['customer_uid' => User::generateUid()])->save();
-        Auth::login($user);
-        $request->session()->put('customer', self::customerSession($user));
+        Notifier::send($user->email, new VerifyEmail($user));
+
+        return redirect()->route('verification.notice')->with('verify_email', $user->email);
+    }
+
+    /**
+     * "Check your inbox" page shown after sign-up, with a resend form.
+     */
+    public function verificationNotice(Request $request)
+    {
+        return view('auth.verify', ['email' => session('verify_email', old('email'))]);
+    }
+
+    public function resendVerification(Request $request)
+    {
+        $data = $request->validate(['email' => ['required', 'email']]);
+        $user = User::where('email', $data['email'])->first();
+
+        // Same answer whether or not the address exists, so emails can't be probed.
+        if ($user && !$user->email_verified_at) {
+            Notifier::send($user->email, new VerifyEmail($user));
+        }
 
         return redirect()
-            ->route('dashboard')
-            ->with('success', 'Welcome aboard, ' . $user->first_name . '! Your account is ready.');
+            ->route('verification.notice')
+            ->with('verify_email', $data['email'])
+            ->with('success', 'If that account is waiting for verification, a new link is on its way.');
+    }
+
+    /**
+     * Signed link from the verification email: activate, email the login
+     * details, sign the customer in and continue where they left off.
+     */
+    public function verify(Request $request, $id, $hash)
+    {
+        $user = User::find($id);
+        if (!$user || !URL::hasValidSignature($request, false) || !hash_equals(sha1($user->email), (string) $hash)) {
+            return redirect()->route('login')->withErrors(['email' => 'That verification link is invalid or has expired. Sign in to get a new one.']);
+        }
+
+        if (!$user->email_verified_at) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+            Notifier::send($user->email, new AccountReady($user));
+        }
+
+        Auth::login($user);
+        $request->session()->regenerate();
+        $request->session()->put('customer', self::customerSession($user));
+
+        $next = $request->session()->get('domain_cart') ? route('cart.index') : route('dashboard');
+
+        return redirect()->intended($next)->with('success', 'Email verified — welcome aboard, ' . ($user->first_name ?: $user->name) . '! Your login details have been emailed to you.');
     }
 
 
@@ -126,6 +188,7 @@ class AuthController extends Controller
             'id' => $user->id,
             'uid' => $user->customer_uid,
             'name' => $user->name,
+            'initials' => User::initials($user->name),
             'email' => $user->email,
             'phone' => (string) $user->phone,
             'balance' => (float) $user->balance,

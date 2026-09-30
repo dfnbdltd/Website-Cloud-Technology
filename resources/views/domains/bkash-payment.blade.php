@@ -25,13 +25,13 @@
 .bkash-foot{padding:14px 22px;border-top:1px solid #eef0f5;background:#fff}
 .bkash-foot small{color:#8a90a3;font-size:12px}
 .bkash-foot a{font-size:13px;color:#3b62e0;text-decoration:none}
-</style></head><body class="domain-app"><main class="checkout-page">
+</style></head><body class="domain-app">@php($backUrl = $backUrl ?? route('domains.confirmation', ['reference' => $order['reference']]))<main class="checkout-page">
 <a class="domain-brand checkout-brand" href="{{ route('domains.index') }}">@include('partials.logo', ['gid' => 'b'])</a>
-<div class="checkout-head"><div><span class="domain-kicker">SECURE PAYMENT</span><h1>Pay with bKash.</h1><p>Complete the payment in the official bKash window — wallet number, then the OTP and PIN.</p></div></div>
+<div class="checkout-head"><div><span class="domain-kicker">SECURE PAYMENT</span><h1>{{ $heading ?? 'Pay with bKash.' }}</h1><p>Complete the payment in the official bKash window — wallet number, then the OTP and PIN.</p></div></div>
 
 <div class="bkash-shell">
     <div class="bkash-summary">
-        <div><small>Order</small><strong>{{ $order['reference'] }}</strong></div>
+        <div><small>{{ $summaryLabel ?? 'Order' }}</small><strong>{{ $order['reference'] }}</strong></div>
         <div class="amt"><small>Amount</small><strong>৳ {{ number_format($order['total']) }}</strong></div>
         <div><small>Method</small><strong>bKash</strong></div>
     </div>
@@ -44,7 +44,7 @@
             <div class="bkash-body">
                 <p style="color:#27ae60;font-weight:700;margin:0 0 6px">Payment already completed</p>
                 <p style="color:#5b6478;margin:0 0 22px">Transaction: <strong>{{ $order['payment']['transaction_id'] }}</strong></p>
-                <a class="checkout-submit" style="display:inline-block" href="{{ route('domains.confirmation', ['reference' => $order['reference']]) }}">Continue <b>→</b></a>
+                <a class="checkout-submit" style="display:inline-block" href="{{ $backUrl }}">Continue <b>→</b></a>
             </div>
         </div>
     @elseif(empty($gatewayReady))
@@ -54,7 +54,7 @@
             </div>
             <div class="bkash-body">
                 <div class="bkash-error" style="display:block">bKash is not configured on this server yet. Your order is saved — our billing team will contact you with payment instructions for reference {{ $order['reference'] }}.</div>
-                <a class="checkout-submit" style="display:inline-block" href="{{ route('domains.confirmation', ['reference' => $order['reference']]) }}">Back to order <b>→</b></a>
+                <a class="checkout-submit" style="display:inline-block" href="{{ $backUrl }}">Back <b>→</b></a>
             </div>
         </div>
     @else
@@ -73,7 +73,7 @@
             </div>
             <div class="bkash-foot">
                 <small>🔒 The payment window is provided by bKash. Never share your PIN outside this window.</small>
-                <a href="{{ route('domains.confirmation', ['reference' => $order['reference']]) }}">Back to order status →</a>
+                <a href="{{ $backUrl }}">{{ $backLabel ?? 'Back to order status →' }}</a>
             </div>
         </div>
 
@@ -117,7 +117,7 @@
             }
 
             function pollQuery() {
-                post('{{ route('bkash.query') }}').then(function (result) {
+                post('{{ $endpoints['query'] ?? route('bkash.query') }}').then(function (result) {
                     if (result.ok && result.data.status === 'success') {
                         window.location.href = result.data.redirect;
                     } else if (result.data.status === 'pending') {
@@ -134,7 +134,7 @@
                 },
                 createRequest: function (request) {
                     setStatus('Creating payment…', '');
-                    post('{{ route('bkash.create') }}').then(function (result) {
+                    post('{{ $endpoints['create'] ?? route('bkash.create') }}').then(function (result) {
                         if (result.ok && result.data.paymentID) {
                             setStatus('Waiting for bKash…', '');
                             bKash.create().onSuccess(result.data);
@@ -152,7 +152,7 @@
                 executeRequestOnAuthorization: function () {
                     setStatus('Verifying payment…', '');
                     (function tryExecute() {
-                        post('{{ route('bkash.execute') }}').then(function (result) {
+                        post('{{ $endpoints['execute'] ?? route('bkash.execute') }}').then(function (result) {
                             if (result.ok && result.data.status === 'success') { finish(result.data); return; }
                             if (result.data && result.data.status === 'pending') { setStatus('Still confirming with bKash…', ''); setTimeout(tryExecute, 3000); return; }
                             setStatus('Payment was not completed', 'err');

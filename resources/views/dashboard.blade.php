@@ -3,7 +3,7 @@
 <main class="domain-main" id="mainArea">
 @include('partials.topbar', ['title' => 'Dashboard', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <div class="domain-content">@if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
-<div class="domain-hero"><div><span class="domain-kicker">CLIENT AREA</span><h1>Good to see you,<br><em>{{ session('customer.name', 'Client') }}.</em></h1><p>Manage your domains, invoices and support requests from one workspace.</p></div><div class="domain-orbit"><span>.com</span><span>.net</span><span>.bd</span><strong>◎</strong></div></div>
+<span class="domain-kicker">CLIENT AREA</span><h1 class="workspace-title">Dashboard</h1><p class="workspace-subtitle">Your domains, orders, balance and support at a glance.</p>
 <section class="stats-grid-domain">
 <div class="stat-tile"><span class="stat-tile-icon blue">◎</span><small>DOMAINS</small><strong>{{ $domainCount }}</strong><span class="stat-tile-foot">{{ $domainCount ? 'Registered with us' : 'No domains yet' }}</span></div>
 <div class="stat-tile"><span class="stat-tile-icon green">✓</span><small>ORDERS</small><strong>{{ $orderCount }}</strong><span class="stat-tile-foot">{{ $pendingCount ? $pendingCount . ' awaiting payment' : 'All completed' }}</span></div>
@@ -22,7 +22,7 @@
 </div>
 <div class="panel-card">
 <div class="panel-head"><div><span class="domain-kicker">QUICK ACTIONS</span><h2>Get things done</h2></div></div>
-<div class="quick-actions"><a href="{{ route('mystore') }}"><b>🏪</b> My Store</a><a href="{{ route('domains.index') }}"><b>◎</b> Register domain</a><a href="{{ route('invoices') }}"><b>▣</b> View invoices</a><a href="{{ route('support') }}"><b>◔</b> Open ticket</a><a href="{{ route('profile.settings') }}"><b>⚙</b> Profile settings</a></div>
+<div class="quick-actions"><a href="{{ route('mystore') }}"><b>🏪</b> My Store</a><a href="{{ route('domains.index') }}"><b>◎</b> Register domain</a><a href="{{ route('invoices') }}"><b>▣</b> View invoices</a><a href="{{ route('support') }}"><b>◔</b> Open ticket</a><a href="{{ route('wallet.index') }}#add-balance"><b>৳</b> Add balance</a></div>
 <div class="cart-trust"><span>✓</span><p>Secure client area<br><small>Your information is encrypted</small></p></div>
 </div>
 </section>

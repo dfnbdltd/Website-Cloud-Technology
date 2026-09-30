@@ -8,6 +8,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BkashController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\WalletController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     return view('home', ['catalog' => $resellerClub->catalog()]);
@@ -19,6 +20,11 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Email verification (sign-up -> verify link -> login details emailed)
+Route::get('/email/verify', [AuthController::class, 'verificationNotice'])->name('verification.notice');
+Route::post('/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1')->name('verification.resend');
+Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verify'])->name('verification.verify');
+
 Route::middleware(['web'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
     Route::get('/coming-soon/{section?}', function ($section = 'This section') {
@@ -26,6 +32,12 @@ Route::middleware(['web'])->group(function () {
     })->name('under.construction');
     Route::get('/mystore', [CustomerController::class, 'myStore'])->name('mystore');
     Route::post('/mystore/add-balance', [CustomerController::class, 'addBalance'])->name('mystore.add-balance');
+    Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
+    Route::post('/wallet/bkash', [WalletController::class, 'start'])->name('wallet.bkash.start');
+    Route::get('/wallet/bkash', [WalletController::class, 'pay'])->name('wallet.bkash.pay');
+    Route::post('/wallet/bkash/create', [WalletController::class, 'create'])->name('wallet.bkash.create');
+    Route::post('/wallet/bkash/execute', [WalletController::class, 'execute'])->name('wallet.bkash.execute');
+    Route::post('/wallet/bkash/query', [WalletController::class, 'query'])->name('wallet.bkash.query');
     Route::get('/profile/settings', [CustomerController::class, 'profileSettings'])->name('profile.settings');
     Route::post('/profile/settings', [CustomerController::class, 'updateProfile'])->name('profile.update');
     Route::get('/profile/password', [CustomerController::class, 'changePasswordForm'])->name('change.password');
@@ -42,6 +54,8 @@ Route::middleware(['web'])->group(function () {
         Route::get('/', [DomainController::class, 'index'])->name('domains.index');
         Route::post('/search', [DomainController::class, 'search'])->name('domains.search');
         Route::post('/cart', [DomainController::class, 'addToCart'])->name('domains.cart');
+        Route::get('/cart', [DomainController::class, 'cart'])->name('cart.index');
+        Route::post('/cart/remove', [DomainController::class, 'removeFromCart'])->name('cart.remove');
         Route::get('/checkout', [DomainController::class, 'checkout'])->name('domains.checkout');
         Route::post('/checkout', [DomainController::class, 'placeOrder'])->name('domains.place-order');
     });
@@ -60,6 +74,9 @@ Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.logi
 Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 Route::post('/admin/orders/{order}/status', [AdminController::class, 'updateOrder'])->name('admin.orders.status');
+Route::get('/admin/customers', [AdminController::class, 'customers'])->name('admin.customers');
+Route::get('/admin/content', [AdminController::class, 'content'])->name('admin.content');
+Route::post('/admin/content', [AdminController::class, 'updateContent'])->name('admin.content.update');
 Route::get('/admin/chat/{session?}', [AdminController::class, 'chat'])->name('admin.chat');
 Route::get('/admin/chat-poll', [ChatController::class, 'adminPoll'])->name('admin.chat.poll');
 Route::post('/admin/chat-reply', [ChatController::class, 'adminSend'])->name('admin.chat.send');

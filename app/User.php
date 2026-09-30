@@ -69,6 +69,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Two-letter avatar initials: "M Hafuz" -> "MH", "Rahim" -> "RA".
+     */
+    public static function initials($name)
+    {
+        $words = preg_split('/\s+/u', trim((string) $name), -1, PREG_SPLIT_NO_EMPTY);
+        if (!$words) {
+            return 'C';
+        }
+        $initials = count($words) > 1
+            ? mb_substr($words[0], 0, 1) . mb_substr(end($words), 0, 1)
+            : mb_substr($words[0], 0, 2);
+
+        return mb_strtoupper($initials);
+    }
+
+    /**
      * Conversations channel key used by the live chat (works for guests too).
      */
     public function chatSessionId()

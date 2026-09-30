@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMail;
 use App\Models\DomainOrder;
 use App\Models\Payment;
 use App\Services\BkashClient;
+use App\Services\Notifier;
 use App\Services\ResellerClubClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -204,6 +206,10 @@ class BkashController extends Controller
             ]);
 
             $this->registerDomains($databaseOrder);
+
+            if ($databaseOrder->customer_email) {
+                Notifier::send($databaseOrder->customer_email, new InvoiceMail($databaseOrder->fresh()));
+            }
         }
 
         return response()->json([
