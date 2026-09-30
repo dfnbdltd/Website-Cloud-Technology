@@ -52,7 +52,8 @@ class DomainController extends Controller
             $remote = $this->resellerClub->checkAvailability($name, $tld);
             $entry = is_array($remote) ? ($remote[$name . '.' . $tld] ?? null) : null;
             $status = is_array($entry) ? strtolower($entry['status'] ?? '') : '';
-            $available = in_array($status, ['available', 'notinuse'], true);
+            // null = the lookup failed (API error / IP not whitelisted), not "taken".
+            $available = $status === '' ? null : in_array($status, ['available', 'notinuse'], true);
 
             // If the classkey differs from the catalog, pull its price live.
             $price = $plan['price'];

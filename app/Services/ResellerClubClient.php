@@ -125,10 +125,16 @@ class ResellerClubClient
         curl_close($curl);
 
         if ($body === false || $error) {
+            \Log::warning('ResellerClub request failed', ['path' => $path, 'error' => $error]);
+
             return null;
         }
 
         $decoded = json_decode($body, true);
+
+        if (!is_array($decoded) || (isset($decoded['status']) && strtoupper($decoded['status']) === 'ERROR')) {
+            \Log::warning('ResellerClub API error', ['path' => $path, 'response' => substr($body, 0, 500)]);
+        }
 
         return is_array($decoded) ? $decoded : null;
     }
