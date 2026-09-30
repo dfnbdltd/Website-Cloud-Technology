@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head>@include('partials.head', ['title' => 'bKash payment'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}"><script src="https://scripts.pay.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout.js"></script><style>
+<!doctype html><html lang="en"><head>@include('partials.head', ['title' => 'bKash payment'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}"><script src="https://scripts.pay.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout.js"></script><style>
 .bkash-shell{max-width:760px;margin:0 auto}
 .bkash-summary{display:flex;flex-wrap:wrap;gap:0;border:1px solid #e6e8ef;border-radius:14px;overflow:hidden;background:#fff;margin:22px 0 26px}
 .bkash-summary>div{flex:1 1 180px;padding:16px 22px;border-right:1px solid #eef0f5}

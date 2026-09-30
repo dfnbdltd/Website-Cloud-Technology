@@ -1,5 +1,5 @@
 {{-- Live chat bubble + panel (customer side). Polls /chat/messages every 4s. --}}
-<link rel="stylesheet" href="{{ asset('css/chat.css') }}">
+<link rel="stylesheet" href="{{ asset('css/chat.css') }}?v={{ filemtime(public_path('css/chat.css')) }}">
 <div class="chat-widget" id="chatWidget">
 <button class="chat-fab" type="button" onclick="Chat.toggle()" aria-label="Open live chat">
 <span class="chat-fab-icon">💬</span>

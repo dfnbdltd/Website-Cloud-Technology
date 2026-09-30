@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head>@include('partials.head', ['title' => 'Coming soon'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}"></head>
+<head>@include('partials.head', ['title' => 'Coming soon'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}"></head>
 <body class="domain-app">
 @include('partials.sidebar', ['active' => 'construction', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <main class="domain-main">@include('partials.topbar', ['title' => 'Under construction', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])

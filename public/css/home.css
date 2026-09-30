@@ -103,3 +103,9 @@
 
 @media(max-width:960px){.site-nav{display:none}.site-hero-inner{flex-direction:column;align-items:stretch;gap:36px}.site-price-grid{grid-template-columns:repeat(2,1fr)}.site-hero h1{font-size:42px}}
 @media(max-width:560px){.site-top-links>span{display:none}.site-header-inner{height:64px;gap:12px}.site-logo .ct-logo-text{font-size:21px}.site-btn,.site-btn-ghost{height:36px;padding:0 12px;font-size:13px}.site-user>span:not(.site-avatar){display:none}.site-hero{padding:44px 0}.site-hero h1{font-size:34px}.site-hero-copy>p{font-size:16px}.site-search button{padding:12px 16px}.site-price-grid{grid-template-columns:1fr}.site-pricing h2,.site-cta h2{font-size:28px}.site-trust-inner span{width:100%}}
+
+/* Footer: dark navy base under the white page */
+.site-footer{background:#0f172a;border-top:0;color:#94a3b8;padding:30px 0}
+.site-footer .ct-logo-text{color:#fff}
+.site-footer .ct-logo-accent{color:#60a5fa}
+.site-footer span{color:#94a3b8}

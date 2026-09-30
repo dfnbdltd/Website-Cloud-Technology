@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head>@include('partials.head', ['title' => 'Dashboard'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}"></head><body class="domain-app">@include('partials.sidebar', ['active' => 'dashboard', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
+<html lang="en"><head>@include('partials.head', ['title' => 'Dashboard'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}"></head><body class="domain-app">@include('partials.sidebar', ['active' => 'dashboard', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <main class="domain-main" id="mainArea">
 @include('partials.topbar', ['title' => 'Dashboard', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <div class="domain-content">@if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
