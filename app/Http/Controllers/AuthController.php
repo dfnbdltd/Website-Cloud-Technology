@@ -42,13 +42,10 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
         $user = Auth::user();
-        $request->session()->put('customer', [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => (string) $user->phone,
-            'plan' => 'BDIX Premium',
-        ]);
+        if (!$user->customer_uid) {
+            $user->forceFill(['customer_uid' => User::generateUid()])->save();
+        }
+        $request->session()->put('customer', self::customerSession($user));
 
         return redirect()->intended(route('dashboard'));
     }
@@ -100,8 +97,9 @@ class AuthController extends Controller
             'security_answer' => $data['security_answer'],
             'newsletter' => $request->boolean('newsletter'),
         ]);
+        $user->forceFill(['customer_uid' => User::generateUid()])->save();
         Auth::login($user);
-        $request->session()->put('customer', ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'phone' => (string) $user->phone, 'plan' => 'BDIX Premium']);
+        $request->session()->put('customer', self::customerSession($user));
 
         return redirect()
             ->route('dashboard')
@@ -116,5 +114,23 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('landing');
+    }
+
+    /**
+     * Session snapshot shared by login and registration so every client-area
+     * page shows the same unique ID, balance and logo without extra queries.
+     */
+    public static function customerSession(User $user)
+    {
+        return [
+            'id' => $user->id,
+            'uid' => $user->customer_uid,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => (string) $user->phone,
+            'balance' => (float) $user->balance,
+            'logo' => $user->logo ? asset('storage/' . $user->logo) : null,
+            'plan' => 'BDIX Premium',
+        ];
     }
 }

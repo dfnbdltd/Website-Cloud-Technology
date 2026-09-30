@@ -7,6 +7,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BkashController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\ChatController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     return view('home', ['catalog' => $resellerClub->catalog()]);
@@ -23,9 +24,19 @@ Route::middleware(['web'])->group(function () {
     Route::get('/coming-soon/{section?}', function ($section = 'This section') {
         return view('under-construction', ['section' => str_replace('-', ' ', ucfirst($section))]);
     })->name('under.construction');
+    Route::get('/mystore', [CustomerController::class, 'myStore'])->name('mystore');
+    Route::post('/mystore/add-balance', [CustomerController::class, 'addBalance'])->name('mystore.add-balance');
+    Route::get('/profile/settings', [CustomerController::class, 'profileSettings'])->name('profile.settings');
+    Route::post('/profile/settings', [CustomerController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/profile/password', [CustomerController::class, 'changePasswordForm'])->name('change.password');
+    Route::post('/profile/password', [CustomerController::class, 'changePassword'])->name('change.password.submit');
     Route::get('/invoices', [CustomerController::class, 'invoices'])->name('invoices');
     Route::get('/support', [CustomerController::class, 'support'])->name('support');
     Route::post('/support/tickets', [CustomerController::class, 'createTicket'])->name('support.create');
+
+    // Live chat (client-area widget + admin console)
+    Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
+    Route::post('/chat/messages', [ChatController::class, 'send'])->name('chat.send');
 
     Route::prefix('domains')->group(function () {
         Route::get('/', [DomainController::class, 'index'])->name('domains.index');
@@ -49,3 +60,8 @@ Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.logi
 Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 Route::post('/admin/orders/{order}/status', [AdminController::class, 'updateOrder'])->name('admin.orders.status');
+Route::get('/admin/chat/{session?}', [AdminController::class, 'chat'])->name('admin.chat');
+Route::get('/admin/chat-poll', [ChatController::class, 'adminPoll'])->name('admin.chat.poll');
+Route::post('/admin/chat-reply', [ChatController::class, 'adminSend'])->name('admin.chat.send');
+Route::post('/admin/topups/{topup}/approve', [AdminController::class, 'approveTopup'])->name('admin.topups.approve');
+Route::post('/admin/topups/{topup}/reject', [AdminController::class, 'rejectTopup'])->name('admin.topups.reject');

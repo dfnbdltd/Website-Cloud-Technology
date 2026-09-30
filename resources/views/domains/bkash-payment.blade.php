@@ -175,4 +175,6 @@
         </script>
     @endif
 </div>
-</main></body></html>
+</main>
+@include('partials.chat')
+</body></html>

@@ -39,5 +39,50 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'newsletter' => 'boolean',
+        'balance' => 'float',
     ];
+
+    /**
+     * Generate the next sequential customer unique ID (CT-000001, CT-000002, ...).
+     * Deliberately DB-agnostic (works on MySQL and SQLite) by computing the
+     * numeric suffix in PHP.
+     */
+    public static function generateUid()
+    {
+        $prefix = config('services.customer.uid_prefix', 'CT');
+        $max = 0;
+
+        foreach (static::query()->whereNotNull('customer_uid')->pluck('customer_uid') as $uid) {
+            if (strpos((string) $uid, $prefix . '-') === 0) {
+                $max = max($max, (int) substr((string) $uid, strlen($prefix) + 1));
+            }
+        }
+
+        $next = $max + 1;
+
+        do {
+            $uid = $prefix . '-' . str_pad((string) $next, 6, '0', STR_PAD_LEFT);
+            $next++;
+        } while (static::where('customer_uid', $uid)->exists());
+
+        return $uid;
+    }
+
+    /**
+     * Conversations channel key used by the live chat (works for guests too).
+     */
+    public function chatSessionId()
+    {
+        return 'user-' . $this->id;
+    }
+
+    public function topups()
+    {
+        return $this->hasMany('App\Models\Topup');
+    }
+
+    public function chatMessages()
+    {
+        return $this->hasMany('App\Models\ChatMessage');
+    }
 }

@@ -1,0 +1,73 @@
+/* ==========================================================================
+   My Store / profile pages — client area extensions
+   (live chat styles live in chat.css)
+   ========================================================================== */
+.side-avatar{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#ffb36b;color:#fff;font:800 15px 'Manrope';margin:0 0 12px}
+.side-avatar-img{object-fit:cover}
+.side-uid{margin-top:5px;color:#9fd18f!important;font-size:10px!important}
+
+/* --- Topbar profile dropdown additions --- */
+.profile-uid{display:block;color:#2475e8;font-size:11px;font-weight:700;letter-spacing:.3px;margin-top:3px}
+.top-avatar-img{object-fit:cover}
+
+/* --- My Store layout --- */
+.store-balance-row{display:grid;grid-template-columns:1.2fr 1fr auto;gap:15px;align-items:stretch;margin-top:23px}
+.balance-card{background:linear-gradient(120deg,#0b2a56,#144a8c);color:#fff;border-radius:10px;padding:22px 24px;box-shadow:0 16px 34px #12325e2e}
+.balance-card.alt{background:linear-gradient(120deg,#0e3b2e,#177a53);box-shadow:0 16px 34px #0e5c3f2e}
+.balance-card small{display:block;font-size:9px;font-weight:800;letter-spacing:1.2px;color:#bcd3f2}
+.balance-card.alt small{color:#bfe9d6}
+.balance-card strong{display:block;font:800 30px 'Manrope';margin:7px 0 4px}
+.balance-card span{font-size:11px;color:#d7e6f8}
+.balance-card.alt span{color:#d3f2e2}
+.add-balance-toggle{display:inline-flex;align-items:center;justify-content:center;padding:14px 22px;border:0;border-radius:8px;background:#2475e8;color:#fff;font:700 13px 'DM Sans';cursor:pointer;box-shadow:0 10px 25px #2475e82e}
+.store-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px}
+.store-panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:23px}
+.add-balance-box{margin-top:15px;display:none}
+.add-balance-box.open{display:block}
+.add-balance-box p{color:#607892;font-size:12px;margin:0 0 16px}
+.add-balance-box h2{font:800 16px 'Manrope';margin:0 0 8px}
+.store-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.store-fields label,.stack-label{display:block;color:var(--ink);font-size:12px;font-weight:700;margin-bottom:15px}
+.store-fields input,.store-fields select,.stack-label input{display:block;width:100%;margin-top:7px;border:1px solid #dbe6f0;border-radius:5px;padding:12px;font:13px 'DM Sans';outline:0;background:#fff}
+.store-fields input:focus,.store-fields select:focus,.stack-label input:focus{border-color:#2475e8;box-shadow:0 0 0 3px #2475e814}
+.order-icon.ok{background:#e5f8f0;color:#26b883}
+
+/* --- Profile settings --- */
+.profile-id-card{display:flex;align-items:center;gap:18px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;margin-top:23px}
+.profile-id-avatar{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:#ffd2a9;color:#fff;font:800 20px 'Manrope';overflow:hidden;flex:none}
+.profile-id-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-id-card small{display:block;color:#93a3b4;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.profile-id-card strong{display:block;font:800 19px 'Manrope';margin:2px 0}
+.profile-id-card span{display:block;color:#8091a6;font-size:13px}
+.profile-form{margin-top:15px}
+.profile-form h2{font:800 16px 'Manrope';margin:0 0 16px}
+
+/* --- Admin top-up panel (admin chat page) --- */
+.admin-topups{margin-top:30px}
+.admin-topups h2{font:800 18px 'Manrope';margin:6px 0 13px}
+.admin-topups .table-row{grid-template-columns:1.2fr 1.4fr 1.6fr 1fr}
+.mini-approve,.mini-reject{border:0;border-radius:5px;padding:8px 12px;font:700 11px 'DM Sans';cursor:pointer}
+.mini-approve{background:#e5f8f0;color:#1e9e68}
+.mini-approve:hover{background:#d3f2e2}
+.mini-reject{background:#fff0ee;color:#c95c52;margin-left:8px}
+.mini-reject:hover{background:#ffe3df}
+.admin-topups form{display:inline}
+
+/* --- Register page helpers --- */
+.eyebrow-center{text-align:center;display:block}
+.register-check-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block!important}
+.register-check-line span{white-space:nowrap}
+.field-hint{display:block;color:#93a3b4;font-size:10px;margin-top:4px;font-weight:500}
+
+/* --- Responsive --- */
+@media(max-width:900px){
+  .store-balance-row{grid-template-columns:1fr}
+  .add-balance-toggle{width:100%}
+  .store-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .store-fields{grid-template-columns:1fr}
+  .profile-id-card{flex-direction:column;text-align:center}
+  .register-check-line{white-space:normal;display:flex!important;align-items:flex-start}
+  .register-check-line span{white-space:normal}
+}

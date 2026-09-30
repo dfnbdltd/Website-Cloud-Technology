@@ -14,5 +14,6 @@
 </div>
 </div>
 </main>
+@include('partials.chat')
 </body>
 </html>

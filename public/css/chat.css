@@ -1,0 +1,53 @@
+/* ==========================================================================
+   Live chat widget (customer pages) + admin chat console
+   ========================================================================== */
+.chat-widget{position:fixed;right:22px;bottom:22px;z-index:60}
+.chat-fab{position:relative;display:grid;place-items:center;width:56px;height:56px;border:0;border-radius:50%;background:#2475e8;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 14px 30px #2475e85c}
+.chat-fab:hover{background:#1d63c9}
+.chat-fab-badge{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;border-radius:10px;background:#e8484f;color:#fff;font:700 11px/20px 'DM Sans';padding:0 5px;text-align:center;box-shadow:0 4px 10px #e8484f66}
+.chat-panel{position:absolute;right:0;bottom:70px;width:340px;max-width:calc(100vw - 32px);height:480px;max-height:calc(100vh - 130px);background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 26px 60px #12325e2b;display:flex;flex-direction:column;overflow:hidden}
+/* The hidden attribute must beat the display:flex above, otherwise the
+   panel is stuck open and the close/minimize buttons appear broken. */
+.chat-panel[hidden]{display:none!important}
+.chat-fab-badge[hidden]{display:none!important}
+.chat-head{display:flex;align-items:center;gap:11px;background:#0b2a56;color:#fff;padding:14px 16px}
+.chat-head-id{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#2475e8;font:800 13px 'Manrope';flex:none}
+.chat-head-meta{flex:1;min-width:0}
+.chat-head-meta strong{display:block;font-size:13px}
+.chat-head-meta small{display:block;color:#b9cdec;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-close{border:0;background:transparent;color:#cfe0f5;font-size:20px;cursor:pointer;line-height:1}
+.chat-body{flex:1;overflow-y:auto;padding:16px 14px;background:#f6f9fd;display:flex;flex-direction:column;gap:10px}
+.chat-day{align-self:center;color:#8ba0b6;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+.chat-row{display:flex}
+.chat-row.me{justify-content:flex-end}
+.chat-row.them{justify-content:flex-start}
+.chat-bubble{max-width:78%;padding:10px 13px;border-radius:12px;font-size:12.5px;line-height:1.5;box-shadow:0 2px 6px #12325e0f;word-wrap:break-word}
+.chat-row.me .chat-bubble{background:#2475e8;color:#fff;border-bottom-right-radius:4px}
+.chat-row.them .chat-bubble{background:#fff;color:#1a3150;border:1px solid var(--line);border-bottom-left-radius:4px}
+.chat-bubble time{display:block;margin-top:5px;font-size:9px;opacity:.75}
+.chat-input{display:flex;gap:9px;padding:12px;border-top:1px solid var(--line);background:#fff}
+.chat-input input{flex:1;border:1px solid #dbe6f0;border-radius:8px;padding:11px 13px;font:13px 'DM Sans';outline:0;min-width:0}
+.chat-input input:focus{border-color:#2475e8}
+.chat-input button{border:0;border-radius:8px;background:#2475e8;color:#fff;width:44px;font-size:15px;cursor:pointer}
+
+/* --- Admin chat console --- */
+.admin-chat-layout{display:grid;grid-template-columns:340px 1fr;gap:15px;margin-top:20px}
+.chat-conversations{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;height:520px;overflow-y:auto}
+.chat-conv{display:flex;align-items:center;gap:11px;padding:12px;border-radius:7px;border:1px solid transparent;margin:3px 0}
+.chat-conv:hover{background:#f2f8ff}
+.chat-conv.active{background:#e9f2ff;border-color:#cfe2fb}
+.chat-conv-avatar{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#ffd2a9;color:#fff;font:800 12px 'Manrope';flex:none}
+.chat-conv-meta{flex:1;min-width:0}
+.chat-conv-meta strong{display:block;font-size:12px;color:var(--ink)}
+.chat-conv-meta small{display:block;color:#8a9bad;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-conv-side{text-align:right;flex:none}
+.chat-conv-side small{display:block;color:#9aa8b5;font-size:9px}
+.chat-conv-side b{display:inline-block;min-width:18px;height:18px;border-radius:9px;background:#e8484f;color:#fff;font:700 10px/18px 'DM Sans';padding:0 5px;margin-top:4px}
+.chat-conv.unread .chat-conv-meta strong{font-weight:800}
+.chat-thread-panel{background:#fff;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;height:520px}
+.chat-thread{flex:1;overflow-y:auto;padding:18px 16px;background:#f6f9fd;display:flex;flex-direction:column;gap:10px}
+
+@media(max-width:640px){
+  .chat-widget{right:14px;bottom:14px}
+  .chat-panel{height:70vh;right:-56px}
+}

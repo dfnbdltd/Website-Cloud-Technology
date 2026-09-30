@@ -12,7 +12,7 @@
 </section>
 <section class="dash-two-col">
 <div class="panel-card">
-<div class="panel-head"><div><span class="domain-kicker">RECENT ORDERS panel</span><h2>Your domain orders</h2></div><a href="{{ route('invoices') }}">View all →</a></div>
+<div class="panel-head"><div><span class="domain-kicker">RECENT ORDERS</span><h2>Your domain orders</h2></div><a href="{{ route('invoices') }}">View all →</a></div>
 @forelse($orders as $order)
 <div class="order-row"><span class="order-icon">◎</span><div><strong>{{ $order->reference }}</strong><small>{{ $order->created_at->format('d M Y') }}</small></div><b>৳ {{ number_format($order->total) }}</b><b class="table-status {{ $order->payment_status }}">{{ ucfirst(str_replace('_', ' ', $order->payment_status)) }}</b></div>
 @empty
@@ -22,9 +22,11 @@
 </div>
 <div class="panel-card">
 <div class="panel-head"><div><span class="domain-kicker">QUICK ACTIONS</span><h2>Get things done</h2></div></div>
-<div class="quick-actions"><a href="{{ route('domains.index') }}"><b>◎</b> Register domain</a><a href="{{ route('invoices') }}"><b>▣</b> View invoices</a><a href="{{ route('support') }}"><b>◔</b> Open ticket</a><a href="{{ route('under.construction', 'hosting-services') }}"><b>◈</b> Hosting services</a></div>
+<div class="quick-actions"><a href="{{ route('mystore') }}"><b>🏪</b> My Store</a><a href="{{ route('domains.index') }}"><b>◎</b> Register domain</a><a href="{{ route('invoices') }}"><b>▣</b> View invoices</a><a href="{{ route('support') }}"><b>◔</b> Open ticket</a><a href="{{ route('profile.settings') }}"><b>⚙</b> Profile settings</a></div>
 <div class="cart-trust"><span>✓</span><p>Secure client area<br><small>Your information is encrypted</small></p></div>
 </div>
 </section>
 </div>
-</main></body></html>
+</main>
+@include('partials.chat')
+</body></html>
