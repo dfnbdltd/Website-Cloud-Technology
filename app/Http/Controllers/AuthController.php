@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\AccountReady;
-use App\Mail\VerifyEmail;
-use App\Services\Notifier;
+use App\Jobs\SendEmailJob;
+use App\Models\EmailVerificationToken;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -114,7 +115,7 @@ class AuthController extends Controller
             'newsletter' => $request->boolean('newsletter'),
         ]);
         $user->forceFill(['customer_uid' => User::generateUid()])->save();
-        Notifier::send($user->email, new VerifyEmail($user));
+        $this->sendVerificationEmail($user);
 
         return redirect()->route('verification.notice')->with('verify_email', $user->email);
     }
@@ -134,7 +135,7 @@ class AuthController extends Controller
 
         // Same answer whether or not the address exists, so emails can't be probed.
         if ($user && !$user->email_verified_at) {
-            Notifier::send($user->email, new VerifyEmail($user));
+            $this->sendVerificationEmail($user);
         }
 
         return redirect()
@@ -144,28 +145,71 @@ class AuthController extends Controller
     }
 
     /**
-     * Signed link from the verification email: activate, email the login
-     * details, sign the customer in and continue where they left off.
+     * Guide section 5: consume the one-time token from /verify-email/{token}.
+     * Marks the address verified, burns the token and mails login details.
      */
-    public function verify(Request $request, $id, $hash)
+    public function verifyEmail($token)
     {
-        $user = User::find($id);
-        if (!$user || !URL::hasValidSignature($request, false) || !hash_equals(sha1($user->email), (string) $hash)) {
-            return redirect()->route('login')->withErrors(['email' => 'That verification link is invalid or has expired. Sign in to get a new one.']);
+        try {
+            $record = EmailVerificationToken::where('token', $token)->whereNull('used_at')->first();
+        } catch (\Throwable $e) {
+            // database/email_system.sql has not been run yet.
+            return redirect()->route('login')->withErrors(['email' => 'Verification is not available yet. Please contact support to activate your account.']);
+        }
+
+        if (!$record || $record->expires_at->isPast()) {
+            return redirect()->route('login')->withErrors(['email' => 'Verification link is invalid or expired.']);
+        }
+
+        $user = User::find($record->user_id);
+        if (!$user) {
+            return redirect()->route('login')->withErrors(['email' => 'Verification link is invalid or expired.']);
         }
 
         if (!$user->email_verified_at) {
             $user->forceFill(['email_verified_at' => now()])->save();
-            Notifier::send($user->email, new AccountReady($user));
         }
+        $record->forceFill(['used_at' => now()])->save();
 
-        Auth::login($user);
-        $request->session()->regenerate();
-        $request->session()->put('customer', self::customerSession($user));
+        // The "check your inbox" page promises login details after activation.
+        SendEmailJob::dispatch(0, 'account_ready', $user->email, [
+            'name' => $user->first_name ?: $user->name,
+            'email' => $user->email,
+            'customer_id' => $user->customer_uid,
+            'login_url' => route('login'),
+        ]);
 
-        $next = $request->session()->get('domain_cart') ? route('cart.index') : route('dashboard');
+        return redirect()->route('login')->with('success', 'Email verified successfully.');
+    }
 
-        return redirect()->intended($next)->with('success', 'Email verified — welcome aboard, ' . ($user->first_name ?: $user->name) . '! Your login details have been emailed to you.');
+    /**
+     * Guide section 5: store a one-time token, then queue the mail (section 7).
+     * Never breaks registration if database/email_system.sql has not been run.
+     */
+    private function sendVerificationEmail(User $user)
+    {
+        try {
+            if (!Schema::hasTable('email_verification_tokens') || !Schema::hasTable('email_templates')) {
+                Log::warning('Email system tables missing — run database/email_system.sql to send verification mail.');
+
+                return;
+            }
+
+            $token = Str::random(64);
+
+            EmailVerificationToken::create([
+                'user_id' => $user->id,
+                'token' => $token,
+                'expires_at' => now()->addHour(),
+            ]);
+
+            SendEmailJob::dispatch(0, 'email_verification', $user->email, [
+                'name' => $user->first_name ?: $user->name,
+                'link' => url('/verify-email/' . $token),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Could not queue verification email', ['error' => $e->getMessage()]);
+        }
     }
 
 

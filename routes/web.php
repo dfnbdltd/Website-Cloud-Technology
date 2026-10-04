@@ -23,13 +23,21 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Email verification (sign-up -> verify link -> login details emailed)
 Route::get('/email/verify', [AuthController::class, 'verificationNotice'])->name('verification.notice');
 Route::post('/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1')->name('verification.resend');
-Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verify'])->name('verification.verify');
+// Guide section 5: one-time token link (replaces the old signed-URL route).
+Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
 
-Route::middleware(['web'])->group(function () {
+// Linked from the public landing page (Blog, Offers, ...), so guests may see it.
+Route::get('/coming-soon/{section?}', function ($section = 'This section') {
+    return view('under-construction', ['section' => str_replace('-', ' ', ucfirst($section))]);
+})->name('under.construction');
+
+// Live chat (client-area widget + admin console) — guests chat from the landing page.
+Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
+Route::post('/chat/messages', [ChatController::class, 'send'])->name('chat.send');
+
+// Client area: signed-in customers only.
+Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
-    Route::get('/coming-soon/{section?}', function ($section = 'This section') {
-        return view('under-construction', ['section' => str_replace('-', ' ', ucfirst($section))]);
-    })->name('under.construction');
     Route::get('/mystore', [CustomerController::class, 'myStore'])->name('mystore');
     Route::post('/mystore/add-balance', [CustomerController::class, 'addBalance'])->name('mystore.add-balance');
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
@@ -45,10 +53,6 @@ Route::middleware(['web'])->group(function () {
     Route::get('/invoices', [CustomerController::class, 'invoices'])->name('invoices');
     Route::get('/support', [CustomerController::class, 'support'])->name('support');
     Route::post('/support/tickets', [CustomerController::class, 'createTicket'])->name('support.create');
-
-    // Live chat (client-area widget + admin console)
-    Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
-    Route::post('/chat/messages', [ChatController::class, 'send'])->name('chat.send');
 
     Route::prefix('domains')->group(function () {
         Route::get('/', [DomainController::class, 'index'])->name('domains.index');

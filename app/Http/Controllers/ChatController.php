@@ -60,6 +60,10 @@ class ChatController extends Controller
 
     public function adminPoll(Request $request)
     {
+        if (!$request->session()->get('admin')) {
+            return response()->json(['message' => 'Please sign in to the admin area.'], 401);
+        }
+
         $sessionId = (string) $request->query('session', '');
         if ($sessionId === '') {
             return response()->json(['messages' => []]);
@@ -83,6 +87,10 @@ class ChatController extends Controller
 
     public function adminSend(Request $request)
     {
+        if (!$request->session()->get('admin')) {
+            return response()->json(['message' => 'Please sign in to the admin area.'], 401);
+        }
+
         $data = $request->validate([
             'session' => ['required', 'string', 'max:64'],
             'message' => ['required', 'string', 'max:2000'],

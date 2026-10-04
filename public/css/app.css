@@ -51,11 +51,13 @@ footer{font-size:13px}
    CloudTech logo component
    ------------------------------------------------------------------------- */
 .ct-logo{display:inline-flex;align-items:center;gap:10px}
+.ct-logo-img{display:block;height:44px;width:auto;flex:none}
 .ct-logo-mark{display:inline-grid;place-items:center;width:34px;height:34px;flex:none}
 .ct-logo-mark svg{width:100%;height:100%;display:block}
 .ct-logo-text{font:800 22px 'Manrope',sans-serif;letter-spacing:-.5px;color:inherit}
 .ct-logo-accent{color:#38bdf8}
 .brand.auth-brand .ct-logo-text{font-size:24px}
+.brand.auth-brand .ct-logo-img{height:64px}
 .domain-brand .ct-logo-text{font-size:20px;color:#fff;letter-spacing:-.5px}
 .domain-brand .ct-logo-accent{color:#5bc291}
 

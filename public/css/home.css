@@ -17,6 +17,7 @@
 .site-logo .ct-logo-mark{width:38px;height:38px}
 .site-logo .ct-logo-text{font:800 25px 'Manrope',sans-serif;letter-spacing:-.8px;color:var(--ink)}
 .site-logo .ct-logo-accent{color:var(--blue)}
+.site-logo .ct-logo-img{height:50px}
 .site-nav{display:flex;gap:4px;margin-left:12px}
 .site-nav a{color:var(--text);font-size:15px;font-weight:500;padding:8px 13px;border-radius:8px}
 .site-nav a:hover,.site-nav a.selected{color:var(--ink);background:var(--soft)}
@@ -100,12 +101,17 @@
 .site-footer-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .site-footer .ct-logo-text{font-size:20px}
 .site-footer .ct-logo-mark{width:30px;height:30px}
+.site-footer .ct-logo-img{height:44px}
 
 @media(max-width:960px){.site-nav{display:none}.site-hero-inner{flex-direction:column;align-items:stretch;gap:36px}.site-price-grid{grid-template-columns:repeat(2,1fr)}.site-hero h1{font-size:42px}}
-@media(max-width:560px){.site-top-links>span{display:none}.site-header-inner{height:64px;gap:12px}.site-logo .ct-logo-text{font-size:21px}.site-btn,.site-btn-ghost{height:36px;padding:0 12px;font-size:13px}.site-user>span:not(.site-avatar){display:none}.site-hero{padding:44px 0}.site-hero h1{font-size:34px}.site-hero-copy>p{font-size:16px}.site-search button{padding:12px 16px}.site-price-grid{grid-template-columns:1fr}.site-pricing h2,.site-cta h2{font-size:28px}.site-trust-inner span{width:100%}}
+@media(max-width:560px){.site-top-links>span{display:none}.site-header-inner{height:64px;gap:12px}.site-logo .ct-logo-text{font-size:21px}.site-logo .ct-logo-img{height:40px}.site-btn,.site-btn-ghost{height:36px;padding:0 12px;font-size:13px}.site-user>span:not(.site-avatar){display:none}.site-hero{padding:44px 0}.site-hero h1{font-size:34px}.site-hero-copy>p{font-size:16px}.site-search button{padding:12px 16px}.site-price-grid{grid-template-columns:1fr}.site-pricing h2,.site-cta h2{font-size:28px}.site-trust-inner span{width:100%}}
 
 /* Footer: dark navy base under the white page */
 .site-footer{background:#0f172a;border-top:0;color:#94a3b8;padding:30px 0}
 .site-footer .ct-logo-text{color:#fff}
 .site-footer .ct-logo-accent{color:#60a5fa}
 .site-footer span{color:#94a3b8}
+
+/* Coming soon (public): soft band behind the card, footer pinned to the bottom */
+.coming-page{display:flex;flex-direction:column;min-height:100vh}
+.coming-page .coming-band{flex:1 0 auto;background:var(--soft);padding:40px 0 64px}

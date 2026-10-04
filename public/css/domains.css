@@ -192,6 +192,8 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 /* Sidebar logo + avatar colour fixes (store.css and older brand rules load later/win) */
 .domain-brand .ct-logo .ct-logo-text{color:#111827!important}
 .domain-brand .ct-logo .ct-logo-accent{color:#2563eb!important}
+.domain-brand .ct-logo-img{height:46px}
+.checkout-brand .ct-logo-img{height:44px}
 .top-avatar,.side-avatar,.profile-id-avatar{background:#2563eb!important;color:#fff!important}
 .profile-id-avatar span,.profile-dropdown-head span.top-avatar{color:#fff!important;font-size:inherit}
 .add-domain.in-cart{background:#dcfce7;color:#15803d;text-decoration:none;display:inline-flex;align-items:center}
