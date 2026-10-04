@@ -16,6 +16,10 @@ Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::get('/password/reset', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
+Route::post('/password/email', [AuthController::class, 'sendPasswordResetLink'])->middleware('throttle:3,1')->name('password.email');
+Route::get('/password/reset/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
+Route::post('/password/reset', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('password.update');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

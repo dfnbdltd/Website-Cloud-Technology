@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\URL;
 use PHPMailer\PHPMailer\PHPMailer;
 use Tests\TestCase;
 
@@ -124,6 +125,101 @@ class EmailVerificationFlowTest extends TestCase
         $this->assertSame(PHPMailer::ENCRYPTION_STARTTLS, $mailer->SMTPSecure);
         $this->assertSame('Verify your email, Test', $mailer->Subject);
         $this->assertSame('Hello Test, please verify: https://example.test/verify', $mailer->Body);
+    }
+
+    public function testHtmlTemplateIsSentAsHtmlWithPlainTextAlternative()
+    {
+        DB::table('email_templates')->where('key_name', 'account_ready')->update([
+            'body' => '<p>Hello {{name}}</p><a href="{{login_url}}">Sign in</a>',
+        ]);
+        config([
+            'mail.driver' => 'smtp',
+            'mail.host' => 'mail.example.test',
+            'mail.port' => 465,
+            'mail.username' => 'sender@example.test',
+            'mail.password' => 'test-password',
+            'mail.encryption' => 'ssl',
+            'mail.from.address' => 'sender@example.test',
+            'mail.from.name' => 'CloudTech',
+        ]);
+
+        $mailer = new class(true) extends PHPMailer {
+            public function send()
+            {
+                return true;
+            }
+        };
+        $dispatcher = new class($mailer) extends MailDispatcher {
+            private $mailer;
+
+            public function __construct(PHPMailer $mailer)
+            {
+                $this->mailer = $mailer;
+            }
+
+            protected function createPhpMailer(): PHPMailer
+            {
+                return $this->mailer;
+            }
+        };
+
+        $this->assertTrue($dispatcher->sendByCompany(0, 'account_ready', 'user@example.test', [
+            'name' => 'Test',
+            'login_url' => 'https://example.test/login',
+        ]));
+
+        $this->assertSame('text/html', $mailer->ContentType);
+        $this->assertSame('<p>Hello Test</p><a href="https://example.test/login">Sign in</a>', $mailer->Body);
+        $this->assertStringContainsString('Hello Test', $mailer->AltBody);
+        $this->assertStringNotContainsString('<p>', $mailer->AltBody);
+    }
+
+    public function testPasswordResetEmailUsesConfiguredSmtpAndSecureResetUrl()
+    {
+        config([
+            'mail.driver' => 'smtp',
+            'mail.host' => 'mail.example.test',
+            'mail.port' => 465,
+            'mail.username' => 'sender@example.test',
+            'mail.password' => 'test-password',
+            'mail.encryption' => 'ssl',
+            'mail.from.address' => 'sender@example.test',
+            'mail.from.name' => 'CloudTech',
+            'app.url' => 'https://cloudtechnologybd.net',
+        ]);
+        URL::forceRootUrl('https://cloudtechnologybd.net');
+        URL::forceScheme('https');
+
+        $mailer = new class(true) extends PHPMailer {
+            public function send()
+            {
+                return true;
+            }
+        };
+        $dispatcher = new class($mailer) extends MailDispatcher {
+            private $mailer;
+
+            public function __construct(PHPMailer $mailer)
+            {
+                $this->mailer = $mailer;
+            }
+
+            protected function createPhpMailer(): PHPMailer
+            {
+                return $this->mailer;
+            }
+        };
+
+        $dispatcher->sendPasswordReset('user@example.test', 'secure-token');
+
+        $this->assertSame('mail.example.test', $mailer->Host);
+        $this->assertSame('Reset your CloudTech password', $mailer->Subject);
+        $this->assertSame('text/html', $mailer->ContentType);
+        $this->assertStringContainsString(
+            'https://cloudtechnologybd.net/password/reset/secure-token?email=user%40example.test',
+            $mailer->Body
+        );
+        $this->assertStringContainsString('expires in 60 minutes', $mailer->AltBody);
     }
 
     public function testSmtpFailureIncludesServerReplyWithoutExposingCredentials()
@@ -303,8 +399,8 @@ class EmailVerificationFlowTest extends TestCase
             'currency' => 'BDT',
             'security_question' => 'What is your mother\'s maiden name?',
             'security_answer' => 'answer',
-            'password' => 'secret123',
-            'password_confirmation' => 'secret123',
+            'password' => 'StrongPass1!',
+            'password_confirmation' => 'StrongPass1!',
         ];
     }
 

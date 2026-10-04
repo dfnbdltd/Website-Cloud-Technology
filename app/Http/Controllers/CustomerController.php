@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DomainOrder;
 use App\Models\SupportTicket;
 use App\Models\Topup;
+use App\Rules\StrongPassword;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -152,7 +153,7 @@ class CustomerController extends Controller
 
         $data = $request->validate([
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'confirmed', new StrongPassword],
         ]);
 
         if (!Hash::check($data['current_password'], $user->password)) {

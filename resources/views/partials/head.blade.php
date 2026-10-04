@@ -8,3 +8,4 @@
 <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
 <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
 <link rel="stylesheet" href="{{ asset('css/workspace.css') }}?v={{ filemtime(public_path('css/workspace.css')) }}">
+<script src="{{ asset('js/password-strength.js') }}?v={{ filemtime(public_path('js/password-strength.js')) }}" defer></script>

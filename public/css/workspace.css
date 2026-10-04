@@ -11,3 +11,19 @@
   .register-check-line{display:flex!important;align-items:flex-start;white-space:normal;overflow:visible}
   .register-check-line span{white-space:normal}
 }
+.password-strength{margin:10px 0 4px;padding:12px 14px;background:#f8fafd;border:1px solid #e6edf5;border-radius:8px;color:#74849a;font-size:11px;line-height:1.45}
+.password-strength-header{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#344b65}
+.password-strength-header strong{font-size:11px;font-weight:700}
+.password-strength-status{color:#8998aa;font-size:10px}
+.password-strength-meter{height:4px;margin:9px 0 10px;background:#e5ebf2;border-radius:4px;overflow:hidden}
+.password-strength-meter span{display:block;width:0;height:100%;background:#dc7777;border-radius:4px;transition:width .18s ease,background .18s ease}
+.password-strength-meter span[data-strength="medium"]{background:#e3a743}
+.password-strength-meter span[data-strength="strong"]{background:#25a879}
+.password-strength-checks{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;padding:0;margin:0}
+.password-strength-checks li{display:flex;align-items:center;gap:6px;color:#8391a2;font-size:10px}
+.password-strength-checks li::before{content:"";width:6px;height:6px;border:1px solid #aebac8;border-radius:50%;flex:none}
+.password-strength-checks li.is-met{color:#16845d}
+.password-strength-checks li.is-met::before{width:7px;height:7px;border:0;background:#25a879}
+.password-match-status{display:block;min-height:16px;margin-top:5px;color:#c45e5e;font-size:10px;font-weight:600}
+.password-match-status:empty{display:none}
+.password-match-status.is-matched{color:#16845d}

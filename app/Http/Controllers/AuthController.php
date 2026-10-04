@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Jobs\SendEmailJob;
 use App\Models\EmailVerificationToken;
+use App\Rules\StrongPassword;
 use App\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -21,6 +24,74 @@ class AuthController extends Controller
         }
 
         return view('auth.login');
+    }
+
+    public function showForgotPasswordForm()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendPasswordResetLink(Request $request)
+    {
+        $credentials = $request->validate(['email' => ['required', 'email']]);
+        try {
+            $status = Password::sendResetLink($credentials);
+        } catch (\Throwable $e) {
+            Log::error('Could not send password reset email', ['error' => $e->getMessage()]);
+
+            return back()->withInput($request->only('email'))
+                ->withErrors(['email' => 'We could not send a reset email right now. Please try again later.']);
+        }
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return redirect()->route('password.request')->with(
+                'status',
+                'Password reset instructions have been sent to ' . $credentials['email'] . '. Please check your inbox and spam folder.'
+            );
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            return redirect()->route('password.request')->with(
+                'status',
+                'A reset link was recently sent. Please check your inbox and spam folder, or wait before requesting another.'
+            );
+        }
+
+        return redirect()->route('password.request')
+            ->with('status', 'If an account exists for that email, a password reset link will be sent.');
+    }
+
+    public function showResetPasswordForm(Request $request, $token)
+    {
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $request->query('email', old('email')),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $credentials = $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'confirmed', new StrongPassword],
+        ]);
+
+        $status = Password::reset($credentials, function ($user, $password) {
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'remember_token' => Str::random(60),
+            ])->save();
+
+            event(new PasswordReset($user));
+        });
+
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('login')->with('success', 'Your password has been reset. You can now sign in.');
+        }
+
+        return back()->withInput($request->only('email'))
+            ->withErrors(['email' => trans($status)]);
     }
 
     public function login(Request $request)
@@ -92,7 +163,7 @@ class AuthController extends Controller
             'security_question' => ['required', 'string', 'max:255'],
             'security_answer' => ['required', 'string', 'max:255'],
             'newsletter' => ['nullable', 'boolean'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'confirmed', new StrongPassword],
         ]);
         $user = User::create([
             'name' => trim($data['first_name'] . ' ' . $data['last_name']),

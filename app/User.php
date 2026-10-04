@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Services\MailDispatcher;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -9,6 +10,11 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     use Notifiable;
+
+    public function sendPasswordResetNotification($token)
+    {
+        app(MailDispatcher::class)->sendPasswordReset($this->email, $token);
+    }
 
     /**
      * The attributes that are mass assignable.

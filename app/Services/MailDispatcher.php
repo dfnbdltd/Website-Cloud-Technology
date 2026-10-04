@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\EmailLog;
 use App\Models\EmailTemplate;
-use App\Models\MailConfig;
 use App\Services\DiagnosticSmtp;
 use PHPMailer\PHPMailer\PHPMailer;
 use Illuminate\Support\Facades\Log;
@@ -12,35 +11,30 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Central mail service: SMTP delivery uses PHPMailer, with config from
- * mail_configs, body from email_templates, and every attempt logged.
+ * Central mail service: SMTP settings come from Laravel config (.env),
+ * message bodies come from email_templates, and every attempt is logged.
  */
 class MailDispatcher
 {
+    public function sendPasswordReset(string $to, string $token): void
+    {
+        $resetUrl = route('password.reset', [
+            'token' => $token,
+            'email' => $to,
+        ]);
+        $body = view('emails.password-reset', [
+            'resetUrl' => $resetUrl,
+            'expiresIn' => config('auth.passwords.users.expire', 60),
+        ])->render();
+
+        $this->sendWithPhpMailer($to, 'Reset your CloudTech password', $body, true);
+    }
+
     public function sendByCompany(int $companyId, string $templateKey, string $to, array $data = []): bool
     {
         $subject = null;
 
         try {
-            $config = MailConfig::active($companyId);
-
-            if ($config) {
-                config([
-                    'mail.driver' => 'smtp',
-                    'mail.mailer' => 'smtp',
-                    'mail.host' => $config->host,
-                    'mail.port' => $config->port,
-                    'mail.username' => $config->username,
-                    // Gmail app passwords are often stored with stray spaces.
-                    'mail.password' => preg_replace('/\s+/', '', $config->password),
-                    'mail.encryption' => $config->encryption,
-                    'mail.from.address' => $config->from_address,
-                    'mail.from.name' => $config->from_name,
-                ]);
-            }
-            // No mail_configs row yet: keep the SMTP already applied at boot
-            // (mail_setups row, else .env) so mail keeps working during migration.
-
             $template = EmailTemplate::active($templateKey);
 
             if (!$template) {
@@ -52,13 +46,20 @@ class MailDispatcher
 
             $subject = $this->replaceTokens($template->subject, $data);
             $body = $this->replaceTokens($template->body, $data);
+            $isHtml = $this->isHtmlBody($body);
 
             if (config('mail.driver') === 'smtp') {
-                $this->sendWithPhpMailer($to, $subject, $body);
+                $this->sendWithPhpMailer($to, $subject, $body, $isHtml);
             } else {
-                Mail::raw($body, function ($message) use ($to, $subject) {
+                $callback = function ($message) use ($to, $subject) {
                     $message->to($to)->subject($subject);
-                });
+                };
+
+                if ($isHtml) {
+                    Mail::html($body, $callback);
+                } else {
+                    Mail::raw($body, $callback);
+                }
             }
 
             $this->log($companyId, $to, $templateKey, $subject, 'sent', null);
@@ -81,7 +82,12 @@ class MailDispatcher
         return $content;
     }
 
-    private function sendWithPhpMailer(string $to, string $subject, string $body): void
+    private function isHtmlBody(string $body): bool
+    {
+        return preg_match('/<[a-z][^>]*>/i', $body) === 1;
+    }
+
+    private function sendWithPhpMailer(string $to, string $subject, string $body, bool $isHtml): void
     {
         $mailer = $this->createPhpMailer();
         $smtp = $this->createDiagnosticSmtp();
@@ -106,7 +112,15 @@ class MailDispatcher
         );
         $mailer->addAddress($to);
         $mailer->Subject = $subject;
+        $mailer->isHTML($isHtml);
         $mailer->Body = $body;
+        if ($isHtml) {
+            $mailer->AltBody = trim(html_entity_decode(
+                preg_replace('/[ \t]*\n[ \t]*/', "\n", $mailer->html2text($body)),
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            ));
+        }
 
         try {
             if (!$mailer->send()) {
