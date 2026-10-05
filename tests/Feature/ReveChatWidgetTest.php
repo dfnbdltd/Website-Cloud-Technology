@@ -12,6 +12,7 @@ class ReveChatWidgetTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('id="reveChatFab"', false);
+        $response->assertSee('id="reveChatMinimize"', false);
         $response->assertSee('data-revechat-account="7494338"', false);
         $response->assertSee('js/revechat.js', false);
         $response->assertSee('css/revechat.css', false);
@@ -34,6 +35,12 @@ class ReveChatWidgetTest extends TestCase
 
         $this->assertStringContainsString('#reve-chat-widget-holder-2{visibility:hidden!important}', $script);
         $this->assertStringContainsString('.revechat-fab[hidden]{display:none!important}', $styles);
+        $this->assertStringContainsString('holder.style.visibility = \'hidden\'', $script);
+        $this->assertStringContainsString('holder.style.pointerEvents = \'none\'', $script);
+        $this->assertStringContainsString('.revechat-minimize[hidden]{display:none!important}', $styles);
+        $this->assertStringContainsString('holder.getBoundingClientRect()', $script);
+        $this->assertStringContainsString('bounds.width >= 200', $script);
+        $this->assertStringContainsString('bounds.height >= 200', $script);
         $this->assertStringContainsString('stateWatcher = window.setInterval(syncWidgetState, 500)', $script);
     }
 }

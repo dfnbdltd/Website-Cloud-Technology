@@ -4,6 +4,7 @@
   var button = document.getElementById('reveChatFab');
   if (!button) return;
 
+  var minimizeButton = document.getElementById('reveChatMinimize');
   var account = button.getAttribute('data-revechat-account');
   var scriptUrl = 'https://static.revechat.com/widget/scripts/new-livechat.js?v=20260809';
   var loader = null;
@@ -33,7 +34,35 @@
 
   function syncWidgetState() {
     var holder = document.getElementById('reve-chat-widget-holder');
-    button.hidden = !!(holder && holder.offsetHeight > 0);
+    if (!holder) {
+      button.hidden = false;
+      if (minimizeButton) minimizeButton.hidden = true;
+      return;
+    }
+
+    var bounds = holder.getBoundingClientRect();
+    var style = window.getComputedStyle(holder);
+    var isOpen = style.display !== 'none'
+      && style.visibility !== 'hidden'
+      && parseFloat(style.opacity) !== 0
+      && bounds.width >= 200
+      && bounds.height >= 200;
+    button.hidden = isOpen;
+    if (minimizeButton) {
+      minimizeButton.hidden = !isOpen;
+      if (isOpen) {
+        minimizeButton.style.top = Math.max(8, bounds.top + 12) + 'px';
+        minimizeButton.style.right = Math.max(8, window.innerWidth - bounds.right + 12) + 'px';
+      }
+    }
+  }
+
+  function minimizeReveChat() {
+    var holder = document.getElementById('reve-chat-widget-holder');
+    if (!holder) return;
+    holder.style.visibility = 'hidden';
+    holder.style.pointerEvents = 'none';
+    syncWidgetState();
   }
 
   function watchWidgetState() {
@@ -79,6 +108,11 @@
       return;
     }
 
+    var holder = document.getElementById('reve-chat-widget-holder');
+    if (holder) {
+      holder.style.visibility = '';
+      holder.style.pointerEvents = '';
+    }
     button.hidden = false;
     hideReveButton();
     var reveApi = ensureReveApi();
@@ -97,4 +131,5 @@
   };
 
   button.addEventListener('click', window.openReveChat);
+  if (minimizeButton) minimizeButton.addEventListener('click', minimizeReveChat);
 })(window, document);

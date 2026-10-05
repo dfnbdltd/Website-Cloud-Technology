@@ -4,4 +4,8 @@
 .revechat-fab:focus-visible{outline:3px solid #2475e8;outline-offset:3px}
 .revechat-fab-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2475e8,#38bdf8);color:#fff;font-size:18px}
 .revechat-fab-icon svg{width:18px;height:18px;fill:currentColor}
+.revechat-minimize{position:fixed;top:8px;right:8px;z-index:2147483647;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:1px solid rgba(255,255,255,.65);border-radius:50%;background:#fff;color:#17243a;box-shadow:0 2px 8px rgba(2,6,23,.25);cursor:pointer}
+.revechat-minimize[hidden]{display:none!important}
+.revechat-minimize svg{width:22px;height:22px;fill:currentColor}
+.revechat-minimize:focus-visible{outline:3px solid #2475e8;outline-offset:2px}
 @media(max-width:575px){.revechat-fab{right:14px;bottom:14px;padding:8px 16px 8px 10px}.revechat-fab-icon{width:30px;height:30px;font-size:16px}}

@@ -12,4 +12,14 @@
   </span>
   <span>Chat with us</span>
 </button>
+<button
+  type="button"
+  class="revechat-minimize"
+  id="reveChatMinimize"
+  aria-label="Minimize chat"
+  title="Minimize chat"
+  hidden
+>
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7z"/></svg>
+</button>
 <script src="{{ asset('js/revechat.js') }}?v={{ filemtime(public_path('js/revechat.js')) }}" defer></script>
