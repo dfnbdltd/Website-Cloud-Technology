@@ -80,6 +80,10 @@ return [
         'secret' => env('RECAPTCHA_SECRET_KEY'),
     ],
 
+    'revechat' => [
+        'account' => env('REVECHAT_ACCOUNT', '7494338'),
+    ],
+
     'contact' => [
         'to' => env('CONTACT_TO_ADDRESS', env('MAIL_FROM_ADDRESS')),
     ],

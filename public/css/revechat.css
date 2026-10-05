@@ -1,0 +1,7 @@
+.revechat-fab{position:fixed;right:20px;bottom:20px;z-index:2147483000;display:inline-flex;align-items:center;gap:10px;padding:10px 20px 10px 12px;background:#fff;border:1px solid rgba(36,117,232,.35);border-radius:999px;box-shadow:0 8px 24px rgba(2,6,23,.18);color:#26364b;font:600 14px/1 'DM Sans',sans-serif;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}
+.revechat-fab[hidden]{display:none!important}
+.revechat-fab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(2,6,23,.28)}
+.revechat-fab:focus-visible{outline:3px solid #2475e8;outline-offset:3px}
+.revechat-fab-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2475e8,#38bdf8);color:#fff;font-size:18px}
+.revechat-fab-icon svg{width:18px;height:18px;fill:currentColor}
+@media(max-width:575px){.revechat-fab{right:14px;bottom:14px;padding:8px 16px 8px 10px}.revechat-fab-icon{width:30px;height:30px;font-size:16px}}

@@ -9,6 +9,8 @@
 .site-top-links{display:flex;align-items:center;gap:22px;color:var(--text)}
 .site-top-links a{color:var(--text)}
 .site-top-links a:hover{color:var(--blue)}
+.site-top-links .site-admin-login{padding:5px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-weight:700;white-space:nowrap}
+.site-top-links .site-admin-login:hover{border-color:#bfdbfe;background:#eff6ff}
 .site-count{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--blue);color:#fff;font-size:10px;margin-left:3px}
 
 /* header */

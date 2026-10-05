@@ -19,5 +19,6 @@
     </div>
     <a class="back-link" href="{{ route('landing') }}">← Back to homepage</a>
 </div>
+@include('partials.chat')
 </body>
 </html>
