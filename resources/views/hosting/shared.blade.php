@@ -1897,7 +1897,7 @@ button { font: inherit; }
         }
     }
     </style>
-    <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ filemtime(public_path('css/home.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ md5_file(public_path('css/home.css')) }}">
 </head>
 <body class="site shared-hosting-page">
     <div class="site-top">
@@ -1932,6 +1932,7 @@ button { font: inherit; }
             </nav>
             <div class="site-account">
                 @if(session('customer'))
+                    @include('partials.client-area-menu')
                     <button class="site-user" type="button" onclick="event.stopPropagation(); document.getElementById('accountMenu').classList.toggle('open');">
                         @if(session('customer.logo'))
                             <img class="site-avatar" src="{{ session('customer.logo') }}" alt="">

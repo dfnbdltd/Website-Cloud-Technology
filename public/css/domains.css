@@ -197,3 +197,46 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 .top-avatar,.side-avatar,.profile-id-avatar{background:#2563eb!important;color:#fff!important}
 .profile-id-avatar span,.profile-dropdown-head span.top-avatar{color:#fff!important;font-size:inherit}
 .add-domain.in-cart{background:#dcfce7;color:#15803d;text-decoration:none;display:inline-flex;align-items:center}
+
+/* Keep the full client menu reachable on short screens and use a drawer on mobile. */
+.domain-sidebar .domain-brand{flex:none}
+.domain-sidebar nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:12px}
+.domain-sidebar nav::-webkit-scrollbar{width:5px}
+.domain-sidebar nav::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:5px}
+.domain-side-bottom{flex:none;margin-top:0}
+.domain-side-bottom form{margin-top:0}
+.sidebar-backdrop{display:none}
+
+@media(max-width:900px){
+    .domain-sidebar,
+    .domain-sidebar.collapsed{
+        width:min(300px,85vw);
+        padding:20px 16px;
+        overflow:hidden;
+        transform:translateX(-100%);
+        transition:transform .2s ease;
+        z-index:31;
+    }
+    .domain-sidebar.mobile-open{transform:translateX(0)}
+    .domain-sidebar.collapsed .domain-brand>span:last-child,
+    .domain-sidebar.collapsed nav>a,
+    .domain-sidebar.collapsed nav>small,
+    .domain-sidebar.collapsed .domain-side-bottom{visibility:visible}
+    .domain-sidebar.collapsed nav>a{color:#374151}
+    .domain-sidebar.collapsed nav>a b{position:static;color:inherit}
+    .domain-sidebar.collapsed nav .subnav.open{display:flex}
+    .domain-main,
+    .domain-sidebar.collapsed+.domain-main,
+    .domain-sidebar.collapsed~.domain-main{margin-left:0}
+    .sidebar-backdrop{position:fixed;inset:0;z-index:30;border:0;background:#0f172a80}
+    .domain-sidebar.mobile-open+.sidebar-backdrop{display:block}
+    .domain-topbar{gap:14px;padding:0 20px}
+}
+
+@media(max-width:640px){
+    .domain-topbar{height:64px;gap:8px;padding:0 14px}
+    .domain-top-actions{gap:12px}
+    .domain-help{display:none}
+    .crumb{display:none}
+    .domain-content{padding:24px 16px}
+}

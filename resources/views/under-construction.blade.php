@@ -1,7 +1,7 @@
 @php($isCustomer = (bool) session('customer'))
 <!doctype html>
 <html lang="en">
-<head>@include('partials.head', ['title' => 'Coming soon'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}">@unless($isCustomer)<link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ filemtime(public_path('css/home.css')) }}">@endunless</head>
+<head>@include('partials.head', ['title' => 'Coming soon'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}">@unless($isCustomer)<link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ md5_file(public_path('css/home.css')) }}">@endunless</head>
 <body class="{{ $isCustomer ? 'domain-app' : 'site coming-page' }}">
 @if($isCustomer)
 @include('partials.sidebar', ['active' => 'construction', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])

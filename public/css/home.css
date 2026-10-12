@@ -25,6 +25,7 @@
 .site-nav a:hover,.site-nav a.selected{color:var(--ink);background:var(--soft)}
 .site-nav-dropdown{position:relative}
 .site-nav-dropdown summary{list-style:none;color:var(--text);font-size:15px;font-weight:500;padding:8px 13px;border-radius:8px;cursor:pointer}
+.site-nav-dropdown summary::marker{content:""}
 .site-nav-dropdown summary::-webkit-details-marker{display:none}
 .site-nav-dropdown summary:after{content:'⌄';margin-left:7px;color:var(--muted)}
 .site-nav-dropdown[open] summary,.site-nav-dropdown summary:hover{color:var(--ink);background:var(--soft)}
@@ -32,6 +33,15 @@
 .site-nav .site-submenu a{display:block;padding:10px 12px;border-radius:7px;color:var(--text);font-size:14px;white-space:nowrap}
 .site-nav .site-submenu a:hover{color:var(--ink);background:var(--soft)}
 .site-account{position:relative;display:flex;align-items:center;gap:10px;margin-left:auto}
+.site-client-area{position:relative}
+.site-client-area>summary{list-style:none;border:1px solid var(--line);border-radius:9px;padding:9px 12px;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.site-client-area>summary::marker{content:""}
+.site-client-area>summary::-webkit-details-marker{display:none}
+.site-client-area>summary:after{content:'⌄';margin-left:7px;color:var(--muted)}
+.site-client-area[open]>summary,.site-client-area>summary:hover{background:var(--soft)}
+.site-client-area-menu{position:absolute;right:0;top:calc(100% + 10px);z-index:30;display:grid;width:240px;max-height:calc(100vh - 110px);overflow-y:auto;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 45px #0f172a1f}
+.site-client-area-menu a{display:block;padding:9px 10px;border-radius:7px;color:var(--ink);font-size:14px}
+.site-client-area-menu a:hover{background:var(--soft)}
 .site-btn,.site-btn-ghost{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px}
 .site-btn{background:var(--blue);color:#fff;box-shadow:0 6px 16px #2563eb33}
 .site-btn:hover{background:var(--blue-2)}
