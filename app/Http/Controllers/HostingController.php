@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Http\Controllers;
+
+class HostingController extends Controller
+{
+    public function shared()
+    {
+        return view('hosting.shared', [
+            'plans' => $this->sharedPlans(),
+            'unavailableFeatures' => $this->unavailableFeatures(),
+        ]);
+    }
+
+    private function unavailableFeatures()
+    {
+        return [
+            ['name' => 'eCommerce', 'feature' => 'ecommerce'],
+            ['name' => 'Remote database access'],
+            ['name' => 'PostgreSQL databases'],
+            ['name' => 'PhpPG Admin'],
+            ['name' => 'SSH access (Terminal)'],
+            ['name' => 'Shell access (Jailed)'],
+            ['name' => 'eAccelerator'],
+        ];
+    }
+
+    private function sharedPlans()
+    {
+        return [
+            [
+                'name' => 'Plan A',
+                'class' => 'plan-circle-basic',
+                'description' => 'For small websites.',
+                'badge' => 'Cheapest',
+                'prices' => ['monthly' => 300, 'yearly' => 3000, 'twoYear' => 6000, 'threeYear' => 9000],
+                'primary_features' => [
+                    ['monthly' => '10 GB', 'yearly' => '10 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '300 GB', 'yearly' => '100 GB', 'name' => 'bandwidth/month'],
+                    ['monthly' => '100', 'yearly' => '50', 'name' => 'FTP users'],
+                    ['monthly' => '3', 'yearly' => '3', 'name' => 'websites/addons'],
+                    ['monthly' => '100', 'yearly' => '50', 'name' => 'email accounts'],
+                ],
+                'extra_features' => [
+                    ['monthly' => '100 email mailing lists', 'yearly' => '50 email mailing lists'],
+                    ['monthly' => '10 MySQL databases', 'yearly' => '10 MySQL databases'],
+                    ['monthly' => '100 subdomains', 'yearly' => '50 subdomains'],
+                ],
+            ],
+            [
+                'name' => 'Plan B',
+                'class' => 'plan-circle-standard',
+                'description' => 'For growing websites.',
+                'badge' => null,
+                'prices' => ['monthly' => 500, 'yearly' => 5000, 'twoYear' => 10000, 'threeYear' => 15000],
+                'primary_features' => [
+                    ['monthly' => '20 GB', 'yearly' => '20 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '500 GB', 'yearly' => '200 GB', 'name' => 'bandwidth/month'],
+                    ['monthly' => '150', 'yearly' => '100', 'name' => 'FTP users'],
+                    ['monthly' => '5', 'yearly' => '5', 'name' => 'websites/addons'],
+                    ['monthly' => '200', 'yearly' => '100', 'name' => 'email accounts'],
+                ],
+                'extra_features' => [
+                    ['monthly' => '200 email mailing lists', 'yearly' => '100 email mailing lists'],
+                    ['monthly' => '50 MySQL databases', 'yearly' => '20 MySQL databases'],
+                    ['monthly' => '100 subdomains', 'yearly' => '100 subdomains'],
+                ],
+            ],
+            [
+                'name' => 'Plan C',
+                'class' => 'plan-circle-advanced',
+                'description' => 'For busy websites.',
+                'badge' => 'Most popular',
+                'prices' => ['monthly' => 1000, 'yearly' => 10000, 'twoYear' => 20000, 'threeYear' => 30000],
+                'primary_features' => [
+                    ['monthly' => '50 GB', 'yearly' => '50 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '700 GB', 'yearly' => '500 GB', 'name' => 'bandwidth/month'],
+                    ['monthly' => '150', 'yearly' => '100', 'name' => 'FTP users'],
+                    ['monthly' => '10', 'yearly' => '10', 'name' => 'websites/addons'],
+                    ['monthly' => '300', 'yearly' => '100', 'name' => 'email accounts'],
+                ],
+                'extra_features' => [
+                    ['monthly' => '200 email mailing lists', 'yearly' => '100 email mailing lists'],
+                    ['monthly' => '100 MySQL databases', 'yearly' => '50 MySQL databases'],
+                    ['monthly' => '100 subdomains', 'yearly' => '100 subdomains'],
+                ],
+            ],
+            [
+                'name' => 'Plan D',
+                'class' => 'plan-circle-premium',
+                'description' => 'For high-traffic websites.',
+                'badge' => null,
+                'prices' => ['monthly' => 1500, 'yearly' => 15000, 'twoYear' => 30000, 'threeYear' => 45000],
+                'primary_features' => [
+                    ['monthly' => '100 GB', 'yearly' => '100 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '1000 GB', 'yearly' => '800 GB', 'name' => 'bandwidth/month'],
+                    ['monthly' => '200', 'yearly' => '100', 'name' => 'FTP users'],
+                    ['monthly' => '50', 'yearly' => '20', 'name' => 'websites/addons'],
+                    ['monthly' => '400', 'yearly' => '100', 'name' => 'email accounts'],
+                ],
+                'extra_features' => [
+                    ['monthly' => '300 email mailing lists', 'yearly' => '100 email mailing lists'],
+                    ['monthly' => '100 MySQL databases', 'yearly' => '50 MySQL databases'],
+                    ['monthly' => '100 subdomains', 'yearly' => '100 subdomains'],
+                ],
+            ],
+            [
+                'name' => 'Plan E',
+                'class' => 'plan-circle-enterprise',
+                'description' => 'For demanding businesses.',
+                'badge' => null,
+                'prices' => ['monthly' => 2500, 'yearly' => 25000, 'twoYear' => 50000, 'threeYear' => 75000],
+                'primary_features' => [
+                    ['monthly' => '200 GB', 'yearly' => '200 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '2000 GB', 'yearly' => '1000 GB', 'name' => 'bandwidth/month'],
+                    ['monthly' => '200', 'yearly' => '100', 'name' => 'FTP users'],
+                    ['monthly' => '100', 'yearly' => '50', 'name' => 'websites/addons'],
+                    ['monthly' => '500', 'yearly' => '200', 'name' => 'email accounts'],
+                ],
+                'extra_features' => [
+                    ['monthly' => '300 email mailing lists', 'yearly' => '200 email mailing lists'],
+                    ['monthly' => '200 MySQL databases', 'yearly' => '100 MySQL databases'],
+                    ['monthly' => '100 subdomains', 'yearly' => '100 subdomains'],
+                ],
+            ],
+        ];
+    }
+}
