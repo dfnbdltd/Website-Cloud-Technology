@@ -12,6 +12,7 @@ use App\Services\Notifier;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -199,6 +200,42 @@ class AdminController extends Controller
             'search' => $search,
             'topups' => Topup::with('user')->latest()->take(15)->get(),
         ]);
+    }
+
+    public function editCustomer(Request $request, User $customer)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        return view('admin.customer-edit', ['customer' => $customer]);
+    }
+
+    public function updateCustomer(Request $request, User $customer)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $data = $request->validate([
+            'first_name' => ['required', 'string', 'max:120'],
+            'last_name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($customer->id)],
+            'phone' => ['required', 'string', 'max:40'],
+            'company_name' => ['nullable', 'string', 'max:190'],
+            'address1' => ['required', 'string', 'max:190'],
+            'address2' => ['nullable', 'string', 'max:190'],
+            'city' => ['required', 'string', 'max:120'],
+            'country' => ['required', 'string', 'max:120'],
+            'state' => ['nullable', 'string', 'max:120'],
+            'postcode' => ['required', 'string', 'max:30'],
+            'currency' => ['required', 'string', 'max:10'],
+            'found_us' => ['nullable', 'string', 'max:190'],
+            'newsletter' => ['nullable', 'boolean'],
+        ]);
+
+        $customer->fill($data);
+        $customer->name = trim($data['first_name'] . ' ' . $data['last_name']);
+        $customer->newsletter = $request->boolean('newsletter');
+        $customer->save();
+
+        return redirect()->route('admin.customers')->with('success', 'Customer details updated.');
     }
 
     public function logout(Request $request)
