@@ -9,6 +9,7 @@ use App\Http\Controllers\BkashController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\WalletController;
+use App\Http\Controllers\HostingController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     return view('home', ['catalog' => $resellerClub->catalog()]);
@@ -34,6 +35,8 @@ Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail'])->nam
 Route::get('/coming-soon/{section?}', function ($section = 'This section') {
     return view('under-construction', ['section' => str_replace('-', ' ', ucfirst($section))]);
 })->name('under.construction');
+
+Route::get('/hosting/shared', [HostingController::class, 'shared'])->name('hosting.shared');
 
 // Live chat (client-area widget + admin console) — guests chat from the landing page.
 Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
