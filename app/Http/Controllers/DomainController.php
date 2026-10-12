@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMail;
 use App\Services\PaymentGatewayManager;
+use App\Services\Notifier;
 use App\Services\ResellerClubClient;
 use App\Models\DomainOrder;
 use App\Models\DomainOrderItem;
 use App\Models\Payment;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -28,6 +31,7 @@ class DomainController extends Controller
             'results' => $request->session()->get('domain_results', []),
             'cart' => $request->session()->get('domain_cart', []),
             'plans' => $this->resellerClub->catalog(),
+            'testDomains' => config('services.test_domains', []),
             'liveSource' => $this->resellerClub->isConfigured() && !empty($this->resellerClub->pricing()),
         ]);
     }
@@ -38,6 +42,23 @@ class DomainController extends Controller
         $parts = explode('.', strtolower(trim($data['domain'])), 2);
         $name = $parts[0];
         $requestedTld = isset($parts[1]) ? $parts[1] : null;
+        $domain = strtolower(trim($data['domain']));
+        $testDomains = config('services.test_domains', []);
+        if (isset($testDomains[$domain])) {
+            $results = [[
+                'domain' => $domain,
+                'tld' => 'test',
+                'available' => true,
+                'price' => $testDomains[$domain]['price'],
+                'renewal' => $testDomains[$domain]['renewal'],
+                'classkey' => 'test',
+                'source' => 'test',
+            ]];
+            $request->session()->put('domain_results', $results);
+
+            return redirect()->route('domains.index', ['domain' => $data['domain']]);
+        }
+
         $catalog = $this->resellerClub->catalog();
 
         // Search all catalog TLDs, or just the requested one when it is in the catalog.
@@ -92,14 +113,23 @@ class DomainController extends Controller
         // Server-side price check: never trust the posted price.
         $parts = explode('.', strtolower($data['domain']));
         $tld = end($parts);
-        $plan = $this->resellerClub->catalog()[$tld] ?? null;
-        $price = $plan ? $plan['price'] : (float) $data['price'];
+        $domain = strtolower($data['domain']);
+        $testDomains = config('services.test_domains', []);
+        if (isset($testDomains[$domain])) {
+            $price = $testDomains[$domain]['price'];
+        } else {
+            $plan = $this->resellerClub->catalog()[$tld] ?? null;
+            if (!$plan) {
+                return back()->withErrors(['domain' => 'This domain extension is not available for registration.']);
+            }
+            $price = $plan['price'];
+        }
 
         $cart = $request->session()->get('domain_cart', []);
-        $cart[strtolower($data['domain'])] = ['domain' => strtolower($data['domain']), 'price' => $price, 'years' => 1];
+        $cart[$domain] = ['domain' => $domain, 'price' => $price, 'years' => 1];
         $request->session()->put('domain_cart', $cart);
 
-        return redirect()->back()->with('cart_added', strtolower($data['domain']));
+        return redirect()->back()->with('cart_added', $domain);
     }
 
     /**
@@ -134,12 +164,20 @@ class DomainController extends Controller
             return redirect()->route('cart.index')->withErrors(['domain' => 'Add a domain before checkout.']);
         }
 
-        $user = $request->user();
+        $user = $request->user() ?: User::find(session('customer.id'));
+        $methods = $this->payments->methods();
+        if ($user) {
+            $methods = ['wallet' => [
+                'label' => 'Wallet balance · ৳ ' . number_format((float) $user->balance, 2),
+                'description' => 'Pay using your available account balance',
+            ]] + $methods;
+        }
 
         return view('domains.checkout', [
             'cart' => $cart,
             'total' => $this->total($cart),
-            'methods' => $this->payments->methods(),
+            'methods' => $methods,
+            'walletBalance' => $user ? (float) $user->balance : 0,
             'gatewayReady' => $this->payments->gatewayConfigured('bkash'),
             // Prefill contact details already on file — editable, not re-asked.
             'contactPhone' => (string) ($user ? $user->phone : session('customer.phone', '')),
@@ -155,14 +193,14 @@ class DomainController extends Controller
                 ->with('success', 'Please sign in or create an account to complete your purchase. Your cart is saved.');
         }
 
-        $user = $request->user();
+        $user = $request->user() ?: User::find(session('customer.id'));
 
         $cart = $request->session()->get('domain_cart', []);
         if (!$cart) {
             return redirect()->route('domains.index')->withErrors(['domain' => 'Your cart is empty.']);
         }
         $data = $request->validate([
-            'payment_method' => ['required', 'in:bkash,nagad,bank'],
+            'payment_method' => ['required', 'in:wallet,bkash,nagad,bank'],
             'full_name' => ['required', 'string', 'max:120'],
             'phone' => ['required', 'string', 'max:30'],
         ]);
@@ -175,15 +213,28 @@ class DomainController extends Controller
             'created_at' => date('c'),
         ];
         $order['payment'] = $this->payments->createPendingPayment($order, $data['payment_method']);
-        $persisted = DB::transaction(function () use ($order, $data, $cart, $user) {
+        $isWalletPayment = $data['payment_method'] === 'wallet';
+        $persisted = DB::transaction(function () use (&$order, $data, $cart, $user, $isWalletPayment) {
+            if ($isWalletPayment) {
+                $walletUser = $user ? User::whereKey($user->id)->lockForUpdate()->first() : null;
+                if (!$walletUser || (float) $walletUser->balance < (float) $order['total']) {
+                    return null;
+                }
+                $walletUser->forceFill([
+                    'balance' => (float) $walletUser->balance - (float) $order['total'],
+                ])->save();
+                $order['payment']['status'] = 'paid';
+                $order['payment']['message'] = 'Paid from wallet balance.';
+            }
+
             $model = DomainOrder::create([
                 'reference' => $order['reference'],
                 'user_id' => $user ? $user->id : session('customer.id'),
                 'total' => $order['total'],
-                'status' => 'payment_pending',
+                'status' => $isWalletPayment ? 'paid' : 'payment_pending',
                 'payment_method' => $data['payment_method'],
-                'payment_status' => 'pending',
-                'provider' => $data['payment_method'] === 'bkash' ? 'bkash' : 'manual',
+                'payment_status' => $isWalletPayment ? 'paid' : 'pending',
+                'provider' => $data['payment_method'] === 'bkash' ? 'bkash' : ($isWalletPayment ? 'wallet' : 'manual'),
                 'customer_name' => $data['full_name'],
                 'customer_phone' => $data['phone'],
                 'customer_email' => $user ? $user->email : session('customer.email'),
@@ -205,14 +256,25 @@ class DomainController extends Controller
                 'reference' => $order['payment']['reference'],
                 'provider' => $order['payment']['method'],
                 'amount' => $order['total'],
-                'status' => 'pending',
+                'status' => $isWalletPayment ? 'paid' : 'pending',
             ]);
 
             return $model;
         });
+        if (!$persisted) {
+            return back()->withErrors(['payment_method' => 'Your wallet balance is not enough to pay for this order.']);
+        }
+
         $order['database_id'] = $persisted->id;
         $request->session()->put('last_domain_order', $order);
         $request->session()->forget('domain_cart');
+
+        if ($isWalletPayment) {
+            $request->session()->put('customer.balance', (float) $user->fresh()->balance);
+            Notifier::send($persisted->customer_email, new InvoiceMail($persisted->fresh()));
+
+            return view('domains.confirmation', ['order' => $order, 'paid' => true]);
+        }
 
         if ($data['payment_method'] === 'bkash') {
             if (!$this->payments->gatewayConfigured('bkash')) {

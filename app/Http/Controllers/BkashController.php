@@ -228,12 +228,23 @@ class BkashController extends Controller
         }
 
         $registrationComplete = true;
+        $hasRegistrableDomain = false;
+        $testDomains = config('services.test_domains', []);
         foreach ($databaseOrder->items as $item) {
+            if (isset($testDomains[$item->domain])) {
+                continue;
+            }
+
+            $hasRegistrableDomain = true;
             $registration = app(ResellerClubClient::class)->registerDomain($item->domain, $item->years);
             if (!is_array($registration) || isset($registration['error'])) {
                 $registrationComplete = false;
             }
         }
+        if (!$hasRegistrableDomain) {
+            return;
+        }
+
         $databaseOrder->update(['status' => $registrationComplete ? 'active' : 'registration_pending']);
     }
 }
