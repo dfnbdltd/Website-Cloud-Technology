@@ -200,7 +200,7 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 
 /* Keep the full client menu reachable on short screens and use a drawer on mobile. */
 .domain-sidebar .domain-brand{flex:none}
-.domain-sidebar nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:12px}
+.domain-sidebar nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent;padding-bottom:12px}
 .domain-sidebar nav::-webkit-scrollbar{width:5px}
 .domain-sidebar nav::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:5px}
 .domain-side-bottom{flex:none;margin-top:0}

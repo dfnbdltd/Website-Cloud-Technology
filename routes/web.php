@@ -82,7 +82,8 @@ Route::get('/domains/confirmation/{reference}', [DomainController::class, 'confi
 Route::post('/send-message', [ContactController::class, 'sendMessage'])->name('contact.send');
 Route::get('/admin/login', [AdminController::class, 'loginForm'])->name('admin.login');
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.submit');
-Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+Route::get('/admin', [AdminController::class, 'customers'])->name('admin.dashboard');
+Route::get('/admin/orders', [AdminController::class, 'dashboard'])->name('admin.orders');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 Route::post('/admin/orders/{order}/status', [AdminController::class, 'updateOrder'])->name('admin.orders.status');
 Route::get('/admin/customers', [AdminController::class, 'customers'])->name('admin.customers');
