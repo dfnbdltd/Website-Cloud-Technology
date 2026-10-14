@@ -29,18 +29,11 @@ class Setting extends Model
                 'manual_payment_number' => ['bKash / Nagad number for manual payments', '01713-401914', 'text'],
             ],
             'Homepage hero' => [
-                'hero_badge' => ['Badge text', 'Live pricing straight from our registrar', 'text'],
                 'hero_title' => ['Headline', 'Your Perfect Domain,', 'text'],
                 'hero_highlight' => ['Headline highlight', 'Registered in Minutes.', 'text'],
                 'hero_text' => ['Intro paragraph', 'Search, register and manage your ideal domain name — real-time availability, transparent pricing in Taka, and zero hidden fees.', 'textarea'],
             ],
-            'Homepage steps' => [
-                'step1_title' => ['Step 1 title', 'Search your name', 'text'],
-                'step1_text' => ['Step 1 text', 'Check availability across all popular extensions instantly.', 'text'],
-                'step2_title' => ['Step 2 title', 'Add to cart', 'text'],
-                'step2_text' => ['Step 2 text', 'Live registrar pricing, no surprise renewal jumps.', 'text'],
-                'step3_title' => ['Step 3 title', 'Sign in & pay', 'text'],
-                'step3_text' => ['Step 3 text', 'Pay with bKash or your wallet balance — then your domain is yours.', 'text'],
+            'Homepage trust' => [
                 'trust_items' => ['Trust bar (comma separated)', 'Real-time availability, Live BDT pricing, Free WHOIS privacy, 24/7 local support', 'text'],
             ],
             'Pricing & call to action' => [
