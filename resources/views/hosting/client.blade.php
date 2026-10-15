@@ -25,6 +25,21 @@
 .hosting-type-row a{border:1px solid var(--line);background:#fff;color:#475569;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:700}
 .hosting-type-row a.is-active{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
 @media(max-width:640px){.hosting-plan-buy{margin-left:0;text-align:left}}
+.hosting-compare-wrap{margin-top:28px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px;box-shadow:0 8px 25px #102c4f08}
+.hosting-compare-title{font:800 20px 'Manrope';color:#0f172a;margin:0 0 4px}
+.hosting-compare-scroll{overflow-x:auto;margin-top:16px;border:1px solid var(--line);border-radius:10px}
+.hosting-compare-table{width:100%;min-width:680px;border-collapse:collapse;font-size:13.5px}
+.hosting-compare-table th,.hosting-compare-table td{padding:12px 16px;border-bottom:1px solid #eef2f7;white-space:nowrap}
+.hosting-compare-table thead th{background:#f8fafc;font:800 14px 'Manrope';color:#0f172a;text-align:center}
+.hosting-compare-table thead th:first-child{position:sticky;left:0;z-index:2;text-align:left}
+.hosting-compare-table tbody th{color:#475569;font-weight:600;background:#fff;text-align:left;position:sticky;left:0;z-index:1}
+.hosting-compare-table tbody td{text-align:center;color:#0f172a}
+.hosting-compare-table thead th.is-featured{box-shadow:inset 0 3px 0 #2563eb}
+.hosting-compare-table th.is-featured,.hosting-compare-table td.is-featured{background:#eff6ff}
+.hosting-compare-price{font:800 17px 'Manrope';color:#0f172a}
+.hosting-compare-unit{color:#64748b;font-size:11px}
+.hosting-compare-na{color:#cbd5e1}
+.hosting-compare-table .hosting-buy-btn{min-width:0;margin-top:0;padding:9px 20px;font-size:13px}
 </style>
 </head><body class="domain-app">@include('partials.sidebar', ['active' => $active, 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <main class="domain-main">@include('partials.topbar', ['title' => $title, 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])<div class="domain-content standalone-content">
@@ -60,6 +75,72 @@
     </div>
 @endforeach
 </div>
+<div class="hosting-compare-wrap">
+<h2 class="hosting-compare-title">Compare {{ $title }} plans</h2>
+<p class="workspace-subtitle">Every spec, side by side. Prices follow the billing period you pick above.</p>
+<div class="hosting-compare-scroll">
+<table class="hosting-compare-table">
+<thead>
+<tr>
+<th>Features</th>
+@foreach($plans as $plan)
+<th class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">{{ $plan['name'] }}@if($plan['badge'])<span class="hosting-plan-badge">{{ $plan['badge'] }}</span>@endif</th>
+@endforeach
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>Price</th>
+@foreach($plans as $plan)
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><span class="hosting-compare-price" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}">৳{{ number_format($plan['prices']['monthly']) }}</span><small class="hosting-compare-unit"> /month</small></td>
+@endforeach
+</tr>
+@php $primaryNames = collect($plans)->flatMap(function ($p) { return collect($p['primary_features'])->pluck('name'); })->unique()->values(); @endphp
+@foreach($primaryNames as $fname)
+<tr>
+<th>{{ $fname }}</th>
+@foreach($plans as $plan)
+@php $pf = collect($plan['primary_features'])->firstWhere('name', $fname); @endphp
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">@if($pf)<span class="hosting-compare-val" data-monthly="{{ $pf['monthly'] }}" data-yearly="{{ $pf['yearly'] }}">{{ $pf['monthly'] }}</span>@else<span class="hosting-compare-na">—</span>@endif</td>
+@endforeach
+</tr>
+@endforeach
+@php
+$extraLabels = [];
+foreach ($plans[0]['extra_features'] as $ef) {
+    $t = trim($ef['monthly']);
+    if (preg_match('/^([\d,]+(?:\s*(?:GB|TB|MB))?)(.*)$/', $t, $m) && trim($m[2]) !== '') { $extraLabels[] = trim($m[2]); }
+    else { $extraLabels[] = $t; }
+}
+$extraLabels = array_values(array_unique($extraLabels));
+@endphp
+@foreach($extraLabels as $elabel)
+<tr>
+<th>{{ $elabel }}</th>
+@foreach($plans as $plan)
+@php
+$cell = null;
+foreach ($plan['extra_features'] as $ef) {
+    $t = trim($ef['monthly']);
+    if (preg_match('/^([\d,]+(?:\s*(?:GB|TB|MB))?)(.*)$/', $t, $m) && trim($m[2]) !== '') { $v = trim($m[1]); $l = trim($m[2]); }
+    else { $v = '✓'; $l = $t; }
+    if ($l === $elabel) { $cell = ['v' => $v, 'm' => $ef['monthly'], 'y' => $ef['yearly']]; break; }
+}
+@endphp
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">@if($cell)<span class="hosting-compare-val" data-monthly="{{ $cell['m'] }}" data-yearly="{{ $cell['y'] }}">{{ $cell['v'] }}</span>@else<span class="hosting-compare-na">—</span>@endif</td>
+@endforeach
+</tr>
+@endforeach
+<tr>
+<th></th>
+@foreach($plans as $plan)
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><a class="hosting-buy-btn hosting-compare-buy" href="{{ route('support') }}">Buy now</a></td>
+@endforeach
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p class="workspace-subtitle" style="margin-top:16px">Buying opens a support request — our team confirms and provisions your {{ strtolower($title) }} plan.</p>
 </div>
 </main>
@@ -68,6 +149,10 @@
 (function(){
     var units={monthly:' /month',yearly:' /year',twoYear:' /2 years',threeYear:' /3 years'};
     var tabs=document.querySelectorAll('.hosting-period-tab');
+    var cmpPrices=document.querySelectorAll('.hosting-compare-price');
+    var cmpUnits=document.querySelectorAll('.hosting-compare-unit');
+    var cmpVals=document.querySelectorAll('.hosting-compare-val');
+    var cmpBuys=document.querySelectorAll('.hosting-compare-buy');
     function select(tab){
         var period=tab.dataset.period;
         var soon=(period==='twoYear'||period==='threeYear');
@@ -83,6 +168,11 @@
             buy.setAttribute('aria-disabled',soon?'true':'false');
             buy.textContent=soon?'Coming soon':'Buy now';
         });
+        var resPeriod=(period==='monthly')?'monthly':'yearly';
+        cmpPrices.forEach(function(price){price.textContent=soon?'Coming soon':'৳'+Number(price.dataset[period]).toLocaleString('en-US');});
+        cmpUnits.forEach(function(unit){unit.textContent=soon?'':units[period];});
+        cmpVals.forEach(function(val){val.textContent=val.dataset[resPeriod];});
+        cmpBuys.forEach(function(btn){btn.setAttribute('aria-disabled',soon?'true':'false');btn.textContent=soon?'Coming soon':'Buy now';});
     }
     tabs.forEach(function(tab){tab.addEventListener('click',function(){select(tab);});});
 })();
