@@ -37,6 +37,8 @@ Route::get('/coming-soon/{section?}', function ($section = 'This section') {
 })->name('under.construction');
 
 Route::get('/hosting/shared', [HostingController::class, 'shared'])->name('hosting.shared');
+Route::get('/hosting/vps', [HostingController::class, 'vps'])->name('hosting.vps');
+Route::get('/hosting/dedicated', [HostingController::class, 'dedicated'])->name('hosting.dedicated');
 
 // Live chat (client-area widget + admin console) — guests chat from the landing page.
 Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
