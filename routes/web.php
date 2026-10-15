@@ -48,6 +48,7 @@ Route::post('/chat/messages', [ChatController::class, 'send'])->name('chat.send'
 Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
     Route::get('/mystore', [CustomerController::class, 'myStore'])->name('mystore');
+    Route::get('/store/hosting/{type}', [HostingController::class, 'clientPlans'])->where('type', 'shared|vps|dedicated')->name('client.hosting');
     Route::post('/mystore/add-balance', [CustomerController::class, 'addBalance'])->name('mystore.add-balance');
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('/wallet/bkash', [WalletController::class, 'start'])->name('wallet.bkash.start');

@@ -27,6 +27,46 @@ class HostingController extends Controller
         ]);
     }
 
+    /**
+     * Client-area plan list (logged-in customers only).
+     * View-only listing driven by the same plan data as the public pages.
+     */
+    public function clientPlans($type)
+    {
+        $catalog = [
+            'shared' => [
+                'title' => 'Shared Hosting',
+                'kicker' => 'HOSTING PACKAGE',
+                'subtitle' => 'Pick a plan, choose billing, and buy — all inside your client area.',
+                'plans' => $this->sharedPlans(),
+                'unavailableFeatures' => $this->unavailableFeatures(),
+                'active' => 'hosting-shared',
+            ],
+            'vps' => [
+                'title' => 'VPS Hosting',
+                'kicker' => 'HOSTING PACKAGE',
+                'subtitle' => 'Dedicated resources with root access — pick a plan and buy.',
+                'plans' => $this->vpsPlans(),
+                'unavailableFeatures' => [],
+                'active' => 'hosting-vps',
+            ],
+            'dedicated' => [
+                'title' => 'Dedicated Hosting',
+                'kicker' => 'HOSTING PACKAGE',
+                'subtitle' => 'Maximum power on your own server — pick a plan and buy.',
+                'plans' => $this->dedicatedPlans(),
+                'unavailableFeatures' => $this->unavailableFeatures(),
+                'active' => 'hosting-dedicated',
+            ],
+        ];
+
+        if (!isset($catalog[$type])) {
+            abort(404);
+        }
+
+        return view('hosting.client', array_merge($catalog[$type], ['type' => $type]));
+    }
+
     private function unavailableFeatures()
     {
         return [
