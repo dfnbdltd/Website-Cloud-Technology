@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Mail\InvoiceMail;
 use App\Models\ChatMessage;
 use App\Models\DomainOrder;
+use App\Models\Invoice;
 use App\Models\Setting;
 use App\Models\SupportTicket;
 use App\Models\Topup;
+use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\User;
 use Illuminate\Http\Request;
@@ -54,11 +56,17 @@ class AdminController extends Controller
         // Manual payments (bank / Nagad) are confirmed here: mark paid and email the invoice.
         if ($data['status'] === 'paid' && !$wasPaid) {
             $order->update(['payment_status' => 'paid']);
+            app(InvoiceService::class)->markOrderPaid($order->fresh());
             if ($order->customer_email) {
                 Notifier::send($order->customer_email, new InvoiceMail($order->fresh()));
             }
 
             return redirect()->route('admin.dashboard')->with('success', 'Order marked paid and the invoice was emailed to the customer.');
+        }
+
+        // Failed / refunded orders reopen their invoice (amount received back to zero).
+        if (in_array($data['status'], ['failed', 'refunded'], true)) {
+            app(InvoiceService::class)->markOrderUnpaid($order->fresh());
         }
 
         return redirect()->route('admin.dashboard')->with('success', 'Order status updated.');
@@ -129,6 +137,9 @@ class AdminController extends Controller
                 'admin_note' => 'Approved by ' . session('admin.email'),
             ])->save();
         });
+
+        // Approval also issues the paid top-up receipt the customer can download.
+        app(InvoiceService::class)->createForTopup($topup->fresh());
 
         return back()->with('success', 'Top-up ' . $topup->reference . ' approved and balance credited.');
     }
@@ -236,6 +247,95 @@ class AdminController extends Controller
         $customer->save();
 
         return redirect()->route('admin.customers')->with('success', 'Customer details updated.');
+    }
+
+    /**
+     * ---------------------------------------------------------------
+     * Invoices: hosted bills with admin-only editing.
+     *
+     * - /admin/invoices               list (all invoices, newest first)
+     * - /admin/invoices/{invoice}     view the hosted invoice + PDF links
+     * - /admin/invoices/{invoice}/edit  edit line items (SL, years, prices…)
+     * - POST /admin/invoices/{invoice}  save: servers recompute all money
+     *
+     * The 3-years -> 4-years upgrade case is handled in
+     * InvoiceService::applyEdit(): a paid invoice whose total grows reopens
+     * as unpaid while keeping the already-paid amount on record.
+     * ---------------------------------------------------------------
+     */
+    public function invoices(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $search = trim((string) $request->query('q'));
+        $invoices = Invoice::query()
+            ->with('user')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($u) use ($search) {
+                            $u->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%")
+                                ->orWhere('customer_uid', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->latest()
+            ->paginate(25)
+            ->appends(['q' => $search]);
+
+        return view('admin.invoices', ['invoices' => $invoices, 'search' => $search]);
+    }
+
+    public function showInvoice(Request $request, Invoice $invoice)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        return view('invoices.show', [
+            'invoice' => $invoice->loadMissing('items', 'user'),
+            'isAdmin' => true,
+            'backUrl' => route('admin.invoices'),
+            'customer' => ['name' => $invoice->user ? $invoice->user->name : 'Customer', 'email' => $invoice->user ? $invoice->user->email : ''],
+        ]);
+    }
+
+    public function editInvoice(Request $request, Invoice $invoice)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$invoice->isEditable()) {
+            return redirect()->route('admin.invoices')->withErrors(['status' => 'A voided invoice can no longer be edited.']);
+        }
+
+        $invoice->loadMissing('items', 'user');
+
+        return view('admin.invoice-edit', ['invoice' => $invoice]);
+    }
+
+    public function updateInvoice(Request $request, Invoice $invoice)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$invoice->isEditable()) {
+            return redirect()->route('admin.invoices')->withErrors(['status' => 'A voided invoice can no longer be edited.']);
+        }
+
+        $data = $request->validate([
+            'status' => ['required', 'in:unpaid,paid,void'],
+            'payment_method' => ['nullable', 'in:wallet,bkash,nagad,bank'],
+            'vat_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'due_date' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.description' => ['required', 'string', 'max:255'],
+            'items.*.item_type' => ['nullable', 'in:domain-registration,domain-renewal,hosting,topup,manual'],
+            'items.*.years' => ['required', 'integer', 'min:0', 'max:10'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+        ]);
+
+        app(InvoiceService::class)->applyEdit($invoice, $data['items'], $data);
+
+        return redirect()->route('admin.invoices.show', $invoice->fresh())
+            ->with('success', 'Invoice ' . $invoice->invoice_number . ' saved — the customer sees the updated invoice at the same link.');
     }
 
     public function logout(Request $request)

@@ -10,3 +10,9 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+/docs
+agent.md
+
+# mPDF runtime temp (fonts/tmp cache) — never part of the repo
+/storage/framework/mpdf
+

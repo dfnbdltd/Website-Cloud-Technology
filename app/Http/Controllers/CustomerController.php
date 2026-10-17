@@ -169,7 +169,15 @@ class CustomerController extends Controller
     public function invoices(Request $request)
     {
         if (!$this->customer($request)) { return redirect()->route('login'); }
-        return view('billing.invoices', ['orders' => DomainOrder::where('user_id', session('customer.id'))->latest()->get()]);
+        $orders = DomainOrder::where('user_id', session('customer.id'))->latest()->get();
+
+        // Invoice rows created beside each order, keyed by order id for the list.
+        $invoiceMap = \App\Models\Invoice::whereIn('source_id', $orders->modelKeys())
+            ->where('source_type', DomainOrder::class)
+            ->get()
+            ->keyBy('source_id');
+
+        return view('billing.invoices', ['orders' => $orders, 'invoiceMap' => $invoiceMap]);
     }
 
     public function support(Request $request)

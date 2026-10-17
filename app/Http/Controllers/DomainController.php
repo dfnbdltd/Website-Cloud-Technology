@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\InvoiceMail;
 use App\Services\PaymentGatewayManager;
+use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\Services\ResellerClubClient;
 use App\Models\DomainOrder;
@@ -264,6 +265,10 @@ class DomainController extends Controller
         if (!$persisted) {
             return back()->withErrors(['payment_method' => 'Your wallet balance is not enough to pay for this order.']);
         }
+
+        // The invoice mirrors the order: paid for instant payments (wallet),
+        // unpaid for bKash / Nagad / bank until the payment completes.
+        app(InvoiceService::class)->createForOrder($persisted->fresh());
 
         $order['database_id'] = $persisted->id;
         $request->session()->put('last_domain_order', $order);

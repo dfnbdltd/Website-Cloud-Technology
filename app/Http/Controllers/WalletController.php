@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Topup;
 use App\Services\BkashClient;
+use App\Services\InvoiceService;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -177,6 +178,9 @@ class WalletController extends Controller
                 'admin_note' => 'Paid instantly via bKash',
             ])->save();
         });
+
+        // Instant bKash top-up: the receipt invoice issues itself.
+        app(InvoiceService::class)->createForTopup($topup->fresh());
 
         $user = User::find($topup->user_id);
         $this->refreshSessionBalance($request, $user);

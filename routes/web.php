@@ -10,6 +10,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\HostingController;
+use App\Http\Controllers\InvoiceController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     return view('home', ['catalog' => $resellerClub->catalog()]);
@@ -61,6 +62,8 @@ Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/profile/password', [CustomerController::class, 'changePasswordForm'])->name('change.password');
     Route::post('/profile/password', [CustomerController::class, 'changePassword'])->name('change.password.submit');
     Route::get('/invoices', [CustomerController::class, 'invoices'])->name('invoices');
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.view');
+    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::get('/support', [CustomerController::class, 'support'])->name('support');
     Route::post('/support/tickets', [CustomerController::class, 'createTicket'])->name('support.create');
 
@@ -99,3 +102,7 @@ Route::get('/admin/chat-poll', [ChatController::class, 'adminPoll'])->name('admi
 Route::post('/admin/chat-reply', [ChatController::class, 'adminSend'])->name('admin.chat.send');
 Route::post('/admin/topups/{topup}/approve', [AdminController::class, 'approveTopup'])->name('admin.topups.approve');
 Route::post('/admin/topups/{topup}/reject', [AdminController::class, 'rejectTopup'])->name('admin.topups.reject');
+Route::get('/admin/invoices', [AdminController::class, 'invoices'])->name('admin.invoices');
+Route::get('/admin/invoices/{invoice}', [AdminController::class, 'showInvoice'])->name('admin.invoices.show');
+Route::get('/admin/invoices/{invoice}/edit', [AdminController::class, 'editInvoice'])->name('admin.invoices.edit');
+Route::post('/admin/invoices/{invoice}', [AdminController::class, 'updateInvoice'])->name('admin.invoices.update');
