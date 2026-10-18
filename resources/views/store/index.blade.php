@@ -22,7 +22,7 @@
 </section>
 
 <section class="store-panel" id="hosting"><div class="panel-head"><div><span class="domain-kicker">MY HOSTING SERVICES</span><h2>Hosting</h2></div></div>
-<div class="table-empty">Hosting services will appear here after your next purchase.<br><a href="{{ route('under.construction', 'hosting-services') }}">Explore hosting plans →</a></div>
+<div class="table-empty">Hosting services will appear here after your next purchase.<br><a href="{{ route('client.hosting', 'shared') }}">Explore hosting plans →</a></div>
 </section>
 
 <section class="store-panel"><div class="panel-head"><div><span class="domain-kicker">INVOICES</span><h2>Recent invoices</h2></div><a href="{{ route('invoices') }}">View all →</a></div>

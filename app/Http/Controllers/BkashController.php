@@ -6,6 +6,7 @@ use App\Mail\InvoiceMail;
 use App\Models\DomainOrder;
 use App\Models\Payment;
 use App\Services\BkashClient;
+use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\Services\ResellerClubClient;
 use Illuminate\Http\Request;
@@ -204,6 +205,8 @@ class BkashController extends Controller
                 'status' => 'paid',
                 'raw_response' => json_encode($raw),
             ]);
+
+            app(InvoiceService::class)->markOrderPaid($databaseOrder);
 
             $this->registerDomains($databaseOrder);
 

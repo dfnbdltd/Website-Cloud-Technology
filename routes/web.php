@@ -10,6 +10,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\HostingController;
+use App\Http\Controllers\InvoiceController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     return view('home', ['catalog' => $resellerClub->catalog()]);
@@ -37,6 +38,8 @@ Route::get('/coming-soon/{section?}', function ($section = 'This section') {
 })->name('under.construction');
 
 Route::get('/hosting/shared', [HostingController::class, 'shared'])->name('hosting.shared');
+Route::get('/hosting/vps', [HostingController::class, 'vps'])->name('hosting.vps');
+Route::get('/hosting/dedicated', [HostingController::class, 'dedicated'])->name('hosting.dedicated');
 
 // Live chat (client-area widget + admin console) — guests chat from the landing page.
 Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
@@ -46,6 +49,7 @@ Route::post('/chat/messages', [ChatController::class, 'send'])->name('chat.send'
 Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
     Route::get('/mystore', [CustomerController::class, 'myStore'])->name('mystore');
+    Route::get('/store/hosting/{type}', [HostingController::class, 'clientPlans'])->where('type', 'shared|vps|dedicated')->name('client.hosting');
     Route::post('/mystore/add-balance', [CustomerController::class, 'addBalance'])->name('mystore.add-balance');
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('/wallet/bkash', [WalletController::class, 'start'])->name('wallet.bkash.start');
@@ -58,6 +62,8 @@ Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/profile/password', [CustomerController::class, 'changePasswordForm'])->name('change.password');
     Route::post('/profile/password', [CustomerController::class, 'changePassword'])->name('change.password.submit');
     Route::get('/invoices', [CustomerController::class, 'invoices'])->name('invoices');
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.view');
+    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::get('/support', [CustomerController::class, 'support'])->name('support');
     Route::post('/support/tickets', [CustomerController::class, 'createTicket'])->name('support.create');
 
@@ -96,3 +102,7 @@ Route::get('/admin/chat-poll', [ChatController::class, 'adminPoll'])->name('admi
 Route::post('/admin/chat-reply', [ChatController::class, 'adminSend'])->name('admin.chat.send');
 Route::post('/admin/topups/{topup}/approve', [AdminController::class, 'approveTopup'])->name('admin.topups.approve');
 Route::post('/admin/topups/{topup}/reject', [AdminController::class, 'rejectTopup'])->name('admin.topups.reject');
+Route::get('/admin/invoices', [AdminController::class, 'invoices'])->name('admin.invoices');
+Route::get('/admin/invoices/{invoice}', [AdminController::class, 'showInvoice'])->name('admin.invoices.show');
+Route::get('/admin/invoices/{invoice}/edit', [AdminController::class, 'editInvoice'])->name('admin.invoices.edit');
+Route::post('/admin/invoices/{invoice}', [AdminController::class, 'updateInvoice'])->name('admin.invoices.update');

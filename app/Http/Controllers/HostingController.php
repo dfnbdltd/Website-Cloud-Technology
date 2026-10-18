@@ -12,6 +12,61 @@ class HostingController extends Controller
         ]);
     }
 
+    public function vps()
+    {
+        return view('hosting.vps', [
+            'plans' => $this->vpsPlans(),
+        ]);
+    }
+
+    public function dedicated()
+    {
+        return view('hosting.dedicated', [
+            'plans' => $this->dedicatedPlans(),
+            'unavailableFeatures' => $this->unavailableFeatures(),
+        ]);
+    }
+
+    /**
+     * Client-area plan list (logged-in customers only).
+     * View-only listing driven by the same plan data as the public pages.
+     */
+    public function clientPlans($type)
+    {
+        $catalog = [
+            'shared' => [
+                'title' => 'Shared Hosting',
+                'kicker' => 'HOSTING PACKAGE',
+                'subtitle' => 'Pick a plan, choose billing, and buy — all inside your client area.',
+                'plans' => $this->sharedPlans(),
+                'unavailableFeatures' => $this->unavailableFeatures(),
+                'active' => 'hosting-shared',
+            ],
+            'vps' => [
+                'title' => 'VPS Hosting',
+                'kicker' => 'HOSTING PACKAGE',
+                'subtitle' => 'Dedicated resources with root access — pick a plan and buy.',
+                'plans' => $this->vpsPlans(),
+                'unavailableFeatures' => [],
+                'active' => 'hosting-vps',
+            ],
+            'dedicated' => [
+                'title' => 'Dedicated Hosting',
+                'kicker' => 'HOSTING PACKAGE',
+                'subtitle' => 'Maximum power on your own server — pick a plan and buy.',
+                'plans' => $this->dedicatedPlans(),
+                'unavailableFeatures' => $this->unavailableFeatures(),
+                'active' => 'hosting-dedicated',
+            ],
+        ];
+
+        if (!isset($catalog[$type])) {
+            abort(404);
+        }
+
+        return view('hosting.client', array_merge($catalog[$type], ['type' => $type]));
+    }
+
     private function unavailableFeatures()
     {
         return [
@@ -124,5 +179,93 @@ class HostingController extends Controller
                 ],
             ],
         ];
+    }
+
+    /**
+     * VPS plans extracted from vps.html (view data only).
+     * Same shape as sharedPlans() so views stay MVC-driven.
+     */
+    private function vpsPlans()
+    {
+        $extra = [
+            ['monthly' => '200 GB IX bandwidth', 'yearly' => '200 GB IX bandwidth'],
+            ['monthly' => '1 Dedicated IP', 'yearly' => '1 Dedicated IP'],
+            ['monthly' => 'Root access', 'yearly' => 'Root access'],
+            ['monthly' => 'Instant activation', 'yearly' => 'Instant activation'],
+            ['monthly' => 'Server location: Bangladesh', 'yearly' => 'Server location: Bangladesh'],
+            ['monthly' => 'Auto back-up system', 'yearly' => 'Auto back-up system'],
+        ];
+
+        return [
+            [
+                'name' => 'Plan A',
+                'class' => 'plan-circle-basic',
+                'description' => 'A reliable start for personal sites and small projects.',
+                'badge' => 'Cheapest',
+                'prices' => ['monthly' => 2000, 'yearly' => 20000, 'twoYear' => 40000, 'threeYear' => 60000],
+                'primary_features' => [
+                    ['monthly' => '2 Core', 'yearly' => '2 Core', 'name' => 'CPU'],
+                    ['monthly' => '4 GB', 'yearly' => '4 GB', 'name' => 'RAM'],
+                    ['monthly' => '40 GB', 'yearly' => '40 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '200 GB', 'yearly' => '200 GB', 'name' => 'transactional bandwidth'],
+                    ['monthly' => '20 Mbps', 'yearly' => '20 Mbps', 'name' => 'internet bandwidth'],
+                ],
+                'extra_features' => $extra,
+            ],
+            [
+                'name' => 'Plan B',
+                'class' => 'plan-circle-standard',
+                'description' => 'More room for growing websites, stores, and applications.',
+                'badge' => null,
+                'prices' => ['monthly' => 3000, 'yearly' => 30000, 'twoYear' => 60000, 'threeYear' => 90000],
+                'primary_features' => [
+                    ['monthly' => '4 Core', 'yearly' => '4 Core', 'name' => 'CPU'],
+                    ['monthly' => '8 GB', 'yearly' => '8 GB', 'name' => 'RAM'],
+                    ['monthly' => '80 GB', 'yearly' => '80 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '200 GB', 'yearly' => '200 GB', 'name' => 'transactional bandwidth'],
+                    ['monthly' => '50 Mbps', 'yearly' => '50 Mbps', 'name' => 'internet bandwidth'],
+                ],
+                'extra_features' => $extra,
+            ],
+            [
+                'name' => 'Plan C',
+                'class' => 'plan-circle-advanced',
+                'description' => 'Extra power for busy, high-traffic workloads and teams.',
+                'badge' => 'Most popular',
+                'prices' => ['monthly' => 4000, 'yearly' => 40000, 'twoYear' => 80000, 'threeYear' => 120000],
+                'primary_features' => [
+                    ['monthly' => '8 Core', 'yearly' => '8 Core', 'name' => 'CPU'],
+                    ['monthly' => '16 GB', 'yearly' => '16 GB', 'name' => 'RAM'],
+                    ['monthly' => '100 GB', 'yearly' => '100 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '300 GB', 'yearly' => '300 GB', 'name' => 'transactional bandwidth'],
+                    ['monthly' => '100 Mbps', 'yearly' => '100 Mbps', 'name' => 'internet bandwidth'],
+                ],
+                'extra_features' => $extra,
+            ],
+            [
+                'name' => 'Plan D',
+                'class' => 'plan-circle-premium',
+                'description' => 'Serious capacity for demanding business workloads.',
+                'badge' => null,
+                'prices' => ['monthly' => 5000, 'yearly' => 50000, 'twoYear' => 100000, 'threeYear' => 150000],
+                'primary_features' => [
+                    ['monthly' => '16 Core', 'yearly' => '16 Core', 'name' => 'CPU'],
+                    ['monthly' => '32 GB', 'yearly' => '32 GB', 'name' => 'RAM'],
+                    ['monthly' => '150 GB', 'yearly' => '150 GB', 'name' => 'NVMe storage'],
+                    ['monthly' => '500 GB', 'yearly' => '500 GB', 'name' => 'transactional bandwidth'],
+                    ['monthly' => '200 Mbps', 'yearly' => '200 Mbps', 'name' => 'internet bandwidth'],
+                ],
+                'extra_features' => $extra,
+            ],
+        ];
+    }
+
+    /**
+     * Dedicated plans extracted from dedicated.html (view data only).
+     * Same shape as sharedPlans().
+     */
+    private function dedicatedPlans()
+    {
+        return $this->sharedPlans();
     }
 }

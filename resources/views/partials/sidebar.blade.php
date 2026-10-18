@@ -1,14 +1,19 @@
 @php($storeActive = in_array($active, ['mystore', 'my-domains', 'hosting', 'invoices', 'payments']))
 <aside class="domain-sidebar" id="clientSidebar">
-    <a class="domain-brand" href="{{ session('customer') ? route('dashboard') : route('landing') }}">@include('partials.logo', ['gid' => 's'])</a>
+    <a class="domain-brand" href="{{ route('landing') }}" title="Go to home page" aria-label="Go to home page">@include('partials.logo', ['gid' => 's'])</a>
     <nav>
         <small>MAIN MENU</small>
-        <a {!! $active === 'dashboard' ? 'class="active"' : '' !!} href="{{ route('dashboard') }}"><b>⌂</b> Dashboard</a>
+        <a href="{{ route('landing') }}"><b>⌂</b> Go to home</a>
+        <a {!! $active === 'dashboard' ? 'class="active"' : '' !!} href="{{ route('dashboard') }}"><b>◈</b> Dashboard</a>
         <a {!! $active === 'domains' ? 'class="active"' : '' !!} href="{{ route('domains.index') }}"><b>◎</b> Domain Registration</a>
         <small class="nav-gap">HOSTING &amp; SERVICES</small>
-        <a {!! $active === 'shared-hosting' ? 'class="active"' : '' !!} href="{{ route('hosting.shared') }}"><b>▤</b> Shared Hosting</a>
-        <a href="{{ route('under.construction', 'vps-hosting') }}"><b>▤</b> VPS Hosting</a>
-        <a href="{{ route('under.construction', 'dedicated-hosting') }}"><b>▤</b> Dedicated Hosting</a>
+        <style>.domain-sidebar nav>a.hosting-package-toggle{white-space:nowrap}.domain-sidebar nav>a .nav-count,.domain-sidebar nav>a .nav-caret{flex:none}.domain-sidebar nav>a .nav-caret{display:inline-block;font-size:16px;font-weight:800;font-style:normal;color:inherit;transition:transform .2s}.domain-sidebar nav>a.open .nav-caret{transform:rotate(180deg)}</style>
+        <a href="#" {!! in_array($active, ['shared-hosting', 'hosting-shared', 'hosting-vps', 'hosting-dedicated']) ? 'class="active open hosting-package-toggle"' : 'class="hosting-package-toggle"' !!} aria-expanded="{{ in_array($active, ['shared-hosting', 'hosting-shared', 'hosting-vps', 'hosting-dedicated']) ? 'true' : 'false' }}" aria-controls="hostingPackageSubnav" onclick="event.preventDefault();var s=document.getElementById('hostingPackageSubnav');var open=s.classList.toggle('open');this.classList.toggle('open',open);this.setAttribute('aria-expanded',open);"><b>▤</b> Hosting Package <i class="nav-count">3</i><i class="nav-caret">∨</i></a>
+        <div class="subnav{{ in_array($active, ['shared-hosting', 'hosting-shared', 'hosting-vps', 'hosting-dedicated']) ? ' open' : '' }}" id="hostingPackageSubnav">
+            <a {!! in_array($active, ['shared-hosting', 'hosting-shared']) ? 'class="active"' : '' !!} href="{{ route('client.hosting', 'shared') }}"><b>▤</b> Shared Hosting</a>
+            <a {!! $active === 'hosting-vps' ? 'class="active"' : '' !!} href="{{ route('client.hosting', 'vps') }}"><b>▤</b> VPS Hosting</a>
+            <a {!! $active === 'hosting-dedicated' ? 'class="active"' : '' !!} href="{{ route('client.hosting', 'dedicated') }}"><b>▤</b> Dedicated Hosting</a>
+        </div>
         <a href="{{ route('under.construction', 'ssl-certificate') }}"><b>◇</b> SSL Certificate</a>
         <a href="{{ route('under.construction', 'business-email') }}"><b>✉</b> Business Email</a>
         <a {!! $storeActive ? 'class="active"' : '' !!} href="{{ route('mystore') }}"><b>▦</b> My Store</a>
