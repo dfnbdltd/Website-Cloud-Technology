@@ -33,6 +33,11 @@ class Setting extends Model
                 'hero_highlight' => ['Headline highlight', 'Registered in Minutes.', 'text'],
                 'hero_text' => ['Intro paragraph', 'Search, register and manage your ideal domain name — real-time availability, transparent pricing in Taka, and zero hidden fees.', 'textarea'],
             ],
+            'SSL slider' => [
+                'ssl_title' => ['SSL headline', 'Secure your site.', 'text'],
+                'ssl_highlight' => ['SSL headline highlight', 'Build instant trust.', 'text'],
+                'ssl_text' => ['SSL paragraph', '256-bit encryption, the browser padlock and a trust seal on every visit — issued in minutes with free installation and automated renewal.', 'textarea'],
+            ],
             'Homepage trust' => [
                 'trust_items' => ['Trust bar (comma separated)', 'Real-time availability, Live BDT pricing, Free WHOIS privacy, 24/7 local support', 'text'],
             ],
