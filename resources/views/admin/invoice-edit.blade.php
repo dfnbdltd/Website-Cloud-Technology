@@ -47,17 +47,18 @@
 <form method="POST" action="{{ route('admin.invoices.update', $invoice) }}">@csrf
 <div class="inv-card">
 <h3>Line items</h3>
-<p class="sub">Each row = one billable item. Line total = quantity × years × unit price (a row with Years = 0 bills only once — use it for one-off/manual charges).</p>
+<p class="sub">Purchase price is the saved ResellerClub customer-price snapshot; selling price is editable. Line total = quantity × years × selling price (a row with Years = 0 bills only once).</p>
 <table class="inv-lines">
-<thead><tr><th style="width:34px">SL</th><th>Description</th><th style="width:170px">Type</th><th style="width:80px" class="num">Years</th><th style="width:70px" class="num">Qty</th><th style="width:120px" class="num">Unit price (৳)</th><th style="width:120px" class="num">Line total</th><th style="width:34px"></th></tr></thead>
+<thead><tr><th style="width:34px">SL</th><th>Description</th><th style="width:150px">Type</th><th style="width:70px" class="num">Years</th><th style="width:60px" class="num">Qty</th><th style="width:130px" class="num">Purchase (৳)</th><th style="width:130px" class="num">Selling / year (৳)</th><th style="width:120px" class="num">Line total</th><th style="width:34px"></th></tr></thead>
 <tbody id="lines">
     @foreach(old('items', $invoice->items->toArray()) as $i => $item)
     <tr class="inv-line">
         <td class="inv-sl">{{ $i + 1 }}</td>
-        <td><input type="text" name="items[{{ $i }}][description]" value="{{ $item['description'] ?? '' }}" required maxlength="255" placeholder="e.g. example.com — domain registration"></td>
+        <td><input type="hidden" name="items[{{ $i }}][id]" value="{{ $item['id'] ?? '' }}"><input type="text" name="items[{{ $i }}][description]" value="{{ $item['description'] ?? '' }}" required maxlength="255" placeholder="e.g. example.com — domain registration"></td>
         <td><select name="items[{{ $i }}][item_type]">@foreach(['domain-registration' => 'Domain registration', 'domain-renewal' => 'Domain renewal', 'hosting' => 'Hosting', 'topup' => 'Wallet top-up', 'manual' => 'Manual / one-off'] as $value => $label)<option value="{{ $value }}" @if(old('item_type.'.$i, $item['item_type'] ?? '') === $value) selected @endif>{{ $label }}</option>@endforeach</select></td>
         <td><input type="number" class="num-inv years" name="items[{{ $i }}][years]" value="{{ $item['years'] ?? 0 }}" min="0" max="10"></td>
         <td><input type="number" class="num-inv qty" name="items[{{ $i }}][quantity]" value="{{ $item['quantity'] ?? 1 }}" min="1" max="999"></td>
+        <td class="inv-num">@if(isset($item['purchase_price']))৳ {{ number_format($item['purchase_price'], 2) }}@else —@endif</td>
         <td><input type="number" class="num-inv price" name="items[{{ $i }}][unit_price]" value="{{ $item['unit_price'] ?? '' }}" min="0" step="0.01" required></td>
         <td class="inv-num">৳ <span class="rowTotal">{{ number_format(($item['quantity'] ?? 1) * max(1, (int)($item['years'] ?? 0)) * (float)($item['unit_price'] ?? 0), 2) }}</span></td>
         <td><button type="button" class="inv-remove" title="Remove line" onclick="removeLine(this)">×</button></td>
@@ -100,6 +101,7 @@
 <td><select name="items[__N__][item_type]"><option value="domain-registration">Domain registration</option><option value="domain-renewal">Domain renewal</option><option value="hosting">Hosting</option><option value="topup">Wallet top-up</option><option value="manual">Manual / one-off</option></select></td>
 <td><input type="number" class="num-inv years" name="items[__N__][years]" value="1" min="0" max="10"></td>
 <td><input type="number" class="num-inv qty" name="items[__N__][quantity]" value="1" min="1" max="999"></td>
+<td class="inv-num">—</td>
 <td><input type="number" class="num-inv price" name="items[__N__][unit_price]" min="0" step="0.01" required placeholder="0.00"></td>
 <td class="inv-num">৳ <span class="rowTotal">0.00</span></td>
 <td><button type="button" class="inv-remove" title="Remove line" onclick="removeLine(this)">×</button></td>

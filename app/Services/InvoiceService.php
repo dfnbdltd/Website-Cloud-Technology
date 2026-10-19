@@ -59,6 +59,7 @@ class InvoiceService
                     'years' => (int) $item->years,
                     'quantity' => 1,
                     'unit_price' => (float) $item->price,
+                    'purchase_price' => (float) ($item->purchase_price ?? $item->price),
                     'line_total' => round((float) $item->price * (int) $item->years, 2),
                 ]);
             }
@@ -165,9 +166,13 @@ class InvoiceService
         return DB::transaction(function () use ($invoice, $lines, $fields) {
             $paidBefore = (float) $invoice->amount_paid;
             $wasPaid = $invoice->status === Invoice::STATUS_PAID;
+            $existingItems = $invoice->items()->get()->keyBy('id');
 
             $invoice->items()->delete();
             foreach (array_values($lines) as $index => $line) {
+                $existingItem = !empty($line['id'])
+                    ? $existingItems->get((int) $line['id'])
+                    : $existingItems->firstWhere('description', $line['description']);
                 $item = new InvoiceItem([
                     'sl_no' => $index + 1,
                     'description' => $line['description'],
@@ -175,6 +180,7 @@ class InvoiceService
                     'years' => (int) ($line['years'] ?? 0),
                     'quantity' => (int) ($line['quantity'] ?? 1),
                     'unit_price' => (float) $line['unit_price'],
+                    'purchase_price' => $existingItem ? $existingItem->purchase_price : null,
                 ]);
                 $item->line_total = $item->computeLineTotal();
                 $invoice->items()->create($item->getAttributes());

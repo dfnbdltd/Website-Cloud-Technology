@@ -89,6 +89,7 @@ class InvoiceWorkflowTest extends TestCase
         $this->assertSame('Domain registration — invoiceable.com', $item->description);
         $this->assertSame(3, $item->years);
         $this->assertSame(3642.0, $item->line_total);
+        $this->assertSame(1214.0, $item->purchase_price);
 
         // Idempotent: calling again returns the same invoice, not a second one.
         $again = app(InvoiceService::class)->createForOrder($order->fresh());
@@ -149,7 +150,7 @@ class InvoiceWorkflowTest extends TestCase
         // glued-blade-directive syntax bug on /admin/invoices/{id}/edit.
         $this->withSession($session)->withoutExceptionHandling()->get(route('admin.invoices.edit', $invoice))
             ->assertStatus(200)
-            ->assertSee('Unit price (৳)');
+            ->assertSee('Selling / year (৳)');
 
         $this->withSession($session)->get(route('admin.invoices'))
             ->assertStatus(200)
@@ -176,6 +177,7 @@ class InvoiceWorkflowTest extends TestCase
         $this->assertSame(1214.0, $invoice->balanceDue());        // customer owes one extra year
         $this->assertSame(4, $invoice->items->first()->years);
         $this->assertSame(1, $invoice->items->first()->sl_no);
+        $this->assertSame(1214.0, $invoice->items->first()->purchase_price);
 
         // The customer list must now show the INVOICE status (Unpaid, with the
         // due portion) even though the underlying order was already paid once.
@@ -183,6 +185,44 @@ class InvoiceWorkflowTest extends TestCase
             ->assertStatus(200)
             ->assertSee('Unpaid')
             ->assertSee($invoice->invoice_number);
+    }
+
+    public function testAdminInvoiceTableShowsDomainMarginAndPurchasePriceSnapshot()
+    {
+        $user = $this->customer();
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user, 2, 1214)->fresh());
+        $session = ['admin' => ['email' => 'admin@mail.net']];
+
+        $this->withSession($session)->post(route('admin.invoices.update', $invoice), [
+            'status' => 'unpaid',
+            'payment_method' => 'nagad',
+            'vat_percent' => 0,
+            'items' => [[
+                'id' => $invoice->items->first()->id,
+                'description' => 'Domain registration — invoiceable.com',
+                'item_type' => 'domain-registration',
+                'years' => 2,
+                'quantity' => 1,
+                'unit_price' => 1500,
+            ]],
+        ])->assertRedirect(route('admin.invoices.show', $invoice->fresh()));
+
+        $line = $invoice->fresh()->items->first();
+        $this->assertSame(1214.0, $line->purchase_price);
+        $this->assertSame(1500.0, $line->unit_price);
+
+        $this->withSession($session)->get(route('admin.invoices'))
+            ->assertStatus(200)
+            ->assertSee('invoiceable.com')
+            ->assertSee('Test Buyer')
+            ->assertSee('API purchase / year')
+            ->assertSee('2')
+            ->assertSee('৳ 1,214.00')
+            ->assertSee('৳ 1,500.00')
+            ->assertSee('৳ 572.00')
+            ->assertSee('Nagad')
+            ->assertSee('View')
+            ->assertSee('Edit');
     }
 
     public function testTopupApprovalIssuesPaidReceiptInvoice()

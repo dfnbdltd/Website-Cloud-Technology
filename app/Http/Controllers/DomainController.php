@@ -52,6 +52,7 @@ class DomainController extends Controller
                 'available' => true,
                 'price' => $testDomains[$domain]['price'],
                 'renewal' => $testDomains[$domain]['renewal'],
+                'year_prices' => [1 => (float) $testDomains[$domain]['price']],
                 'classkey' => 'test',
                 'source' => 'test',
             ]];
@@ -80,12 +81,15 @@ class DomainController extends Controller
             // If the classkey differs from the catalog, pull its price live.
             $price = $plan['price'];
             $renewal = $plan['renewal'];
+            $yearPrices = $plan['year_prices'];
             if (!empty($entry['classkey']) && $entry['classkey'] !== $plan['classkey']) {
-                $live = $this->resellerClub->pricing()[$entry['classkey']] ?? null;
-                if ($live) {
-                    $price = (float) ($live['addnewdomain']['1'] ?? $price);
-                    $renewal = (float) ($live['renewdomain']['1'] ?? $renewal);
-                }
+                $pricing = $this->resellerClub->pricesForClasskey($entry['classkey'], [
+                    'add' => $price,
+                    'renew' => $renewal,
+                ]);
+                $price = $pricing['price'];
+                $renewal = $pricing['renewal'];
+                $yearPrices = $pricing['year_prices'];
             }
 
             $results[] = [
@@ -94,6 +98,7 @@ class DomainController extends Controller
                 'available' => $available,
                 'price' => $price,
                 'renewal' => $renewal,
+                'year_prices' => $yearPrices,
                 'classkey' => $plan['classkey'],
                 'source' => $status ? 'resellerclub' : 'catalog',
             ];
@@ -108,7 +113,7 @@ class DomainController extends Controller
     {
         $data = $request->validate([
             'domain' => ['required', 'regex:/^[a-z0-9][a-z0-9.-]{1,62}$/i'],
-            'price' => ['required', 'numeric', 'min:0'],
+            'years' => ['nullable', 'integer', 'min:1', 'max:10'],
         ]);
 
         // Server-side price check: never trust the posted price.
@@ -117,17 +122,34 @@ class DomainController extends Controller
         $domain = strtolower($data['domain']);
         $testDomains = config('services.test_domains', []);
         if (isset($testDomains[$domain])) {
-            $price = $testDomains[$domain]['price'];
+            $yearPrice = (float) $testDomains[$domain]['price'];
+            $firstYearPrice = $yearPrice;
+            $renewalPrice = (float) $testDomains[$domain]['renewal'];
+            $years = 1;
         } else {
             $plan = $this->resellerClub->catalog()[$tld] ?? null;
             if (!$plan) {
                 return back()->withErrors(['domain' => 'This domain extension is not available for registration.']);
             }
-            $price = $plan['price'];
+            $years = (int) ($data['years'] ?? 1);
+            $termPrice = $plan['year_prices'][$years] ?? null;
+            if ($termPrice === null) {
+                return back()->withErrors(['domain' => 'Pricing is not available for the selected registration term.']);
+            }
+            $yearPrice = (float) $termPrice / $years;
+            $firstYearPrice = (float) $plan['price'];
+            $renewalPrice = (float) $plan['renewal'];
         }
 
         $cart = $request->session()->get('domain_cart', []);
-        $cart[$domain] = ['domain' => $domain, 'price' => $price, 'years' => 1];
+        $cart[$domain] = [
+            'domain' => $domain,
+            'price' => $yearPrice,
+            'purchase_price' => $yearPrice,
+            'first_year_price' => $firstYearPrice,
+            'renewal_price' => $renewalPrice,
+            'years' => $years,
+        ];
         $request->session()->put('domain_cart', $cart);
 
         return redirect()->back()->with('cart_added', $domain);
@@ -249,7 +271,8 @@ class DomainController extends Controller
                     'tld' => end($parts),
                     'years' => $item['years'],
                     'price' => $item['price'],
-                    'renewal_price' => $item['price'],
+                    'renewal_price' => $item['renewal_price'] ?? $item['price'],
+                    'purchase_price' => $item['purchase_price'] ?? $item['price'],
                 ]);
             }
             Payment::create([

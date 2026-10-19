@@ -16,7 +16,7 @@ class InvoiceItem extends Model
 {
     protected $fillable = [
         'invoice_id', 'sl_no', 'description', 'item_type', 'years',
-        'quantity', 'unit_price', 'line_total',
+        'quantity', 'unit_price', 'purchase_price', 'line_total',
     ];
 
     protected $casts = [
@@ -24,6 +24,7 @@ class InvoiceItem extends Model
         'years' => 'integer',
         'quantity' => 'integer',
         'unit_price' => 'float',
+        'purchase_price' => 'float',
         'line_total' => 'float',
     ];
 

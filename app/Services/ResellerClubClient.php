@@ -68,15 +68,25 @@ class ResellerClubClient
             }
 
             $tld = $fallback['tld'] ?? preg_replace('/^dot/', '', $classkey);
+            $prices = $this->priceOptions($live, $fallback);
             $catalog[$tld] = [
                 'classkey' => $classkey,
-                'price' => (float) ($live['addnewdomain']['1'] ?? $fallback['add']),
-                'renewal' => (float) ($live['renewdomain']['1'] ?? $fallback['renew']),
+                'price' => $prices['price'],
+                'renewal' => $prices['renewal'],
+                'year_prices' => $prices['year_prices'],
                 'popular' => isset($fallback['popular']),
             ];
         }
 
         return $catalog;
+    }
+
+    /**
+     * Registration totals for each supported term, keyed by number of years.
+     */
+    public function pricesForClasskey($classkey, array $fallback = [])
+    {
+        return $this->priceOptions($this->pricing()[$classkey] ?? null, $fallback);
     }
 
     public function checkAvailability($domain, $tld)
@@ -105,6 +115,24 @@ class ResellerClubClient
             'invoice-option' => 'NoInvoice',
             'protect-privacy' => 'false',
         ]);
+    }
+
+    private function priceOptions($live, array $fallback = [])
+    {
+        $firstYearPrice = (float) ($live['addnewdomain']['1'] ?? $fallback['add'] ?? 0);
+        $renewalPrice = (float) ($live['renewdomain']['1'] ?? $fallback['renew'] ?? $firstYearPrice);
+        $yearPrices = [];
+
+        for ($years = 1; $years <= 10; $years++) {
+            $yearPrices[$years] = (float) ($live['addnewdomain'][(string) $years]
+                ?? ($firstYearPrice + ($renewalPrice * ($years - 1))));
+        }
+
+        return [
+            'price' => $firstYearPrice,
+            'renewal' => $renewalPrice,
+            'year_prices' => $yearPrices,
+        ];
     }
 
     private function request($path, array $parameters = [])

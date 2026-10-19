@@ -269,7 +269,7 @@ class AdminController extends Controller
 
         $search = trim((string) $request->query('q'));
         $invoices = Invoice::query()
-            ->with('user')
+            ->with('user', 'items', 'source')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('invoice_number', 'like', "%{$search}%")
@@ -277,6 +277,9 @@ class AdminController extends Controller
                             $u->where('name', 'like', "%{$search}%")
                                 ->orWhere('email', 'like', "%{$search}%")
                                 ->orWhere('customer_uid', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('items', function ($items) use ($search) {
+                            $items->where('description', 'like', "%{$search}%");
                         });
                 });
             })
@@ -326,6 +329,7 @@ class AdminController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string', 'max:255'],
+            'items.*.id' => ['nullable', 'integer'],
             'items.*.item_type' => ['nullable', 'in:domain-registration,domain-renewal,hosting,topup,manual'],
             'items.*.years' => ['required', 'integer', 'min:0', 'max:10'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
