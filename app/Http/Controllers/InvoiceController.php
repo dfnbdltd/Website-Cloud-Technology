@@ -32,6 +32,9 @@ class InvoiceController extends Controller
 
     /**
      * PDF download — streams INV-000001.pdf (download=1 forces the save dialog).
+     *
+     * Admins receive the internal customer-information sheet with purchase
+     * price and profit; customers receive the same layout without cost data.
      */
     public function pdf(Request $request, Invoice $invoice)
     {
@@ -40,7 +43,10 @@ class InvoiceController extends Controller
         }
 
         try {
-            $bytes = app(\App\Services\InvoicePdf::class)->render($invoice);
+            $bytes = app(\App\Services\InvoicePdf::class)->render(
+                $invoice,
+                (bool) $request->session()->get('admin')
+            );
         } catch (\Throwable $e) {
             Log::error('Invoice PDF render failed', ['invoice' => $invoice->invoice_number, 'error' => $e->getMessage()]);
             return back()->withErrors(['invoice' => 'We could not generate the PDF right now. Please try again later.']);

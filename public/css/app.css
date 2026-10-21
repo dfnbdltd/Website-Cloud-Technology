@@ -71,3 +71,59 @@ footer{font-size:13px}
 .signup-button:hover{background:#eff6ff!important}
 .auth-cart-note{margin:14px 0 0;font-size:13px;color:#475569;text-align:center}
 .verify-icon{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:14px;background:#eff6ff;color:#2563eb;font-size:24px;margin-bottom:14px}
+
+/* =============================================================
+   Client login — modernized card. Scoped to .login-v2 so the
+   register / forgot-password / reset-password pages are untouched.
+   ============================================================= */
+.login-v2 .auth-brand{margin-bottom:34px}
+.login-v2 .auth-wrap{max-width:470px;padding:56px 24px;position:relative;z-index:1}
+.login-v2 .login-panel{position:relative;background:#fff;border:1px solid rgba(226,234,242,.9);border-radius:20px;padding:40px 38px 34px;box-shadow:0 30px 80px -20px rgba(16,80,160,.18),0 10px 30px -12px rgba(16,44,79,.08);overflow:hidden}
+.login-v2 .login-panel:before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),#58a9ff 55%,var(--green))}
+@keyframes loginIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.login-v2 .login-panel{animation:loginIn .45s ease both}
+.login-v2 .login-eyebrow{display:inline-flex!important;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:#eaf4ff;font-size:10.5px;font-weight:800;letter-spacing:1.2px;margin:0 0 14px}
+.login-v2 .login-eyebrow i{display:block;flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:#3ac18a;box-shadow:0 0 0 4px rgba(58,193,138,.16)}
+.login-v2 .login-panel h1{font:800 30px/1.15 'Manrope',sans-serif;letter-spacing:-1.2px;margin:0 0 8px}
+.login-v2 .login-panel h1 span{color:var(--blue)}
+.login-v2 .login-panel>p{color:var(--muted);font-size:13.5px;line-height:1.65;margin:0 0 26px}
+.login-v2 .form-success{border-radius:10px;font-size:12.5px}
+.login-v2 .form-error{display:block;border-radius:10px;font-size:12.5px;line-height:1.6}
+.login-v2 .inline-resend{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(201,92,82,.35)}
+.login-v2 .inline-resend button{color:inherit}
+.login-v2 .login-panel form>label{display:block!important;color:#33475e;font-size:12.5px;font-weight:700;letter-spacing:.2px;margin:0 0 18px}
+.login-v2 .login-panel form>label em{font-style:normal;font-weight:500;color:#7d8fa3;font-size:11.5px}
+.login-v2 .login-panel input[type=email],.login-v2 .login-panel input[type=password]{width:100%;display:block;margin-top:8px;border:1px solid #dbe6f0;border-radius:10px;padding:13px 15px;outline:none;font:15px 'DM Sans',sans-serif;background:#fbfdff;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+.login-v2 .login-panel input[type=email]:focus,.login-v2 .login-panel input[type=password]:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(36,117,232,.12);background:#fff}
+.login-v2 .login-panel input::placeholder{color:#a9b8c8}
+.login-v2 .password-wrap{position:relative}
+.login-v2 .password-toggle{position:absolute;top:50%;right:8px;transform:translateY(-50%);display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;background:transparent;color:#8fa2b6;border-radius:8px;cursor:pointer;transition:color .15s ease,background .15s ease}
+.login-v2 .password-toggle svg{width:18px;height:18px;display:block}
+.login-v2 .password-toggle svg[hidden]{display:none}
+.login-v2 .password-toggle:hover{color:var(--blue);background:#f2f7ff}
+.login-v2 .password-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px;color:var(--blue)}
+.login-v2 .form-meta{display:flex!important;justify-content:space-between;align-items:center;margin:-2px 0 22px!important}
+.login-v2 .form-meta a{color:var(--blue);font-weight:700;transition:color .15s ease}
+.login-v2 .form-meta a:hover{color:#1d62c7}
+.login-v2 .form-meta .check{display:flex!important;align-items:center;gap:8px;color:#5f738a;font-size:13px;font-weight:600!important;margin:0!important;text-transform:none;letter-spacing:0}
+.login-v2 .form-meta .check input{width:15px;height:15px;accent-color:var(--blue);cursor:pointer}
+.login-v2 .form-button{padding:15px 20px;border-radius:12px;background:linear-gradient(180deg,#3b83f7,var(--blue));box-shadow:0 14px 28px rgba(36,117,232,.28);font-size:14px;transition:transform .15s ease,box-shadow .15s ease,filter .15s ease}
+.login-v2 .form-button:hover{transform:translateY(-1px);box-shadow:0 18px 34px rgba(36,117,232,.34);filter:saturate(1.05)}
+.login-v2 .form-button:active{transform:translateY(0)}
+.login-v2 .auth-divider{margin:24px 0 16px;font-size:12px}
+.login-v2 .signup-button{background:#fff!important;color:var(--blue)!important;border:1px solid #d4e1ef!important;box-shadow:0 8px 20px rgba(16,44,79,.06)!important;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.login-v2 .signup-button:hover{background:#f6faff!important;border-color:#b9d0ec!important;transform:translateY(-1px)}
+.login-v2 .auth-cart-note{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;padding:11px 14px;border:1px dashed #bcd0e8;border-radius:10px;background:#f6f9fd;font-size:12px;color:#33475e}
+.login-v2 .back-link{margin-top:26px;font-size:12.5px;font-weight:600;transition:color .15s ease}
+.login-v2 .back-link:hover{color:var(--blue)}
+@media(max-width:560px){
+    .login-v2 .auth-wrap{padding-top:36px}
+    .login-v2 .login-panel{padding:30px 22px 26px;border-radius:16px}
+    .login-v2 .login-panel h1{font-size:26px}
+    .login-v2 .login-eyebrow{font-size:10px}
+    .login-v2 .form-meta{flex-wrap:wrap;gap:10px}
+}
+@media(prefers-reduced-motion:reduce){
+    .login-v2 .login-panel{animation:none}
+    .login-v2 .form-button,.login-v2 .signup-button{transition:none}
+}

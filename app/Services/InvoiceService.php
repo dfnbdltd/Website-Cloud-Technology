@@ -159,7 +159,8 @@ class InvoiceService
      * Admin edit: replace all line items and supporting fields atomically,
      * renumber SL 1..n and recompute the money. A paid invoice whose total
      * just grew (e.g. 3 years -> 4) reopens as unpaid with the already-paid
-     * amount preserved, so the customer only owes the difference.
+     * amount preserved, so the customer only owes the difference. Manually
+     * choosing unpaid on an unchanged paid invoice clears the payment instead.
      */
     public function applyEdit(Invoice $invoice, array $lines, array $fields): Invoice
     {
@@ -186,30 +187,50 @@ class InvoiceService
                 $invoice->items()->create($item->getAttributes());
             }
 
+            // array_key_exists (not isset) so an explicit empty value clears the field:
+            // payment method, due date and notes are all optional on the admin form.
             $invoice->fill([
-                'payment_method' => isset($fields['payment_method']) && $fields['payment_method'] !== null
-                    ? $fields['payment_method']
+                'payment_method' => array_key_exists('payment_method', $fields)
+                    ? ($fields['payment_method'] ?: null)
                     : $invoice->payment_method,
-                'vat_percent' => isset($fields['vat_percent']) ? (float) $fields['vat_percent'] : $invoice->vat_percent,
-                'due_date' => isset($fields['due_date']) ? $fields['due_date'] : $invoice->due_date,
-                'notes' => isset($fields['notes']) && trim((string) $fields['notes']) !== ''
-                    ? trim((string) $fields['notes'])
+                'vat_percent' => array_key_exists('vat_percent', $fields)
+                    ? (float) $fields['vat_percent']
+                    : $invoice->vat_percent,
+                'due_date' => array_key_exists('due_date', $fields)
+                    ? ($fields['due_date'] ?: null)
+                    : $invoice->due_date,
+                'notes' => array_key_exists('notes', $fields)
+                    ? (trim((string) $fields['notes']) !== '' ? trim((string) $fields['notes']) : null)
                     : $invoice->notes,
             ]);
             $this->recalculate($invoice);
 
-            $nextStatus = $fields['status'] === Invoice::STATUS_VOID
-                ? Invoice::STATUS_VOID
-                : ($wasPaid && (float) $invoice->total > $paidBefore
-                    ? Invoice::STATUS_UNPAID
-                    : ($fields['status'] === Invoice::STATUS_PAID ? Invoice::STATUS_PAID : $invoice->status));
+            // Growth rule wins: a paid invoice whose total grew (3 -> 4 years)
+            // reopens for the difference. Otherwise the admin's explicit
+            // paid/unpaid choice is respected — including undoing a payment.
+            $grewWhilePaid = $wasPaid && (float) $invoice->total > $paidBefore;
 
-            if ($nextStatus === Invoice::STATUS_VOID || $nextStatus === Invoice::STATUS_UNPAID) {
-                // Money already received stays on record; reopening keeps the paid amount.
+            if ($fields['status'] === Invoice::STATUS_VOID) {
+                $nextStatus = Invoice::STATUS_VOID;
+            } elseif ($grewWhilePaid) {
+                $nextStatus = Invoice::STATUS_UNPAID;
+            } else {
+                $nextStatus = $fields['status'];
+            }
+
+            if ($nextStatus === Invoice::STATUS_VOID) {
                 $invoice->fill([
-                    'status' => $nextStatus,
-                    'amount_paid' => $nextStatus === Invoice::STATUS_UNPAID ? $paidBefore : $invoice->amount_paid,
-                    'paid_at' => $nextStatus === Invoice::STATUS_VOID ? $invoice->paid_at : null,
+                    'status' => Invoice::STATUS_VOID,
+                    'paid_at' => $invoice->paid_at,
+                ]);
+            } elseif ($nextStatus === Invoice::STATUS_UNPAID) {
+                // Manual "mark unpaid" on a paid invoice reverses the payment, so
+                // the full total is due again. The growth rule keeps the received
+                // amount on record and reopens only the difference.
+                $invoice->fill([
+                    'status' => Invoice::STATUS_UNPAID,
+                    'amount_paid' => $grewWhilePaid || !$wasPaid ? $paidBefore : 0,
+                    'paid_at' => null,
                 ]);
             } elseif ($nextStatus === Invoice::STATUS_PAID && !$wasPaid) {
                 $invoice->fill([
@@ -223,6 +244,30 @@ class InvoiceService
 
             return $invoice;
         });
+    }
+
+    /**
+     * Quick admin status switch from the hosted invoice page. Marking paid
+     * records the full total as received; marking unpaid reverses the payment
+     * so the whole total is due again.
+     */
+    public function setStatus(Invoice $invoice, string $status): Invoice
+    {
+        if ($status === Invoice::STATUS_PAID) {
+            $invoice->forceFill([
+                'status' => Invoice::STATUS_PAID,
+                'amount_paid' => (float) $invoice->total,
+                'paid_at' => now(),
+            ])->save();
+        } else {
+            $invoice->forceFill([
+                'status' => Invoice::STATUS_UNPAID,
+                'amount_paid' => 0,
+                'paid_at' => null,
+            ])->save();
+        }
+
+        return $invoice;
     }
 
     /** Recompute subtotal/VAT/total from the stored line items. */

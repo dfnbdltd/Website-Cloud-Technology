@@ -267,4 +267,292 @@ class InvoiceWorkflowTest extends TestCase
         $this->assertSame(500.0, $invoice->balanceDue());
         $this->assertSame(2, $invoice->items->count());
     }
+
+    public function testAdminCanMarkAPaidInvoiceUnpaidWithoutChangingTheTotal()
+    {
+        $user = $this->customer();
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $invoice->forceFill([
+            'status' => Invoice::STATUS_PAID,
+            'amount_paid' => $invoice->total,
+            'paid_at' => now(),
+        ])->save();
+
+        $session = ['admin' => ['email' => 'admin@mail.net']];
+
+        $this->withSession($session)->post(route('admin.invoices.update', $invoice), [
+            'status' => 'unpaid', // explicit manual choice, total unchanged
+            'payment_method' => 'nagad',
+            'vat_percent' => 0,
+            'items' => [[
+                'id' => $invoice->items->first()->id,
+                'description' => 'Domain registration — invoiceable.com',
+                'item_type' => 'domain-registration',
+                'years' => 3,
+                'quantity' => 1,
+                'unit_price' => 1214,
+            ]],
+        ])->assertRedirect(route('admin.invoices.show', $invoice->fresh()));
+
+        $invoice = $invoice->fresh();
+        $this->assertSame(Invoice::STATUS_UNPAID, $invoice->status);
+        $this->assertSame(3642.0, $invoice->total);
+        // Manual "mark unpaid" reverses the payment: the full total is due again.
+        $this->assertSame(0.0, (float) $invoice->amount_paid);
+        $this->assertNull($invoice->paid_at);
+        $this->assertSame(3642.0, $invoice->balanceDue());
+    }
+
+    public function testAdminCanTogglePaidStatusFromTheInvoicePage()
+    {
+        $user = $this->customer();
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $session = ['admin' => ['email' => 'admin@mail.net']];
+
+        $this->withSession($session)->post(route('admin.invoices.status', $invoice), ['status' => 'paid'])
+            ->assertRedirect(route('admin.invoices.show', $invoice->fresh()));
+
+        $invoice = $invoice->fresh();
+        $this->assertSame(Invoice::STATUS_PAID, $invoice->status);
+        $this->assertSame(3642.0, (float) $invoice->amount_paid);
+        $this->assertNotNull($invoice->paid_at);
+        $this->assertSame(0.0, $invoice->balanceDue());
+
+        $this->withSession($session)->post(route('admin.invoices.status', $invoice), ['status' => 'unpaid'])
+            ->assertRedirect(route('admin.invoices.show', $invoice->fresh()));
+
+        $invoice = $invoice->fresh();
+        $this->assertSame(Invoice::STATUS_UNPAID, $invoice->status);
+        $this->assertSame(0.0, (float) $invoice->amount_paid);
+        $this->assertNull($invoice->paid_at);
+        $this->assertSame(3642.0, $invoice->balanceDue());
+    }
+
+    public function testAdminCanClearOptionalInvoiceFields()
+    {
+        $user = $this->customer();
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $invoice->forceFill([
+            'payment_method' => 'nagad',
+            'notes' => 'Old note that should go away',
+            'due_date' => now()->addDays(7),
+        ])->save();
+
+        $session = ['admin' => ['email' => 'admin@mail.net']];
+
+        $this->withSession($session)->post(route('admin.invoices.update', $invoice), [
+            'status' => 'unpaid',
+            'payment_method' => '',
+            'vat_percent' => 0,
+            'due_date' => '',
+            'notes' => '',
+            'items' => [[
+                'id' => $invoice->items->first()->id,
+                'description' => 'Domain registration — invoiceable.com',
+                'item_type' => 'domain-registration',
+                'years' => 3,
+                'quantity' => 1,
+                'unit_price' => 1214,
+            ]],
+        ])->assertRedirect(route('admin.invoices.show', $invoice->fresh()));
+
+        $invoice = $invoice->fresh();
+        $this->assertNull($invoice->payment_method);
+        $this->assertNull($invoice->due_date);
+        $this->assertNull($invoice->notes);
+    }
+
+    public function testEditPageUsesVerticalCardsAndKeepsSnapshotsAfterAValidationError()
+    {
+        $user = $this->customer();
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $invoice->forceFill([
+            'status' => Invoice::STATUS_PAID,
+            'amount_paid' => $invoice->total,
+            'paid_at' => now(),
+        ])->save();
+
+        $session = ['admin' => ['email' => 'admin@mail.net']];
+
+        $this->withSession($session)->get(route('admin.invoices.edit', $invoice))
+            ->assertOk()
+            ->assertSee('inv-line-head', false)
+            ->assertSee('inv-settings', false)
+            ->assertSee('id="paidAmount" data-value="3642"', false)
+            ->assertSee('৳ 1,214.00')
+            ->assertDontSee('<table class="inv-lines"', false);
+
+        // Invalid price: the form is redisplayed from old input, but the
+        // read-only purchase snapshot must still be visible.
+        $this->withSession($session)->from(route('admin.invoices.edit', $invoice))
+            ->post(route('admin.invoices.update', $invoice), [
+                'status' => 'paid',
+                'payment_method' => 'nagad',
+                'vat_percent' => 0,
+                'items' => [[
+                    'id' => $invoice->items->first()->id,
+                    'description' => 'Domain registration — invoiceable.com',
+                    'item_type' => 'domain-registration',
+                    'years' => 3,
+                    'quantity' => 1,
+                    'unit_price' => -1,
+                ]],
+            ])->assertSessionHasErrors('items.0.unit_price');
+
+        $this->withSession($session)->get(route('admin.invoices.edit', $invoice))
+            ->assertOk()
+            ->assertSee('value="-1"', false)
+            ->assertSee('৳ 1,214.00');
+    }
+
+    public function testVoidInvoiceNoLongerOffersAnEditButton()
+    {
+        $user = $this->customer();
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $invoice->forceFill(['status' => Invoice::STATUS_VOID])->save();
+
+        $this->withSession(['admin' => ['email' => 'admin@mail.net']])
+            ->get(route('admin.invoices.show', $invoice))
+            ->assertOk()
+            ->assertDontSee('Edit invoice (SL, years, prices)');
+    }
+
+    /**
+     * Build a two-domain invoice with a known purchase snapshot and a full
+     * customer profile, so the PDF report has every requested column.
+     */
+    private function reportInvoice()
+    {
+        $user = $this->customer();
+        $user->forceFill([
+            'customer_uid' => 'CT-5874521',
+            'phone' => '01700000000',
+            'address1' => '14/2, Lake Circus',
+            'address2' => 'Kalabagan',
+            'city' => 'Dhaka',
+            'postcode' => '1205',
+            'country' => 'Bangladesh',
+        ])->save();
+
+        $order = $this->orderWithItems($user, 2, 1214);
+        $order->items()->first()->update(['purchase_price' => 1000.00]);
+        $order->items()->create([
+            'domain' => 'seconddomain.com',
+            'tld' => 'com',
+            'years' => 1,
+            'price' => 500.00,
+            'renewal_price' => 500.00,
+            'purchase_price' => 300.00,
+        ]);
+        $order->update(['total' => 2928.00]);
+
+        return app(InvoiceService::class)->createForOrder($order->fresh());
+    }
+
+    public function testAdminPdfShowsTheFullCustomerInformationReport()
+    {
+        $invoice = $this->reportInvoice();
+
+        $html = view('invoices.pdf', [
+            'invoice' => $invoice->fresh()->load('items', 'user', 'source'),
+            'isAdmin' => true,
+        ])->render();
+
+        $this->assertStringContainsString('Cloud Technology Customer Information', $html);
+        $this->assertStringContainsString('Product Purchase Amount BDT', $html);
+        $this->assertStringContainsString('Product Sales Amount', $html);
+        $this->assertStringContainsString('Profit Amount', $html);
+        $this->assertStringContainsString('ResellerClub', $html);
+        $this->assertStringContainsString('invoiceable.com', $html);
+        $this->assertStringContainsString('seconddomain.com', $html);
+        $this->assertStringContainsString('BDT 2,300.00', $html); // purchase total
+        $this->assertStringContainsString('BDT 2,928.00', $html); // sales total
+        $this->assertStringContainsString('BDT 628.00', $html);  // profit total
+        $this->assertStringContainsString('Test Buyer', $html);
+        $this->assertStringContainsString('CT-5874521', $html);
+        $this->assertStringContainsString('14/2, Lake Circus', $html);
+        $this->assertStringContainsString('Kalabagan', $html);
+        $this->assertStringContainsString('buyer@example.test', $html);
+        $this->assertStringContainsString('01700000000', $html);
+
+        // One row per domain line + 11 admin columns.
+        $this->assertSame(2, substr_count($html, '<td class="email">'));
+        $this->assertSame(11, substr_count($html, '<th '));
+    }
+
+    public function testCustomerPdfHidesPurchaseAndProfit()
+    {
+        $invoice = $this->reportInvoice();
+
+        $html = view('invoices.pdf', [
+            'invoice' => $invoice->fresh()->load('items', 'user', 'source'),
+            'isAdmin' => false,
+        ])->render();
+
+        $this->assertStringContainsString('Cloud Technology — Invoice', $html);
+        $this->assertStringContainsString('Product Sales Amount', $html);
+        $this->assertStringContainsString('ResellerClub', $html);
+        $this->assertStringContainsString('invoiceable.com', $html);
+        $this->assertStringContainsString('seconddomain.com', $html);
+        $this->assertStringContainsString('BDT 2,928.00', $html);
+        $this->assertStringContainsString('Test Buyer', $html);
+        $this->assertStringContainsString('buyer@example.test', $html);
+
+        // Internal margin data must never reach the customer document.
+        $this->assertStringNotContainsString('Product Purchase Amount', $html);
+        $this->assertStringNotContainsString('Profit Amount', $html);
+        $this->assertStringNotContainsString('BDT 2,300.00', $html);
+        $this->assertStringNotContainsString('BDT 628.00', $html);
+        $this->assertStringNotContainsString('Do not send to the customer', $html);
+
+        // One row per domain line + 9 customer-safe columns.
+        $this->assertSame(2, substr_count($html, '<td class="email">'));
+        $this->assertSame(9, substr_count($html, '<th '));
+    }
+
+    public function testAdminCanDownloadTheCustomerInformationPdf()
+    {
+        $invoice = $this->reportInvoice();
+
+        $response = $this->withSession(['admin' => ['email' => 'admin@mail.net']])
+            ->get(route('admin.invoices.pdf', $invoice));
+
+        $response->assertOk();
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+
+        $this->withSession(['admin' => ['email' => 'admin@mail.net']])
+            ->get(route('admin.invoices.show', $invoice))
+            ->assertOk()
+            ->assertSee('Download customer information PDF')
+            ->assertSee(route('admin.invoices.pdf', $invoice), false);
+    }
+
+    public function testTopupInvoicePdfStillRendersOneSafeRow()
+    {
+        $user = $this->customer();
+        $topup = Topup::create([
+            'user_id' => $user->id,
+            'reference' => 'TU-PDF-' . uniqid(),
+            'amount' => 500.00,
+            'method' => 'nagad',
+            'status' => 'pending',
+        ]);
+
+        $this->withSession(['admin' => ['email' => 'admin@mail.net']])
+            ->post(route('admin.topups.approve', $topup))
+            ->assertRedirect();
+
+        $invoice = (new InvoiceService)->findForSource(Topup::class, $topup->id);
+
+        $html = view('invoices.pdf', [
+            'invoice' => $invoice->fresh()->load('items', 'user', 'source'),
+            'isAdmin' => true,
+        ])->render();
+
+        $this->assertStringContainsString('Wallet balance top-up', $html);
+        $this->assertStringContainsString('Nagad', $html); // non-domain provider fallback
+        $this->assertStringContainsString('BDT 500.00', $html);
+        $this->assertStringContainsString('no saved purchase price', $html); // unknown-cost note
+    }
 }

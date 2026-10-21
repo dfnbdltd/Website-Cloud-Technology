@@ -1,26 +1,59 @@
-# Deployment Steps — after merging this PR
+# After Merge — Deployment Checklist
 
+This update covers the registration page, the admin invoice editor, and the invoice PDF.
 
+- **No database migration is required.**
+- **No new environment variables are required.**
+- Use **PHP 8.0** (this project runs Laravel 6; newer PHP versions may fail).
 
-## Step 1 — `composer install`
-- **What:** installs dependencies.
-- **Why:** this PR adds one new package, `mpdf/mpdf` (used for the invoice PDF download). `composer.lock` is included, so you get the exact tested version.
+## 1. Update the code
 
-## Step 2 — `php artisan migrate`
-- **What:** runs the new migration.
-- **Why:** creates 2 new tables, `invoices` and `invoice_items`. It only adds tables — nothing existing is changed or dropped, so it's safe to run.
+```bash
+git checkout main
+git pull origin main
+```
 
-## Step 3 — `php artisan invoices:backfill`
-- **What:** one-time command.
-- **Why:** creates invoices for all old orders and approved top-ups that existed before this feature, so customers see their full billing history. Safe to run again (won't create duplicates).
+If `vendor/` is not already installed:
 
-## What changed in this PR
-- **New tables:** `invoices`, `invoice_items` (1 migration file).
-- **New files:** `InvoiceService` + `InvoicePdf` (invoices & PDF), `InvoiceController` (customer view/PDF), backfill command, invoice views (admin list/edit, customer page/PDF), tests.
-- **Changed files:** small one-line hooks in existing controllers (order place, bKash paid, wallet credit, admin order/top-up), routes, admin sidebar, customer invoice list. Existing business logic untouched.
-- **New dependency:** `mpdf/mpdf ^8.2.6` (DomPDF is blocked by composer security advisories).
-- Requires PHP `ext-gd` for the PDF.
+```bash
+composer install --no-dev --optimize-autoloader
+```
 
-## Quick check after deploy
-- Admin: `/admin/invoices` shows the invoice list; edit works.
-- Customer: Billing → Invoices → View + Download PDF works.
+## 2. Clear Laravel caches
+
+Run from the project root:
+
+```bash
+php artisan optimize:clear
+```
+
+At minimum, clear the changed Blade views and routes:
+
+```bash
+php artisan view:clear
+php artisan route:clear
+```
+
+This update adds no migrations, so `php artisan migrate` is not required.
+
+## 3. Smoke test
+
+1. Open `/register` — one wide card with a **Full Name** field, no marketing pane, and no Address 2 / State fields.
+2. Log in as admin → open an invoice → click **Download customer information PDF**.
+   Confirm it is A4 landscape and includes purchase, sales, and profit columns.
+3. Log in as the customer → open the same invoice → click **Download invoice PDF**.
+   Confirm purchase price and profit are **not** present.
+4. In the admin invoice editor, change the status **paid ↔ unpaid**, save, and confirm the invoice page updates.
+5. On the admin invoice page, test **Mark as paid** / **Mark as unpaid**.
+
+## 4. Tests (optional)
+
+Run this in staging/CI where dev dependencies are installed (the production `--no-dev` install does not include PHPUnit):
+
+```bash
+php vendor/bin/phpunit --filter InvoiceWorkflowTest
+```
+
+Expected: **15 tests pass**.
+
+Known unrelated failure in the full suite: `LandingAdminLoginTest` still expects “Admin login” on the landing page. It is not caused by this update.

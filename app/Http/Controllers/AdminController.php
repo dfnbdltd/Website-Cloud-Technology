@@ -342,6 +342,26 @@ class AdminController extends Controller
             ->with('success', 'Invoice ' . $invoice->invoice_number . ' saved — the customer sees the updated invoice at the same link.');
     }
 
+    /**
+     * Quick paid/unpaid switch from the hosted invoice page, so an admin can
+     * reverse a payment without re-saving every line item.
+     */
+    public function updateInvoiceStatus(Request $request, Invoice $invoice)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$invoice->isEditable()) {
+            return redirect()->route('admin.invoices.show', $invoice)
+                ->withErrors(['status' => 'A voided invoice can no longer be changed.']);
+        }
+
+        $data = $request->validate(['status' => ['required', 'in:paid,unpaid']]);
+
+        app(InvoiceService::class)->setStatus($invoice, $data['status']);
+
+        return redirect()->route('admin.invoices.show', $invoice->fresh())
+            ->with('success', 'Invoice ' . $invoice->invoice_number . ' marked as ' . $data['status'] . '.');
+    }
+
     public function logout(Request $request)
     {
         $request->session()->forget('admin');
