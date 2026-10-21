@@ -2,9 +2,13 @@
 <link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}">
 <style>
     .invoice-sheet { background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; padding:26px; max-width:860px; margin:0 auto; font-family:Arial,Helvetica,sans-serif; color:#1f2937; }
-    .invoice-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; max-width:860px; margin:0 auto 14px; }
-    .invoice-toolbar .btnrow { display:flex; gap:10px; }
-    .invoice-btn { display:inline-block; padding:9px 16px; border-radius:6px; background:#2563eb; color:#ffffff; font-weight:bold; text-decoration:none; font-size:13px; }
+    .invoice-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; max-width:860px; margin:0 auto 14px; flex-wrap:wrap; }
+    .invoice-toolbar .btnrow { display:flex; gap:10px; flex-wrap:wrap; }
+    .invoice-toolbar .status-form { margin:0; }
+    .invoice-toolbar .status-form button { font-family:inherit; cursor:pointer; }
+    .invoice-flash { max-width:860px; margin:0 auto 12px; padding:10px 14px; border-radius:8px; background:#ecfdf3; border:1px solid #a7e8c4; color:#166534; font:13px Arial,Helvetica,sans-serif; }
+    .invoice-flash.error { background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
+    .invoice-btn { display:inline-block; padding:9px 16px; border-radius:6px; border:1px solid transparent; background:#2563eb; color:#ffffff; font-weight:bold; text-decoration:none; font-size:13px; cursor:pointer; line-height:1.2; }
     .invoice-btn.ghost { background:#ffffff; color:#1f2937; border:1px solid #e5e7eb; }
     .invoice-btn.danger { background:#ffffff; color:#b91c1c; border:1px solid #fca5a5; }
     .invoice-head { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #2563eb; padding-bottom:14px; margin-bottom:16px; }
@@ -35,10 +39,25 @@
     <div class="invoice-toolbar">
         <a class="invoice-btn ghost" href="{{ $backUrl ?? route('invoices') }}">&larr; Back</a>
         <div class="btnrow">
-            @if($isAdmin ?? false)<a class="invoice-btn danger" href="{{ route('admin.invoices.edit', $invoice) }}">Edit invoice (SL, years, prices)</a>@endif
-            <a class="invoice-btn" href="{{ route('invoices.pdf', $invoice) }}?download=1">Download PDF</a>
+            @if(($isAdmin ?? false) && $invoice->status !== \App\Models\Invoice::STATUS_VOID)
+                <form method="POST" action="{{ route('admin.invoices.status', $invoice) }}" class="status-form">
+                    @csrf
+                    @if($invoice->status === \App\Models\Invoice::STATUS_PAID)
+                        <input type="hidden" name="status" value="unpaid">
+                        <button type="submit" class="invoice-btn danger">Mark as unpaid</button>
+                    @else
+                        <input type="hidden" name="status" value="paid">
+                        <button type="submit" class="invoice-btn">Mark as paid</button>
+                    @endif
+                </form>
+                <a class="invoice-btn danger" href="{{ route('admin.invoices.edit', $invoice) }}">Edit invoice (SL, years, prices)</a>
+            @endif
+            <a class="invoice-btn" href="{{ route(($isAdmin ?? false) ? 'admin.invoices.pdf' : 'invoices.pdf', $invoice) }}?download=1">{{ ($isAdmin ?? false) ? 'Download customer information PDF' : 'Download invoice PDF' }}</a>
         </div>
     </div>
+
+    @if(session('success'))<div class="invoice-flash">{{ session('success') }}</div>@endif
+    @if($errors->any())<div class="invoice-flash error">{{ $errors->first() }}</div>@endif
 
     <div class="invoice-sheet">
         <div class="invoice-head">

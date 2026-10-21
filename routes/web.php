@@ -105,4 +105,6 @@ Route::post('/admin/topups/{topup}/reject', [AdminController::class, 'rejectTopu
 Route::get('/admin/invoices', [AdminController::class, 'invoices'])->name('admin.invoices');
 Route::get('/admin/invoices/{invoice}', [AdminController::class, 'showInvoice'])->name('admin.invoices.show');
 Route::get('/admin/invoices/{invoice}/edit', [AdminController::class, 'editInvoice'])->name('admin.invoices.edit');
+Route::get('/admin/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('admin.invoices.pdf');
 Route::post('/admin/invoices/{invoice}', [AdminController::class, 'updateInvoice'])->name('admin.invoices.update');
+Route::post('/admin/invoices/{invoice}/status', [AdminController::class, 'updateInvoiceStatus'])->name('admin.invoices.status');

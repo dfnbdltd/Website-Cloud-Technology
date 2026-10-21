@@ -146,17 +146,19 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:120'],
-            'last_name' => ['required', 'string', 'max:120'],
+            // The sign-up form collects one "Full Name" field. first_name/last_name
+            // are still accepted for backwards compatibility with older clients.
+            'full_name' => ['nullable', 'string', 'max:120', 'required_without:first_name'],
+            'first_name' => ['nullable', 'string', 'max:120', 'required_without:full_name'],
+            'last_name' => ['nullable', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone_dial' => ['nullable', 'string', 'max:8'],
             'phone' => ['required', 'string', 'max:32'],
             'company_name' => ['nullable', 'string', 'max:190'],
             'address1' => ['required', 'string', 'max:190'],
-            'address2' => ['nullable', 'string', 'max:190'],
+            // address2 and state are intentionally not collected on the sign-up form.
             'city' => ['required', 'string', 'max:120'],
             'country' => ['required', 'string', 'max:120'],
-            'state' => ['nullable', 'string', 'max:120'],
             'postcode' => ['required', 'string', 'max:30'],
             'currency' => ['required', 'string', 'max:10'],
             'found_us' => ['nullable', 'string', 'max:190'],
@@ -165,19 +167,20 @@ class AuthController extends Controller
             'newsletter' => ['nullable', 'boolean'],
             'password' => ['required', 'string', 'confirmed', new StrongPassword],
         ]);
+
+        list($firstName, $lastName, $fullName) = $this->resolveCustomerName($data);
+
         $user = User::create([
-            'name' => trim($data['first_name'] . ' ' . $data['last_name']),
+            'name' => $fullName,
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'phone' => trim(($request->input('phone_dial', '') . ' ' . $data['phone'])),
             'company_name' => $data['company_name'] ?? null,
             'address1' => $data['address1'],
-            'address2' => $data['address2'] ?? null,
             'city' => $data['city'],
             'country' => $data['country'],
-            'state' => $data['state'] ?? null,
             'postcode' => $data['postcode'],
             'currency' => $data['currency'],
             'found_us' => $data['found_us'] ?? null,
@@ -189,6 +192,27 @@ class AuthController extends Controller
         $this->sendVerificationEmail($user);
 
         return redirect()->route('verification.notice')->with('verify_email', $user->email);
+    }
+
+    /**
+     * Split the single "Full Name" input into the first_name/last_name columns
+     * used by invoices, reports and the profile screen.
+     *
+     * @return array{0: string, 1: string|null, 2: string}
+     */
+    private function resolveCustomerName(array $data)
+    {
+        if (!empty($data['full_name'])) {
+            $fullName = trim(preg_replace('/\s+/u', ' ', $data['full_name']));
+        } else {
+            $fullName = trim(trim($data['first_name']) . ' ' . trim($data['last_name'] ?? ''));
+        }
+
+        $parts = preg_split('/\s+/u', $fullName, 2, PREG_SPLIT_NO_EMPTY);
+        $firstName = $parts[0] ?? '';
+        $lastName = $parts[1] ?? null;
+
+        return [$firstName, $lastName, $fullName];
     }
 
     /**
