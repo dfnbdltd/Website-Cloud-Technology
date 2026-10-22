@@ -13,7 +13,12 @@ use App\Http\Controllers\HostingController;
 use App\Http\Controllers\InvoiceController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
-    return view('home', ['catalog' => $resellerClub->catalog()]);
+    $trustItems = array_values(array_filter(array_map('trim', explode(',', (string) \App\Models\Setting::get('trust_items')))));
+
+    return view('home', [
+        'catalog' => $resellerClub->catalog(),
+        'heroProof' => array_slice($trustItems, 0, 3),
+    ]);
 })->name('landing');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

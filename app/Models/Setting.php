@@ -35,8 +35,8 @@ class Setting extends Model
             ],
             'SSL slider' => [
                 'ssl_title' => ['SSL headline', 'Secure your site.', 'text'],
-                'ssl_highlight' => ['SSL headline highlight', 'Build instant trust.', 'text'],
-                'ssl_text' => ['SSL paragraph', '256-bit encryption, the browser padlock and a trust seal on every visit — issued in minutes with free installation and automated renewal.', 'textarea'],
+                'ssl_highlight' => ['SSL headline highlight', 'Win instant trust.', 'text'],
+                'ssl_text' => ['SSL paragraph', 'A padlock in every browser, A+ grade encryption and a trust seal that turns hesitant visitors into customers — issued in minutes, installed free, and renewed automatically.', 'textarea'],
             ],
             'Homepage trust' => [
                 'trust_items' => ['Trust bar (comma separated)', 'Real-time availability, Live BDT pricing, Free WHOIS privacy, 24/7 local support', 'text'],

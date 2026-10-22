@@ -9,8 +9,8 @@
 <main>
     <section class="site-hero" data-hero-slider role="region" aria-roledescription="carousel" aria-label="CloudTech services">
         <div class="site-hero-track">
-            <div class="site-hero-slide is-active" role="group" aria-roledescription="slide" aria-label="Slide 1 of 2: Domain registration">
-                <div class="site-wrap site-hero-grid">
+            <div class="site-hero-slide site-hero-slide--text is-active" role="group" aria-roledescription="slide" aria-label="Slide 1 of 2: Domain registration">
+                <div class="site-wrap site-hero-grid site-hero-grid--solo">
                     <div class="site-hero-copy">
                         <span class="site-hero-eyebrow">Domain registration</span>
                         <h1>{{ \App\Models\Setting::get('hero_title') }}<br><em>{{ \App\Models\Setting::get('hero_highlight') }}</em></h1>
@@ -19,28 +19,18 @@
                             <a class="site-btn" href="#domain-search">Search a domain <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></a>
                             <a class="site-btn-ghost" href="#pricing">See pricing</a>
                         </div>
-                    </div>
-                    <div class="site-hero-visual" aria-hidden="true">
-                        <div class="mock-stage">
-                            <div class="mock-browser">
-                                <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-addr"><i></i>cloudtechnologybd.com</span></div>
-                                <div class="mock-body">
-                                    <div class="mock-search"><span class="mock-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span class="mock-query">yourbrand.com</span><span class="mock-go">Search</span></div>
-                                    <div class="mock-hit"><span class="mock-check">&#10003;</span><span class="mock-hit-text"><b>yourbrand.com</b> is available</span><span class="mock-hit-price">৳1,050<small>/yr</small></span></div>
-                                    <div class="mock-row"><span class="mock-tld tld-net">.net</span><span class="mock-row-name">yourbrand.net</span><span class="mock-row-price">৳1,290<small>/yr</small></span></div>
-                                    <div class="mock-row"><span class="mock-tld tld-org">.org</span><span class="mock-row-name">yourbrand.org</span><span class="mock-row-price">৳1,150<small>/yr</small></span></div>
-                                </div>
-                            </div>
-                            <span class="mock-chip mock-chip-com">.com</span>
-                            <span class="mock-chip mock-chip-org">.org</span>
-                            <span class="mock-chip mock-chip-net">.net</span>
-                            <span class="mock-chip mock-chip-bd">.bd</span>
+                        @if(count($heroProof) > 0)
+                        <div class="site-hero-proof">
+                            @foreach($heroProof as $proof)
+                            <span>{{ $proof }}</span>
+                            @endforeach
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
-            <div class="site-hero-slide" role="group" aria-roledescription="slide" aria-label="Slide 2 of 2: SSL certificates" aria-hidden="true" inert>
-                <div class="site-wrap site-hero-grid">
+            <div class="site-hero-slide site-hero-slide--text site-hero-slide--ssl" role="group" aria-roledescription="slide" aria-label="Slide 2 of 2: SSL certificates" aria-hidden="true" inert>
+                <div class="site-wrap site-hero-grid site-hero-grid--solo">
                     <div class="site-hero-copy">
                         <span class="site-hero-eyebrow">SSL certificates</span>
                         <h1>{{ \App\Models\Setting::get('ssl_title') }}<br><em>{{ \App\Models\Setting::get('ssl_highlight') }}</em></h1>
@@ -49,18 +39,10 @@
                             <a class="site-btn" href="{{ route('under.construction', 'ssl-certificate') }}">Get SSL certificate <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>
                             <a class="site-btn-ghost" href="#pricing">Compare plans</a>
                         </div>
-                    </div>
-                    <div class="site-hero-visual" aria-hidden="true">
-                        <div class="ssl-stage">
-                            <div class="ssl-card">
-                                <div class="ssl-url"><span class="ssl-lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span> https://yourbrand.com <span class="ssl-verified">&#10003; Verified</span></div>
-                                <div class="ssl-shield"><span class="ssl-halo"></span><span class="ssl-scan"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
-                                <div class="ssl-badge"><b>256-bit</b> encryption</div>
-                                <div class="ssl-features"><span>DV</span><span>Wildcard</span><span>EV</span><span>Auto-renew</span></div>
-                            </div>
-                            <span class="ssl-chip ssl-chip-1">&#10003; Trusted</span>
-                            <span class="ssl-chip ssl-chip-2">A+ Rated</span>
-                            <span class="ssl-chip ssl-chip-3">Free install</span>
+                        <div class="site-hero-proof">
+                            <span>256-bit encryption</span>
+                            <span>Free installation</span>
+                            <span>Auto-renew included</span>
                         </div>
                     </div>
                 </div>
