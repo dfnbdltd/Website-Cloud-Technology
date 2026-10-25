@@ -23,7 +23,7 @@
 .site-nav a:hover,.site-nav a.selected{color:var(--ink);background:var(--soft)}
 .site-nav-dropdown{position:relative}
 .site-nav-dropdown>a{display:block;color:var(--text);font-size:15px;font-weight:500;padding:8px 13px;border-radius:8px}
-.site-nav-dropdown>a:after{content:'⌄';margin-left:7px;color:var(--muted)}
+
 .site-nav-dropdown:hover>a,.site-nav-dropdown:focus-within>a{color:var(--ink);background:var(--soft)}
 .site-submenu{position:absolute;top:100%;left:0;z-index:25;display:none;min-width:190px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 36px #0f172a1f}
 .site-nav-dropdown:hover .site-submenu,.site-nav-dropdown:focus-within .site-submenu{display:grid}
@@ -163,3 +163,37 @@
 /* Coming soon (public): soft band behind the card, footer pinned to the bottom */
 .coming-page{display:flex;flex-direction:column;min-height:100vh}
 .coming-page .coming-band{flex:1 0 auto;background:var(--soft);padding:40px 0 64px}
+
+/* ── Hero carousel gradient polish ───────────────────────────────────
+   Colors come from each slide's own palette vars (--hero-glow-a/b and
+   --hero-grad), so the domain slide stays blue→indigo→violet and the
+   SSL slide stays emerald→cyan→blue automatically. */
+@media(min-width:561px){
+/* each slide clips its own glow wash: a neighboring slide's colors can no
+   longer bleed into the visible edge while the other slide is active */
+.site-hero-slide{overflow:hidden}
+.site-hero-slide--text::before{inset:-14%;animation:heroGlowDrift 18s ease-in-out infinite alternate;background:
+    linear-gradient(90deg,var(--hero-glow-b) 0%,transparent 15%,transparent 85%,var(--hero-glow-a) 100%),
+    radial-gradient(620px 470px at 18% 52%,#fffffff2,transparent 72%),
+    radial-gradient(620px 480px at 88% 40%,var(--hero-glow-a),transparent 70%),
+    radial-gradient(470px 410px at 99% 82%,var(--hero-glow-b),transparent 72%),
+    radial-gradient(540px 440px at -3% 8%,var(--hero-glow-b),transparent 66%),
+    radial-gradient(760px 560px at 104% -8%,var(--hero-glow-a),transparent 70%)}
+@keyframes heroGlowDrift{from{transform:translate3d(0,-1.2%,0) scale(1)}55%{transform:translate3d(-1.5%,1%,0) scale(1.04)}to{transform:translate3d(1.2%,1.8%,0) scale(1.02)}}
+}
+/* gradient-lived eyebrow pill (double-background border trick) */
+.site-hero-slide--text .site-hero-eyebrow{background:linear-gradient(#fff,#fff) padding-box,linear-gradient(120deg,#2563eb,#6366f1 55%,#7c3aed) border-box;border:1px solid transparent;box-shadow:0 10px 24px #4f46e526;color:#3d56d9}
+.site-hero-slide--ssl .site-hero-eyebrow{background:linear-gradient(#fff,#fff) padding-box,linear-gradient(120deg,#059669,#0891b2 55%,#2563eb) border-box;box-shadow:0 10px 24px #0891b226;color:#047857}
+/* premium CTA buttons: hover lift + glow ring, opt-in gradient ghost */
+.site-hero-slide--text .site-hero-actions .site-btn,.site-hero-slide--text .site-hero-actions .site-btn-ghost{transition:transform .2s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease}
+.site-hero-slide--text .site-hero-actions .site-btn:hover{transform:translateY(-2px);box-shadow:0 18px 36px #2563eb4d}
+.site-hero-slide--text .site-hero-actions .site-btn-ghost:hover{border-color:transparent;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(120deg,#2563eb2e,#7c3aed2e 80%) border-box;transform:translateY(-2px);box-shadow:0 12px 26px #4f46e51f}
+/* trust-proof rows become gradient-tinted chips with branded ✓ badges */
+.site-hero-slide--text .site-hero-proof span{padding:8px 16px 8px 9px;border-radius:999px;background:linear-gradient(135deg,#ffffff,#f2f6ff);border:1px solid #e2eafc;box-shadow:0 8px 20px #2563eb0f}
+.site-hero-proof span:before{background-image:var(--hero-grad);color:#fff;box-shadow:0 4px 10px #2563eb38}
+/* slider dots: glowing gradient pill for the active slide */
+.site-hero-dots button.is-active{background:linear-gradient(90deg,#2563eb,#7c3aed);box-shadow:0 5px 12px #4f46e55c}
+.site-hero-dots button:hover{background:#2563eb8c}
+/* soft brand glow riding the white wave that closes the carousel */
+.site-hero-wave svg{filter:drop-shadow(0 -5px 14px #2563eb1a)}
+@media(prefers-reduced-motion:reduce){.site-hero-slide--text::before{animation:none}}

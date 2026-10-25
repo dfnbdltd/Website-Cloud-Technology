@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/workspace.css') }}?v={{ filemtime(public_path('css/workspace.css')) }}">
 </head>
-<body class="domain-app">
+<body class="domain-app admin-app">
 @include('partials.admin-sidebar', ['active' => 'customers'])
 <main class="domain-main">
     <header class="domain-topbar"><div><span class="crumb">Operations /</span><strong>Customers / Edit</strong></div></header>

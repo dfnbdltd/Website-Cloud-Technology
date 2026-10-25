@@ -37,7 +37,7 @@
         .invoice-table-note { margin:10px 2px 0; color:#8190a1; font-size:11px; }
     </style>
 </head>
-<body class="domain-app">
+<body class="domain-app admin-app">
     @include('partials.admin-sidebar', ['active' => 'invoices'])
     <main class="domain-main">
         <header class="domain-topbar"><div><span class="crumb">Operations /</span><strong>Invoices</strong></div><span class="top-avatar">A</span></header>

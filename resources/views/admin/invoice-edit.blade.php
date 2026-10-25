@@ -99,7 +99,7 @@
         .inv-desc, .inv-type, .inv-purchase, .inv-selling { grid-column:auto; }
     }
 </style></head>
-<body class="domain-app">@include('partials.admin-sidebar', ['active' => 'invoices'])
+<body class="domain-app admin-app">@include('partials.admin-sidebar', ['active' => 'invoices'])
 <main class="domain-main">
 <header class="domain-topbar"><div><span class="crumb">Operations / Invoices /</span><strong>{{ $invoice->invoice_number }}</strong></div><span class="top-avatar">A</span></header>
 <div class="domain-content standalone-content inv-edit">

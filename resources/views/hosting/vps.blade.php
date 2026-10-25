@@ -576,10 +576,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
         </style>
         <div class="billing-row">
         <div class="billing-tabs" role="tablist" aria-label="Billing period">
-            <button class="billing-tab is-active" type="button" role="tab" aria-selected="true" data-period="monthly">Monthly</button>
-            <button class="billing-tab" type="button" role="tab" aria-selected="false" data-period="yearly">Yearly</button>
-            <button class="billing-tab" type="button" role="tab" aria-selected="false" data-period="twoYear">2 Years</button>
-            <button class="billing-tab" type="button" role="tab" aria-selected="false" data-period="threeYear">3 Years</button>
+            <button class="billing-tab is-active" type="button" role="tab" aria-selected="true" data-period="monthly" data-soon="{{ $terms['monthly']['soon'] ? 'true' : 'false' }}">Monthly</button>
+            <button class="billing-tab" type="button" role="tab" aria-selected="false" data-period="yearly" data-soon="{{ $terms['yearly']['soon'] ? 'true' : 'false' }}">Yearly</button>
+            <button class="billing-tab" type="button" role="tab" aria-selected="false" data-period="twoYear" data-soon="{{ $terms['twoYear']['soon'] ? 'true' : 'false' }}">2 Years</button>
+            <button class="billing-tab" type="button" role="tab" aria-selected="false" data-period="threeYear" data-soon="{{ $terms['threeYear']['soon'] ? 'true' : 'false' }}">3 Years</button>
         </div>
         </div>
         <p class="billing-note" id="billing-note">Flexible month-to-month billing</p>
@@ -592,38 +592,51 @@ button, a { -webkit-tap-highlight-color: transparent; }
         </div>
         <div class="plans" aria-label="VPS hosting plans">
         @foreach($plans as $plan)
-        <article class="plan-card{{ $plan['badge'] === 'Most popular' ? ' plan-card-featured' : '' }}">
+        <article class="plan-card{{ $plan['badge'] === 'Most popular' ? ' plan-card-featured' : '' }}{{ $plan['terms']['monthly'] ? '' : ' is-coming-soon' }}" data-visible-monthly="{{ $plan['visibility']['monthly'] ? 'true' : 'false' }}" data-visible-yearly="{{ $plan['visibility']['yearly'] ? 'true' : 'false' }}" data-visible-twoyear="{{ $plan['visibility']['twoYear'] ? 'true' : 'false' }}" data-visible-threeyear="{{ $plan['visibility']['threeYear'] ? 'true' : 'false' }}">
           @if($plan['badge'] === 'Cheapest')
           <span class="cheapest-badge">Cheapest</span>
           @elseif($plan['badge'] === 'Most popular')
           <span class="popular-badge">Most popular</span>
           @endif
-          <h3 class="plan-circle {{ $plan['class'] }}">{{ $plan['name'] }}</h3>
+          <h3 class="plan-circle {{ $plan['class'] }}" data-monthly-name="{{ $plan['names']['monthly'] }}" data-yearly-name="{{ $plan['names']['yearly'] }}" data-two-year-name="{{ $plan['names']['twoYear'] }}" data-three-year-name="{{ $plan['names']['threeYear'] }}">{{ $plan['names']['monthly'] }}</h3>
           <p class="plan-description">{{ $plan['description'] }}</p>
-          <div class="price"><span class="currency">&#2547;</span><span class="price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}">{{ $plan['prices']['monthly'] }}</span><small class="price-unit">/ month</small></div>
+          <div class="price"><span class="currency">&#2547;</span><span class="price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}" data-soon-monthly="{{ $plan['terms']['monthly'] ? 'false' : 'true' }}" data-soon-yearly="{{ $plan['terms']['yearly'] ? 'false' : 'true' }}" data-soon-twoyear="{{ $plan['terms']['twoYear'] ? 'false' : 'true' }}" data-soon-threeyear="{{ $plan['terms']['threeYear'] ? 'false' : 'true' }}">{{ $plan['terms']['monthly'] ? $plan['prices']['monthly'] : 'Coming soon' }}</span><small class="price-unit">/ month</small></div>
           <a class="purchase-button" href="{{ route('register') }}">
-            <span>Get {{ $plan['name'] }}</span>
+            <span data-monthly-label="Get {{ $plan['names']['monthly'] }}" data-yearly-label="Get {{ $plan['names']['yearly'] }}" data-two-year-label="Get {{ $plan['names']['twoYear'] }}" data-three-year-label="Get {{ $plan['names']['threeYear'] }}">Get {{ $plan['names']['monthly'] }}</span>
           </a>
           <ul>
             @foreach($plan['primary_features'] as $feature)
-            <li><strong data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}">{{ $feature['monthly'] }}</strong> {{ $feature['name'] }}</li>
+            <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}"><strong data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}">{{ $feature['monthly'] }}</strong> {{ $feature['name'] }}</li>
             @endforeach
           </ul>
           <button class="features-toggle" type="button" aria-haspopup="dialog" aria-controls="features-dialog">See more</button>
           <ul class="extra-features" hidden>
             @foreach($plan['extra_features'] as $feature)
-            <li data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}">{{ $feature['monthly'] }}</li>
+            <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}" data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}" @if(!empty($feature['feature_key'])) data-feature="{{ $feature['feature_key'] }}" @endif>{{ $feature['monthly'] }}</li>
             @endforeach
           </ul>
+          @foreach(['monthly', 'yearly', 'twoYear', 'threeYear'] as $hpTerm)
+          <template class="feature-set" data-term="{{ $hpTerm }}">
+            <ul>
+            @foreach($plan['feature_sets'][$hpTerm]['primary'] as $feature)
+              <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}"><strong>{{ $feature['lead'] }}</strong>{{ $feature['name'] !== '' ? ' ' . $feature['name'] : '' }}</li>
+            @endforeach
+            </ul>
+            <ul class="extra-features" hidden>
+            @foreach($plan['feature_sets'][$hpTerm]['extra'] as $feature)
+              <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}" @if(!empty($feature['feature_key'])) data-feature="{{ $feature['feature_key'] }}" @endif>{{ $feature['text'] }}</li>
+            @endforeach
+            </ul>
+          </template>
+          @endforeach
         </article>
         @endforeach
     </div>
-`r`n</main>
+</main>
 
     <section class="why-vps page-width">
         <div class="why-vps-head">
             <p class="eyebrow">Why choose VPS</p>
-            <h2>More control, without the complexity.</h2>
             <p>Everything you need to run serious projects &mdash; and none of the busywork.</p>
         </div>
         <div class="benefits-grid">
@@ -659,9 +672,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
         </div>
     </section>
 
-    <footer class="site-footer page-width">
-        <p>&copy; 2026 dfnhosting</p>
-        <p>Built with purpose.</p>
+    <footer class="hosting-footer">
+        <div class="hosting-footer-inner">
+            <a class="hf-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'f'])</a>
+            <span>&copy; {{ date('Y') }} {{ \App\Models\Setting::get('footer_text') }}</span>
+            <span>{{ \App\Models\Setting::get('support_phone') }} · {{ \App\Models\Setting::get('support_email') }}</span>
+        </div>
     </footer>
 
     <dialog class="features-dialog" id="features-dialog">
@@ -677,12 +693,23 @@ button, a { -webkit-tap-highlight-color: transparent; }
     </dialog>
 
 <script>
-    const periods = {
+    const periodNotes = {
         monthly: 'Flexible month-to-month billing',
         yearly: 'Annual hosting package pricing',
-        twoYear: 'Coming soon',
-        threeYear: 'Coming soon'
+        twoYear: 'Two-year plan pricing',
+        threeYear: 'Three-year plan pricing'
     };
+    const periodUnits = {
+        monthly: '/ month',
+        yearly: '/ year',
+        twoYear: '/ 2 years',
+        threeYear: '/ 3 years'
+    };
+
+    // data-soon-monthly / -yearly / -twoyear / -threeyear on .price-value
+    // let every card flag its own billing terms independently.
+    const soonKey = (period) =>
+        'soon' + period.charAt(0).toUpperCase() + period.slice(1).toLowerCase();
 
     // Align each plan name and taka amount on one reference-style row.
     document.querySelectorAll('.plan-card').forEach((card) => {
@@ -694,16 +721,24 @@ button, a { -webkit-tap-highlight-color: transparent; }
         heading.append(title, price);
     });
 
-    // Build the grouped feature list for every plan card.
-    document.querySelectorAll('.plan-card').forEach((card) => {
-        const primaryFeatures = card.querySelector(':scope > ul:not(.extra-features)');
-        const extraFeatures = card.querySelector(':scope > .extra-features');
-        const featureGroups = document.createElement('div');
-        featureGroups.className = 'feature-groups';
+    // Builds the grouped feature list for a card from its two source lists
+    // (primary rows + extra rows). Used for the initial render and again
+    // whenever the billing tab changes — the CMS stores separate feature
+    // rows per billing term (template.feature-set on each card).
+    const buildVpsFeatureGroups = (card, primaryItems, extraItems) => {
+        let featureGroups = card.querySelector(':scope > .feature-groups');
+        if (!featureGroups) {
+            featureGroups = document.createElement('div');
+            featureGroups.className = 'feature-groups';
+            card.querySelector(':scope > ul:not(.extra-features)').replaceWith(featureGroups);
+            const extraList = card.querySelector(':scope > .extra-features');
+            if (extraList) extraList.remove();
+        }
+        featureGroups.innerHTML = '';
         [
-            { title: 'Core resources', features: [...primaryFeatures.children] },
-            { title: 'Account & databases', features: [...extraFeatures.children].filter((feature) => !feature.classList.contains('feature-unavailable')) },
-            { title: 'Advanced & security', features: [...extraFeatures.children].filter((feature) => feature.classList.contains('feature-unavailable')) }
+            { title: 'Core resources', features: primaryItems },
+            { title: 'Account & databases', features: extraItems.filter((feature) => !feature.classList.contains('feature-unavailable')) },
+            { title: 'Advanced & security', features: extraItems.filter((feature) => feature.classList.contains('feature-unavailable')) }
         ].forEach(({ title, features }) => {
             if (!features.length) return;
             const group = document.createElement('section');
@@ -726,39 +761,42 @@ button, a { -webkit-tap-highlight-color: transparent; }
             group.append(list);
             featureGroups.append(group);
         });
-        primaryFeatures.replaceWith(featureGroups);
-        extraFeatures.remove();
-    });
+        tagVpsFeatureItems(featureGroups);
+    };
 
     // Tag each feature with an icon key for the themed markers.
-    document.querySelectorAll('.feature-group li').forEach((item) => {
-        const text = item.textContent.toLowerCase();
-        let icon = 'check';
-        if (text.includes('cpu') || text.includes('core')) icon = 'cpu';
-        else if (text.includes('ram')) icon = 'ram';
-        else if (text.includes('nvme') || text.includes('storage') || text.includes('disk')) icon = 'storage';
-        else if (text.includes('transactional')) icon = 'transfer';
-        else if (text.includes('mbps') || text.includes('internet')) icon = 'internet';
-        else if (text.includes(' ix')) icon = 'ix';
-        else if (text.includes('dedicated ip') || text.includes(' ip')) icon = 'ip';
-        else if (text.includes('root')) icon = 'root';
-        else if (text.includes('activation') || text.includes('instant')) icon = 'activation';
-        else if (text.includes('bangladesh') || text.includes('location') || text.includes('server')) icon = 'location';
-        else if (text.includes('back-up') || text.includes('backup')) icon = 'backup';
-        item.dataset.icon = icon;
-    });
+    const tagVpsFeatureItems = (root) => {
+        root.querySelectorAll('.feature-group li').forEach((item) => {
+            const text = item.textContent.toLowerCase();
+            let icon = 'check';
+            if (text.includes('cpu') || text.includes('core')) icon = 'cpu';
+            else if (text.includes('ram')) icon = 'ram';
+            else if (text.includes('nvme') || text.includes('storage') || text.includes('disk')) icon = 'storage';
+            else if (text.includes('transactional')) icon = 'transfer';
+            else if (text.includes('mbps') || text.includes('internet')) icon = 'internet';
+            else if (text.includes(' ix')) icon = 'ix';
+            else if (text.includes('dedicated ip') || text.includes(' ip')) icon = 'ip';
+            else if (text.includes('root')) icon = 'root';
+            else if (text.includes('activation') || text.includes('instant')) icon = 'activation';
+            else if (text.includes('bangladesh') || text.includes('location') || text.includes('server')) icon = 'location';
+            else if (text.includes('back-up') || text.includes('backup')) icon = 'backup';
+            item.dataset.icon = icon;
+            // Full text as tooltip for clamped rows.
+            item.title = item.textContent.trim().replace(/\s+/g, ' ');
+        });
+    };
 
-    // Full text as tooltip for clamped rows.
-    document.querySelectorAll('.feature-group li').forEach((item) => {
-        item.title = item.textContent.trim().replace(/\s+/g, ' ');
+    // Build the grouped feature list for every plan card.
+    document.querySelectorAll('.plan-card').forEach((card) => {
+        const primaryList = card.querySelector(':scope > ul:not(.extra-features)');
+        const extraList = card.querySelector(':scope > .extra-features');
+        if (primaryList && extraList) {
+            buildVpsFeatureGroups(card, [...primaryList.children], [...extraList.children]);
+        }
     });
 
     // Wire up the billing tabs. These queries run AFTER the feature groups
     // are built, so the resource labels are present and update correctly.
-    const priceLabels = document.querySelectorAll('.price-value');
-    const resourceLabels = document.querySelectorAll('.feature-groups strong[data-monthly]');
-    const extraResourceLabels = document.querySelectorAll('.feature-groups li[data-monthly]');
-    const priceUnits = document.querySelectorAll('.price-unit');
     const purchaseButtons = document.querySelectorAll('.purchase-button');
     purchaseButtons.forEach((button) => {
         button.dataset.defaultLabel = button.querySelector('span').textContent;
@@ -775,51 +813,74 @@ button, a { -webkit-tap-highlight-color: transparent; }
         });
     });
 
+    const applyPeriod = (period) => {
+        document.querySelectorAll('.plan-card').forEach((card) => {
+            // Card name follows the billing term (per-term CMS names).
+            const planTitle = card.querySelector('h3.plan-circle');
+            const titleKey = period + 'Name';
+            if (planTitle && planTitle.dataset[titleKey]) {
+                planTitle.textContent = planTitle.dataset[titleKey];
+            }
+
+            const price = card.querySelector('.price-value');
+            const purchaseButton = card.querySelector('.purchase-button');
+            const label = purchaseButton.querySelector('span');
+            const unit = card.querySelector('.price-unit');
+            const soon = price.dataset[soonKey(period)] === 'true';
+            const visible = card.dataset['visible' + period.charAt(0).toUpperCase() + period.slice(1).toLowerCase()] === 'true';
+
+            card.hidden = !visible;
+            card.classList.toggle('is-coming-soon', soon);
+            price.textContent = soon ? 'Coming soon' : price.dataset[period];
+            // The "Get {plan}" label carries every term's name (per-term CMS names).
+            label.textContent = soon ? 'Coming soon' : (label.dataset[period + 'Label'] || purchaseButton.dataset.defaultLabel);
+            purchaseButton.setAttribute('aria-disabled', soon ? 'true' : 'false');
+            purchaseButton.tabIndex = soon ? -1 : 0;
+            if (soon) {
+                purchaseButton.href = '#';
+                unit.textContent = '';
+            } else {
+                const url = new URL(purchaseButton.dataset.baseHref, window.location.href);
+                url.searchParams.set('period', period);
+                purchaseButton.href = url.toString();
+                unit.textContent = periodUnits[period];
+            }
+            // Features: rebuild the groups from THIS term's template. The
+            // CMS stores separate feature rows per billing term; a card
+            // whose selected term is Coming soon just fades the card.
+            if (!soon) {
+                const template = card.querySelector(
+                    `template.feature-set[data-term="${period}"]`,
+                );
+                if (template) {
+                    const scope = template.content.cloneNode(true);
+                    buildVpsFeatureGroups(
+                        card,
+                        [...scope.querySelector('ul:not(.extra-features)').children],
+                        [...scope.querySelector('ul.extra-features').children]
+                    );
+                }
+            }
+        });
+    };
+
+    const currentTab = document.querySelector('.billing-tab.is-active') || document.querySelector('.billing-tab');
+    if (currentTab) {
+        applyPeriod(currentTab.dataset.period);
+    }
+
     document.querySelectorAll('.billing-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
             const period = tab.dataset.period;
-            const isComingSoon = period === 'twoYear' || period === 'threeYear';
             document.querySelectorAll('.billing-tab').forEach((item) => {
                 const active = item === tab;
                 item.classList.toggle('is-active', active);
                 item.setAttribute('aria-selected', active ? 'true' : 'false');
             });
-            priceLabels.forEach((price) => {
-                price.textContent = isComingSoon ? 'Coming soon' : price.dataset[period];
-            });
-            document.querySelectorAll('.plan-card').forEach((card) => {
-                const purchaseButton = card.querySelector('.purchase-button');
-                const label = purchaseButton.querySelector('span');
-                card.classList.toggle('is-coming-soon', isComingSoon);
-                label.textContent = isComingSoon ? 'Coming soon' : purchaseButton.dataset.defaultLabel;
-                purchaseButton.setAttribute('aria-disabled', isComingSoon ? 'true' : 'false');
-                purchaseButton.tabIndex = isComingSoon ? -1 : 0;
-                purchaseButton.href = isComingSoon ? '#' : purchaseButton.dataset.baseHref;
-            });
-            resourceLabels.forEach((resource) => {
-                const resourcePeriod = period === 'monthly' ? 'monthly' : 'yearly';
-                resource.textContent = resource.dataset[resourcePeriod];
-            });
-            extraResourceLabels.forEach((resource) => {
-                const resourcePeriod = period === 'monthly' ? 'monthly' : 'yearly';
-                resource.textContent = resource.dataset[resourcePeriod];
-            });
-            const units = {
-                monthly: '/ month',
-                yearly: '/ year',
-                twoYear: '/ 2 years',
-                threeYear: '/ 3 years'
-            };
-            priceUnits.forEach((unit) => { unit.textContent = units[period]; });
-            purchaseButtons.forEach((button) => {
-                if (isComingSoon) {
-                    return;
-                }
-                const url = new URL(button.dataset.baseHref, window.location.href);
-                url.searchParams.set('period', period);
-                button.href = url.toString();
-            });
-            document.querySelector('#billing-note').textContent = periods[period];
+            applyPeriod(period);
+            // The tab is "Coming soon" only when NO visible card offers it.
+            const tabSoon = tab.dataset.soon === 'true';
+            document.querySelector('#billing-note').textContent = tabSoon ? 'Coming soon' : periodNotes[period];
         });
     });
 
@@ -855,8 +916,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
     if (!plans || !panel) return;
     function sync() {
         var active = document.querySelector('.billing-tab.is-active');
-        var period = active ? active.dataset.period : 'monthly';
-        var soon = period === 'twoYear' || period === 'threeYear';
+        var soon = active ? active.dataset.soon === 'true' : false;
         plans.hidden = soon;
         panel.hidden = !soon;
     }
@@ -880,4 +940,3 @@ document.addEventListener('click',function(e){var m=document.getElementById('acc
 </script>
   </body>
 </html>
-

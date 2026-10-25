@@ -4020,6 +4020,7 @@
           role="tab"
           aria-selected="true"
           data-period="monthly"
+          data-soon="{{ $terms['monthly']['soon'] ? 'true' : 'false' }}"
         >
           Monthly
         </button>
@@ -4029,6 +4030,7 @@
           role="tab"
           aria-selected="false"
           data-period="yearly"
+          data-soon="{{ $terms['yearly']['soon'] ? 'true' : 'false' }}"
         >
           Yearly
         </button>
@@ -4038,6 +4040,7 @@
           role="tab"
           aria-selected="false"
           data-period="twoYear"
+          data-soon="{{ $terms['twoYear']['soon'] ? 'true' : 'false' }}"
         >
           2 Years
         </button>
@@ -4047,6 +4050,7 @@
           role="tab"
           aria-selected="false"
           data-period="threeYear"
+          data-soon="{{ $terms['threeYear']['soon'] ? 'true' : 'false' }}"
         >
           3 Years
         </button>
@@ -4084,16 +4088,16 @@
       </div>
       <div class="plans" aria-label="Shared hosting plans">
         @foreach($plans as $plan)
-        <article class="plan-card{{ $plan['badge'] === 'Most popular' ? ' plan-card-featured' : '' }}">
+        <article class="plan-card{{ $plan['badge'] === 'Most popular' ? ' plan-card-featured' : '' }}{{ $plan['terms']['monthly'] ? '' : ' is-coming-soon' }}" data-visible-monthly="{{ $plan['visibility']['monthly'] ? 'true' : 'false' }}" data-visible-yearly="{{ $plan['visibility']['yearly'] ? 'true' : 'false' }}" data-visible-twoyear="{{ $plan['visibility']['twoYear'] ? 'true' : 'false' }}" data-visible-threeyear="{{ $plan['visibility']['threeYear'] ? 'true' : 'false' }}">
           @if($plan['badge'] === 'Cheapest')
           <span class="cheapest-badge">Cheapest</span>
           @elseif($plan['badge'] === 'Most popular')
           <span class="popular-badge">Most popular</span>
           @endif
-          <h3 class="plan-circle {{ $plan['class'] }}">{{ $plan['name'] }}</h3>
+          <h3 class="plan-circle {{ $plan['class'] }}" data-monthly-name="{{ $plan['names']['monthly'] }}" data-yearly-name="{{ $plan['names']['yearly'] }}" data-two-year-name="{{ $plan['names']['twoYear'] }}" data-three-year-name="{{ $plan['names']['threeYear'] }}">{{ $plan['names']['monthly'] }}</h3>
           <p class="plan-description">{{ $plan['description'] }}</p>
           <div class="price">
-            <span class="currency">&#2547;</span><span class="price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}">{{ $plan['prices']['monthly'] }}</span><small class="price-unit">/ month</small>
+            <span class="currency">&#2547;</span><span class="price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}" data-soon-monthly="{{ $plan['terms']['monthly'] ? 'false' : 'true' }}" data-soon-yearly="{{ $plan['terms']['yearly'] ? 'false' : 'true' }}" data-soon-twoyear="{{ $plan['terms']['twoYear'] ? 'false' : 'true' }}" data-soon-threeyear="{{ $plan['terms']['threeYear'] ? 'false' : 'true' }}">{{ $plan['terms']['monthly'] ? $plan['prices']['monthly'] : 'Coming soon' }}</span><small class="price-unit">/ month</small>
           </div>
           <a class="purchase-button" href="{{ route('register') }}">
             <svg class="cart-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -4106,7 +4110,7 @@
           </a>
           <ul>
             @foreach($plan['primary_features'] as $feature)
-            <li>
+            <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}">
               <strong data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}">{{ $feature['monthly'] }}</strong>
               {{ $feature['name'] }}
             </li>
@@ -4117,18 +4121,27 @@
           </button>
           <ul class="extra-features" hidden>
             @foreach($plan['extra_features'] as $feature)
-            <li data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}">
-              {{ $feature['monthly'] }}
-            </li>
-            @endforeach
-            @foreach($unavailableFeatures as $feature)
-            <li class="feature-unavailable" @if(isset($feature['feature'])) data-feature="{{ $feature['feature'] }}" @endif>{{ $feature['name'] }}</li>
+            <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}" data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}" @if(!empty($feature['feature_key'])) data-feature="{{ $feature['feature_key'] }}" @endif>{{ $feature['monthly'] }}</li>
             @endforeach
           </ul>
+          @foreach(['monthly', 'yearly', 'twoYear', 'threeYear'] as $hpTerm)
+          <template class="feature-set" data-term="{{ $hpTerm }}">
+            <ul>
+            @foreach($plan['feature_sets'][$hpTerm]['primary'] as $feature)
+              <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}"><strong>{{ $feature['lead'] }}</strong>{{ $feature['name'] !== '' ? ' ' . $feature['name'] : '' }}</li>
+            @endforeach
+            </ul>
+            <ul class="extra-features" hidden>
+            @foreach($plan['feature_sets'][$hpTerm]['extra'] as $feature)
+              <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}" @if(!empty($feature['feature_key'])) data-feature="{{ $feature['feature_key'] }}" @endif>{{ $feature['text'] }}</li>
+            @endforeach
+            </ul>
+          </template>
+          @endforeach
         </article>
         @endforeach
     </div>
-`r`n</main>
+</main>
 
     <dialog class="features-dialog" id="features-dialog">
       <div class="dialog-header">
@@ -4149,25 +4162,34 @@
     </dialog>
 
     <script>
-      document.querySelectorAll(".plan-card").forEach((card) => {
-        const primaryFeatures = card.querySelector(
-          ":scope > ul:not(.extra-features)",
-        );
-        const extraFeatures = card.querySelector(":scope > .extra-features");
-        const featureGroups = document.createElement("div");
-        featureGroups.className = "feature-groups";
+      // Builds the grouped feature list of one card from two source lists
+      // (primary rows + extra rows). Used for the initial render and again
+      // whenever the billing tab changes — the CMS stores separate feature
+      // rows per billing term (template.feature-set on each card).
+      const buildSharedFeatureGroups = (card, primaryItems, extraItems) => {
+        let featureGroups = card.querySelector(":scope > .feature-groups");
+        if (!featureGroups) {
+          featureGroups = document.createElement("div");
+          featureGroups.className = "feature-groups";
+          card
+            .querySelector(":scope > ul:not(.extra-features)")
+            .replaceWith(featureGroups);
+          const extraList = card.querySelector(":scope > .extra-features");
+          if (extraList) extraList.remove();
+        }
+        featureGroups.innerHTML = "";
 
         const groups = [
-          { title: "Core resources", features: [...primaryFeatures.children] },
+          { title: "Core resources", features: primaryItems },
           {
             title: "Account & databases",
-            features: [...extraFeatures.children].filter(
+            features: extraItems.filter(
               (feature) => !feature.classList.contains("feature-unavailable"),
             ),
           },
           {
             title: "Advanced & security",
-            features: [...extraFeatures.children].filter((feature) =>
+            features: extraItems.filter((feature) =>
               feature.classList.contains("feature-unavailable"),
             ),
           },
@@ -4194,13 +4216,6 @@
           });
           group.append(list);
           featureGroups.append(group);
-        });
-
-        primaryFeatures.replaceWith(featureGroups);
-        extraFeatures.remove();
-        featureGroups.querySelectorAll("li").forEach((feature) => {
-          feature.dataset.originalMarkup = feature.innerHTML;
-          feature.dataset.originalClassName = feature.className;
         });
 
         featureGroups.querySelectorAll("li").forEach((item) => {
@@ -4241,16 +4256,39 @@
             icon = "cpu";
           item.dataset.icon = icon;
         });
-      });
-
-      const periods = {
-        monthly: "Flexible month-to-month billing",
-        yearly: "Annual hosting package pricing",
-        twoYear: "Coming soon",
-        threeYear: "Coming soon",
       };
 
-      const priceLabels = document.querySelectorAll(".price-value");
+      document.querySelectorAll(".plan-card").forEach((card) => {
+        const primaryList = card.querySelector(
+          ":scope > ul:not(.extra-features)",
+        );
+        const extraList = card.querySelector(":scope > .extra-features");
+        if (primaryList && extraList) {
+          buildSharedFeatureGroups(
+            card,
+            [...primaryList.children],
+            [...extraList.children],
+          );
+        }
+      });
+
+      const periodNotes = {
+        monthly: "Flexible month-to-month billing",
+        yearly: "Annual hosting package pricing",
+        twoYear: "Two-year plan pricing",
+        threeYear: "Three-year plan pricing",
+      };
+      const periodUnits = {
+        monthly: "/ month",
+        yearly: "/ year",
+        twoYear: "/ 2 years",
+        threeYear: "/ 3 years",
+      };
+      // data-soon-monthly / -yearly / -twoyear / -threeyear on .price-value
+      // let every card flag its own billing terms independently.
+      const soonKey = (period) =>
+        "soon" + period.charAt(0).toUpperCase() + period.slice(1).toLowerCase();
+
       document.querySelectorAll(".plan-card").forEach((card) => {
         const purchaseButton = card.querySelector(".purchase-button");
         purchaseButton.dataset.defaultLabel =
@@ -4258,109 +4296,92 @@
         purchaseButton.dataset.baseHref = purchaseButton.href;
       });
 
-      const updateFeatureAvailability = (period) => {
-        const comingSoon = period === "twoYear" || period === "threeYear";
+      const applyPeriod = (period) => {
         document.querySelectorAll(".plan-card").forEach((card) => {
-          const plan = card.querySelector("h3").textContent.trim().slice(-1);
-          const ecommerceAvailable =
-            !comingSoon &&
-            (period === "monthly" || period === "yearly") &&
-            ["C", "D", "E"].includes(plan);
-          card.querySelectorAll(".feature-groups li").forEach((feature) => {
-            if (comingSoon) {
-              feature.classList.add("feature-unavailable");
-              feature.innerHTML = "Coming soon";
-              return;
+          // Card name follows the billing term (per-term CMS names).
+          const planTitle = card.querySelector("h3.plan-circle");
+          const titleKey = period + "Name";
+          if (planTitle && planTitle.dataset[titleKey]) {
+            planTitle.textContent = planTitle.dataset[titleKey];
+          }
+
+          const price = card.querySelector(".price-value");
+          const purchaseButton = card.querySelector(".purchase-button");
+          const label = purchaseButton.querySelector("span");
+          const unit = card.querySelector(".price-unit");
+          const soon = price.dataset[soonKey(period)] === "true";
+          const visible = card.dataset["visible" + period.charAt(0).toUpperCase() + period.slice(1).toLowerCase()] === "true";
+
+          card.hidden = !visible;
+          card.classList.toggle("is-coming-soon", soon);
+          price.textContent = soon ? "Coming soon" : price.dataset[period];
+          label.textContent = soon
+            ? "Coming soon"
+            : purchaseButton.dataset.defaultLabel;
+          purchaseButton.setAttribute(
+            "aria-disabled",
+            soon ? "true" : "false",
+          );
+          if (soon) {
+            purchaseButton.href = "#";
+            unit.textContent = "";
+          } else {
+            const url = new URL(
+              purchaseButton.dataset.baseHref,
+              window.location.href,
+            );
+            url.searchParams.set("period", period);
+            purchaseButton.href = url.toString();
+            unit.textContent = periodUnits[period];
+          }
+
+          // Features: rebuild the groups from THIS term's template. The CMS
+          // stores separate feature rows per billing term; a card whose
+          // selected term is Coming soon keeps graying its current rows.
+          const featureGroups = card.querySelector(".feature-groups");
+          if (featureGroups) {
+            if (soon) {
+              featureGroups.querySelectorAll("li").forEach((feature) => {
+                feature.className = "feature-unavailable";
+                feature.innerHTML = "Coming soon";
+              });
+            } else {
+              const template = card.querySelector(
+                `template.feature-set[data-term="${period}"]`,
+              );
+              if (template) {
+                const scope = template.content.cloneNode(true);
+                buildSharedFeatureGroups(
+                  card,
+                  [...scope.querySelector("ul:not(.extra-features)").children],
+                  [...scope.querySelector("ul.extra-features").children],
+                );
+              }
             }
-            feature.className = feature.dataset.originalClassName;
-            feature.innerHTML = feature.dataset.originalMarkup;
-            if (feature.dataset.feature === "ecommerce" && ecommerceAvailable) {
-              feature.classList.remove("feature-unavailable");
-              feature.innerHTML = "E-commerce";
-            }
-          });
+          }
         });
       };
 
-      updateFeatureAvailability("monthly");
+      const currentTab =
+        document.querySelector(".billing-tab.is-active") ||
+        document.querySelector(".billing-tab");
+      if (currentTab) {
+        applyPeriod(currentTab.dataset.period);
+      }
 
       document.querySelectorAll(".billing-tab").forEach((tab) => {
         tab.addEventListener("click", () => {
-          const note = periods[tab.dataset.period];
           document.querySelectorAll(".billing-tab").forEach((item) => {
             const active = item === tab;
             item.classList.toggle("is-active", active);
             item.setAttribute("aria-selected", active ? "true" : "false");
           });
-          priceLabels.forEach((price) => {
-            const isComingSoon =
-              tab.dataset.period === "twoYear" ||
-              tab.dataset.period === "threeYear";
-            price.textContent = isComingSoon
-              ? "Coming soon"
-              : price.dataset[tab.dataset.period];
-          });
-          document.querySelectorAll(".plan-card").forEach((card) => {
-            const isComingSoon =
-              tab.dataset.period === "twoYear" ||
-              tab.dataset.period === "threeYear";
-            const purchaseButton = card.querySelector(".purchase-button");
-            const label = purchaseButton.querySelector("span");
-            card.classList.toggle("is-coming-soon", isComingSoon);
-            label.textContent = isComingSoon
-              ? "Coming soon"
-              : purchaseButton.dataset.defaultLabel;
-            purchaseButton.setAttribute(
-              "aria-disabled",
-              isComingSoon ? "true" : "false",
-            );
-            purchaseButton.href = isComingSoon
-              ? "#"
-              : purchaseButton.dataset.baseHref;
-          });
-          updateFeatureAvailability(tab.dataset.period);
-          const resourceLabels = document.querySelectorAll(
-            ".feature-groups strong[data-monthly]",
-          );
-          const extraResourceLabels = document.querySelectorAll(
-            ".feature-groups li[data-monthly]",
-          );
-          resourceLabels.forEach((resource) => {
-            const resourcePeriod =
-              tab.dataset.period === "monthly" ? "monthly" : "yearly";
-            resource.textContent = resource.dataset[resourcePeriod];
-          });
-          extraResourceLabels.forEach((resource) => {
-            const resourcePeriod =
-              tab.dataset.period === "monthly" ? "monthly" : "yearly";
-            const value = resource.dataset[resourcePeriod];
-            const match = value.match(/^(\d+(?:\s*(?:GB|TB))?)(.*)$/);
-            resource.innerHTML = match
-              ? `<strong>${match[1]}</strong>${match[2]}`
-              : value;
-          });
-          updateFeatureAvailability(tab.dataset.period);
-          document.querySelectorAll(".price-unit").forEach((unit) => {
-            const units = {
-              monthly: "/ month",
-              yearly: "/ year",
-              twoYear: "/ 2 years",
-              threeYear: "/ 3 years",
-            };
-            unit.textContent = units[tab.dataset.period];
-          });
-          document.querySelectorAll(".purchase-button").forEach((button) => {
-            if (
-              tab.dataset.period === "twoYear" ||
-              tab.dataset.period === "threeYear"
-            ) {
-              return;
-            }
-            const url = new URL(button.dataset.baseHref, window.location.href);
-            url.searchParams.set("period", tab.dataset.period);
-            button.href = url.toString();
-          });
-          document.querySelector("#billing-note").textContent = note;
+          applyPeriod(tab.dataset.period);
+          // The tab is "Coming soon" only when NO visible card offers it.
+          const tabSoon = tab.dataset.soon === "true";
+          document.querySelector("#billing-note").textContent = tabSoon
+            ? "Coming soon"
+            : periodNotes[tab.dataset.period];
         });
       });
 
@@ -4406,8 +4427,7 @@
         if (!plans || !panel) return;
         function sync() {
           var active = document.querySelector(".billing-tab.is-active");
-          var period = active ? active.dataset.period : "monthly";
-          var soon = period === "twoYear" || period === "threeYear";
+          var soon = active ? active.dataset.soon === "true" : false;
           plans.hidden = soon;
           panel.hidden = !soon;
         }
@@ -4426,6 +4446,13 @@
         sync();
       })();
     </script>
+    <footer class="hosting-footer">
+        <div class="hosting-footer-inner">
+            <a class="hf-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'f'])</a>
+            <span>&copy; {{ date('Y') }} {{ \App\Models\Setting::get('footer_text') }}</span>
+            <span>{{ \App\Models\Setting::get('support_phone') }} · {{ \App\Models\Setting::get('support_email') }}</span>
+        </div>
+    </footer>
   @include('partials.chat')
 <script>
 document.addEventListener('click',function(e){var m=document.getElementById('accountMenu');if(m&&!m.contains(e.target)){m.classList.remove('open');}});
@@ -4433,4 +4460,3 @@ document.addEventListener('click',function(e){var m=document.getElementById('acc
 </script>
   </body>
 </html>
-

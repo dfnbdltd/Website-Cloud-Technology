@@ -27,7 +27,7 @@
 .hosting-nav .site-nav a:hover,.hosting-nav .site-nav a.selected{color:var(--ink);background:var(--soft)}
 .hosting-nav .site-nav-dropdown{position:relative}
 .hosting-nav .site-nav-dropdown>a{display:block;color:var(--text);font-size:15px;font-weight:500;padding:8px 13px;border-radius:8px}
-.hosting-nav .site-nav-dropdown>a:after{content:'⌄';margin-left:7px;color:var(--muted)}
+
 .hosting-nav .site-nav-dropdown:hover>a,.hosting-nav .site-nav-dropdown:focus-within>a{color:var(--ink);background:var(--soft)}
 .hosting-nav .site-submenu{position:absolute;top:100%;left:0;z-index:25;display:none;min-width:190px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 36px #0f172a1f}
 .hosting-nav .site-nav-dropdown:hover .site-submenu,.hosting-nav .site-nav-dropdown:focus-within .site-submenu{display:grid}
@@ -66,5 +66,13 @@
 .hosting-rail a{display:flex;flex-direction:column;align-items:center;gap:5px;width:76px;padding:10px 4px;border-radius:12px;color:#5b6b84;font-size:.66rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;text-decoration:none}
 .hosting-rail .di-svg{width:20px;height:20px}
 .hosting-rail a:hover{background:#f1f6ff;color:var(--blue)}
+
+/* shared site footer — same design as the landing page footer */
+.hosting-footer{background:#0f172a;padding:30px 0;color:#94a3b8;font-size:13px;font-family:'DM Sans',sans-serif}
+.hosting-footer-inner{max-width:1140px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hosting-footer a{display:inline-flex;align-items:center;text-decoration:none}
+.hosting-footer .hf-logo .ct-logo-img{display:block;height:50px;width:auto;object-fit:contain}
+.hosting-footer span{color:#94a3b8}
+@media(max-width:640px){.hosting-footer-inner{flex-direction:column;gap:6px;text-align:center}}
 .hosting-rail a.is-active{background:linear-gradient(180deg,#4f8df7 0%,#1d4fb0 100%);color:#fff;box-shadow:0 8px 18px rgba(47,115,232,.4)}
 @media(max-width:1450px){.hosting-rail{display:none}}
