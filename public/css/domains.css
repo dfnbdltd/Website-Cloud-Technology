@@ -240,3 +240,21 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     .crumb{display:none}
     .domain-content{padding:24px 16px}
 }
+
+/* ------------------------------------------------------------------
+   Admin console: use the FULL width right of the sidebar and larger
+   interface text. Scoped to body.admin-app so customer-area pages
+   (wallet, store, invoices, profile...) keep their compact layout.
+   ------------------------------------------------------------------ */
+.admin-app .domain-content{max-width:none}
+.admin-app .domain-content.standalone-content{max-width:none;padding-right:42px}
+.admin-app .domain-kicker{font-size:11px}
+.admin-app .workspace-title{font-size:40px;letter-spacing:-1px}
+.admin-app .workspace-subtitle{font-size:15px;max-width:820px}
+.admin-app .table-head{font-size:11px}
+.admin-app .table-row{font-size:14px}
+.admin-app .table-row strong{font-size:14px}
+.admin-app .table-empty{font-size:14px}
+@media(max-width:1200px){
+    .admin-app .domain-content.standalone-content{padding-right:24px;padding-left:24px}
+}

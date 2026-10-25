@@ -13,7 +13,12 @@ use App\Http\Controllers\HostingController;
 use App\Http\Controllers\InvoiceController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
-    return view('home', ['catalog' => $resellerClub->catalog()]);
+    $trustItems = array_values(array_filter(array_map('trim', explode(',', (string) \App\Models\Setting::get('trust_items')))));
+
+    return view('home', [
+        'catalog' => $resellerClub->catalog(),
+        'heroProof' => array_slice($trustItems, 0, 3),
+    ]);
 })->name('landing');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -108,3 +113,16 @@ Route::get('/admin/invoices/{invoice}/edit', [AdminController::class, 'editInvoi
 Route::get('/admin/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('admin.invoices.pdf');
 Route::post('/admin/invoices/{invoice}', [AdminController::class, 'updateInvoice'])->name('admin.invoices.update');
 Route::post('/admin/invoices/{invoice}/status', [AdminController::class, 'updateInvoiceStatus'])->name('admin.invoices.status');
+
+/**
+ * CMS: hosting plan cards (prices, features, per-feature availability,
+ * billing terms) behind the shared / vps / dedicated hosting pages.
+ */
+Route::get('/admin/hosting-plans/create/{type}', [AdminController::class, 'createHostingPlan'])->where('type', 'shared|vps|dedicated')->name('admin.hosting.plans.create');
+Route::post('/admin/hosting-plans', [AdminController::class, 'storeHostingPlan'])->name('admin.hosting.plans.store');
+Route::get('/admin/hosting-plans/{type?}/{term?}', [AdminController::class, 'hostingPlans'])->where('type', 'shared|vps|dedicated')->where('term', 'monthly|yearly|twoYear|threeYear')->name('admin.hosting.plans');
+Route::post('/admin/hosting-plans/{type}/{term}/save', [AdminController::class, 'saveHostingPlanTerm'])->where('type', 'shared|vps|dedicated')->where('term', 'monthly|yearly|twoYear|threeYear')->name('admin.hosting.plans.saveTerm');
+Route::get('/admin/hosting-plans/{plan}/edit', [AdminController::class, 'editHostingPlan'])->name('admin.hosting.plans.edit');
+Route::post('/admin/hosting-plans/{plan}', [AdminController::class, 'updateHostingPlan'])->name('admin.hosting.plans.update');
+Route::post('/admin/hosting-plans/{plan}/visibility', [AdminController::class, 'toggleHostingPlanVisibility'])->name('admin.hosting.plans.visibility');
+Route::post('/admin/hosting-plans/{plan}/delete', [AdminController::class, 'deleteHostingPlan'])->name('admin.hosting.plans.delete');

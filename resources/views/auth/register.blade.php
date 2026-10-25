@@ -180,17 +180,22 @@
             <fieldset>
                 <legend><span class="reg4-step">1</span> Personal information</legend>
                 <div class="reg4-grid">
-                    <label class="reg4-field reg4-span">
-                        <span>Full Name <em class="reg4-req">*</em></span>
-                        <input type="text" name="full_name" value="{{ old('full_name', trim(old('first_name') . ' ' . old('last_name'))) }}"
-                            placeholder="e.g. Md. Rahim Uddin" autocomplete="name" required autofocus>
+                    <label class="reg4-field">
+                        <span>First Name <em class="reg4-req">*</em></span>
+                        <input type="text" name="first_name" value="{{ old('first_name') }}"
+                            placeholder="Your first name" autocomplete="given-name" required autofocus>
                     </label>
                     <label class="reg4-field">
+                        <span>Last Name <em class="reg4-req">*</em></span>
+                        <input type="text" name="last_name" value="{{ old('last_name') }}"
+                            placeholder="Your last name" autocomplete="family-name" required>
+                    </label>
+                    <label class="reg4-field reg4-span">
                         <span>Email Address <em class="reg4-req">*</em></span>
                         <input type="email" name="email" value="{{ old('email') }}" placeholder="you@company.com" autocomplete="email" required>
                         <small class="reg4-hint">This becomes your login ID &mdash; we'll send a verification link here.</small>
                     </label>
-                    <label class="reg4-field">
+                    <label class="reg4-field reg4-span">
                         <span>Phone Number <em class="reg4-req">*</em></span>
                         <div class="reg4-phone">
                             <select name="phone_dial" aria-label="Country dial code">
@@ -226,9 +231,17 @@
                             <option value="Other" {{ old('country') === 'Other' ? 'selected' : '' }}>Other</option>
                         </select>
                     </label>
+                    <label class="reg4-field">
+                        <span>State <small class="reg4-opt">(Optional)</small></span>
+                        <input type="text" name="state" value="{{ old('state') }}" placeholder="State / Division" autocomplete="address-level1">
+                    </label>
                     <label class="reg4-field reg4-span">
                         <span>Street Address <em class="reg4-req">*</em></span>
                         <input type="text" name="address1" value="{{ old('address1') }}" placeholder="House, road, area" autocomplete="address-line1" required>
+                    </label>
+                    <label class="reg4-field reg4-span">
+                        <span>Street Address 2 <small class="reg4-opt">(Optional)</small></span>
+                        <input type="text" name="address2" value="{{ old('address2') }}" placeholder="Apartment, suite, unit etc." autocomplete="address-line2">
                     </label>
                     <label class="reg4-field">
                         <span>City <em class="reg4-req">*</em></span>

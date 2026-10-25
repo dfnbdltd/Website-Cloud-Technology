@@ -52,24 +52,36 @@
 </div>
 
 <div class="hosting-period-row" role="tablist" aria-label="Billing period">
-    <button class="hosting-period-tab is-active" type="button" role="tab" aria-selected="true" data-period="monthly">Monthly</button>
-    <button class="hosting-period-tab" type="button" role="tab" aria-selected="false" data-period="yearly">Yearly</button>
-    <button class="hosting-period-tab" type="button" role="tab" aria-selected="false" data-period="twoYear">2 Years</button>
-    <button class="hosting-period-tab" type="button" role="tab" aria-selected="false" data-period="threeYear">3 Years</button>
+    <button class="hosting-period-tab is-active" type="button" role="tab" aria-selected="true" data-period="monthly" data-soon="{{ $terms['monthly']['soon'] ? 'true' : 'false' }}">Monthly</button>
+    <button class="hosting-period-tab" type="button" role="tab" aria-selected="false" data-period="yearly" data-soon="{{ $terms['yearly']['soon'] ? 'true' : 'false' }}">Yearly</button>
+    <button class="hosting-period-tab" type="button" role="tab" aria-selected="false" data-period="twoYear" data-soon="{{ $terms['twoYear']['soon'] ? 'true' : 'false' }}">2 Years</button>
+    <button class="hosting-period-tab" type="button" role="tab" aria-selected="false" data-period="threeYear" data-soon="{{ $terms['threeYear']['soon'] ? 'true' : 'false' }}">3 Years</button>
 </div>
 
 <div class="hosting-plan-list">
 @foreach($plans as $plan)
-    <div class="hosting-plan-row{{ $plan['badge'] === 'Most popular' ? ' is-featured' : '' }}">
+@php
+    // Per-term name + specs summary (the CMS stores separate names,
+    // features and prices per billing term).
+    $specLines = [];
+    foreach ($plan['feature_sets'] as $specTerm => $specSet) {
+        $parts = [];
+        foreach ($specSet['primary'] as $f) {
+            $parts[] = trim($f['lead'] . ' ' . $f['name']);
+        }
+        $specLines[$specTerm] = implode(' · ', $parts);
+    }
+@endphp
+    <div class="hosting-plan-row{{ $plan['badge'] === 'Most popular' ? ' is-featured' : '' }}" data-visible-monthly="{{ $plan['visibility']['monthly'] ? 'true' : 'false' }}" data-visible-yearly="{{ $plan['visibility']['yearly'] ? 'true' : 'false' }}" data-visible-twoyear="{{ $plan['visibility']['twoYear'] ? 'true' : 'false' }}" data-visible-threeyear="{{ $plan['visibility']['threeYear'] ? 'true' : 'false' }}">
         <span class="hosting-plan-icon" aria-hidden="true">▤</span>
         <div class="hosting-plan-main">
-            <strong>{{ $plan['name'] }}@if($plan['badge'])<span class="hosting-plan-badge">{{ $plan['badge'] }}</span>@endif</strong>
+            <strong><span class="hosting-plan-name" data-monthly-name="{{ $plan['names']['monthly'] }}" data-yearly-name="{{ $plan['names']['yearly'] }}" data-two-year-name="{{ $plan['names']['twoYear'] }}" data-three-year-name="{{ $plan['names']['threeYear'] }}">{{ $plan['names']['monthly'] }}</span>@if($plan['badge'])<span class="hosting-plan-badge">{{ $plan['badge'] }}</span>@endif</strong>
             <small>{{ $plan['description'] }}</small>
-            <span class="hosting-plan-specs">{{ collect($plan['primary_features'])->map(function ($f) { return $f['monthly'] . ' ' . $f['name']; })->implode(' · ') }}</span>
+            <span class="hosting-plan-specs" data-monthly="{{ $specLines['monthly'] }}" data-yearly="{{ $specLines['yearly'] }}" data-two-year="{{ $specLines['twoYear'] }}" data-three-year="{{ $specLines['threeYear'] }}">{{ $specLines['monthly'] }}</span>
         </div>
-        <div class="hosting-plan-buy">
-            <span class="hosting-plan-price">৳<span class="hosting-price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}">{{ number_format($plan['prices']['monthly']) }}</span><small class="hosting-price-unit"> /month</small></span>
-            <a class="hosting-buy-btn" href="{{ route('support') }}">Buy now</a>
+        <div class="hosting-plan-buy{{ $plan['terms']['monthly'] ? '' : ' is-coming-soon' }}">
+            <span class="hosting-plan-price">৳<span class="hosting-price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}" data-soon-monthly="{{ $plan['terms']['monthly'] ? 'false' : 'true' }}" data-soon-yearly="{{ $plan['terms']['yearly'] ? 'false' : 'true' }}" data-soon-twoyear="{{ $plan['terms']['twoYear'] ? 'false' : 'true' }}" data-soon-threeyear="{{ $plan['terms']['threeYear'] ? 'false' : 'true' }}">{{ $plan['terms']['monthly'] ? number_format($plan['prices']['monthly']) : 'Coming soon' }}</span><small class="hosting-price-unit"> /month</small></span>
+            <a class="hosting-buy-btn" href="{{ route('support') }}" {!! $plan['terms']['monthly'] ? '' : 'aria-disabled="true"' !!}>{{ $plan['terms']['monthly'] ? 'Buy now' : 'Coming soon' }}</a>
             <a class="hosting-more-btn" href="{{ route('hosting.' . $type) }}">See more</a>
         </div>
     </div>
@@ -84,24 +96,54 @@
 <tr>
 <th>Features</th>
 @foreach($plans as $plan)
-<th class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">{{ $plan['name'] }}@if($plan['badge'])<span class="hosting-plan-badge">{{ $plan['badge'] }}</span>@endif</th>
+<th class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><span class="hosting-plan-name" data-monthly-name="{{ $plan['names']['monthly'] }}" data-yearly-name="{{ $plan['names']['yearly'] }}" data-two-year-name="{{ $plan['names']['twoYear'] }}" data-three-year-name="{{ $plan['names']['threeYear'] }}">{{ $plan['names']['monthly'] }}</span>@if($plan['badge'])<span class="hosting-plan-badge">{{ $plan['badge'] }}</span>@endif</th>
 @endforeach
 </tr>
 </thead>
 <tbody>
 <tr>
 <th>Price</th>
+@php
+    // Per-plan, per-term compare values: primary cells hold the bold lead
+    // ("10 GB"), extra cells hold the label ("bandwidth/month") and every
+    // term's own text (the CMS stores separate feature rows per term).
+    $valueMaps = [];
+    foreach ($plans as $pi => $plan) {
+        $vm = ['primary' => [], 'extra' => []];
+        foreach ($plan['feature_sets'] as $t => $set) {
+            foreach ($set['primary'] as $f) {
+                $name = trim((string) $f['name']);
+                if ($name === '' || isset($vm['primary'][$name][$t])) {
+                    continue;
+                }
+                $vm['primary'][$name][$t] = $f['lead'];
+            }
+            foreach ($set['extra'] as $f) {
+                $text = trim((string) $f['text']);
+                if (preg_match('/^([\d,]+(?:\s*(?:GB|TB|MB))?)(.*)$/', $text, $m) && trim($m[2]) !== '') {
+                    $label = trim($m[2]);
+                } else {
+                    $label = $text;
+                }
+                if ($label !== '' && !isset($vm['extra'][$label][$t])) {
+                    $vm['extra'][$label][$t] = $text;
+                }
+            }
+        }
+        $valueMaps[$pi] = $vm;
+    }
+@endphp
 @foreach($plans as $plan)
-<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><span class="hosting-compare-price" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}">৳{{ number_format($plan['prices']['monthly']) }}</span><small class="hosting-compare-unit"> /month</small></td>
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><span class="hosting-compare-price" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}" data-soon-monthly="{{ $plan['terms']['monthly'] ? 'false' : 'true' }}" data-soon-yearly="{{ $plan['terms']['yearly'] ? 'false' : 'true' }}" data-soon-twoyear="{{ $plan['terms']['twoYear'] ? 'false' : 'true' }}" data-soon-threeyear="{{ $plan['terms']['threeYear'] ? 'false' : 'true' }}">{{ $plan['terms']['monthly'] ? '৳' . number_format($plan['prices']['monthly']) : 'Coming soon' }}</span><small class="hosting-compare-unit"> /month</small></td>
 @endforeach
 </tr>
 @php $primaryNames = collect($plans)->flatMap(function ($p) { return collect($p['primary_features'])->pluck('name'); })->unique()->values(); @endphp
 @foreach($primaryNames as $fname)
 <tr>
 <th>{{ $fname }}</th>
-@foreach($plans as $plan)
-@php $pf = collect($plan['primary_features'])->firstWhere('name', $fname); @endphp
-<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">@if($pf)<span class="hosting-compare-val" data-monthly="{{ $pf['monthly'] }}" data-yearly="{{ $pf['yearly'] }}">{{ $pf['monthly'] }}</span>@else<span class="hosting-compare-na">—</span>@endif</td>
+@foreach($plans as $pi => $plan)
+@php $pm = $valueMaps[$pi]['primary'][$fname] ?? null; $m0 = $pm['monthly'] ?? null; @endphp
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">@if($pm)<span class="hosting-compare-val" data-monthly="{{ $m0 }}" data-yearly="{{ $pm['yearly'] ?? $m0 }}" data-two-year="{{ $pm['twoYear'] ?? $m0 }}" data-three-year="{{ $pm['threeYear'] ?? $m0 }}">{{ $m0 }}</span>@else<span class="hosting-compare-na">—</span>@endif</td>
 @endforeach
 </tr>
 @endforeach
@@ -117,24 +159,24 @@ $extraLabels = array_values(array_unique($extraLabels));
 @foreach($extraLabels as $elabel)
 <tr>
 <th>{{ $elabel }}</th>
-@foreach($plans as $plan)
+@foreach($plans as $pi => $plan)
 @php
-$cell = null;
-foreach ($plan['extra_features'] as $ef) {
-    $t = trim($ef['monthly']);
-    if (preg_match('/^([\d,]+(?:\s*(?:GB|TB|MB))?)(.*)$/', $t, $m) && trim($m[2]) !== '') { $v = trim($m[1]); $l = trim($m[2]); }
-    else { $v = '✓'; $l = $t; }
-    if ($l === $elabel) { $cell = ['v' => $v, 'm' => $ef['monthly'], 'y' => $ef['yearly']]; break; }
-}
+$em = $valueMaps[$pi]['extra'][$elabel] ?? null;
+$m0 = $em['monthly'] ?? null;
+if (preg_match('/^([\d,]+(?:\s*(?:GB|TB|MB))?)(.*)$/', (string) $m0, $mx) && trim($mx[2]) !== '') { $v0 = trim($mx[1]); }
+else { $v0 = '✓'; }
+$y0 = $em['yearly'] ?? $m0;
+$t0 = $em['twoYear'] ?? $m0;
+$tr0 = $em['threeYear'] ?? $m0;
 @endphp
-<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">@if($cell)<span class="hosting-compare-val" data-monthly="{{ $cell['m'] }}" data-yearly="{{ $cell['y'] }}">{{ $cell['v'] }}</span>@else<span class="hosting-compare-na">—</span>@endif</td>
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}">@if($em)<span class="hosting-compare-val" data-monthly="{{ $m0 }}" data-yearly="{{ $y0 }}" data-two-year="{{ $t0 }}" data-three-year="{{ $tr0 }}">{{ $v0 }}</span>@else<span class="hosting-compare-na">—</span>@endif</td>
 @endforeach
 </tr>
 @endforeach
 <tr>
 <th></th>
 @foreach($plans as $plan)
-<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><a class="hosting-buy-btn hosting-compare-buy" href="{{ route('support') }}">Buy now</a></td>
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><a class="hosting-buy-btn hosting-compare-buy" href="{{ route('support') }}" {!! $plan['terms']['monthly'] ? '' : 'aria-disabled="true"' !!}>{{ $plan['terms']['monthly'] ? 'Buy now' : 'Coming soon' }}</a></td>
 @endforeach
 </tr>
 </tbody>
@@ -153,26 +195,58 @@ foreach ($plan['extra_features'] as $ef) {
     var cmpUnits=document.querySelectorAll('.hosting-compare-unit');
     var cmpVals=document.querySelectorAll('.hosting-compare-val');
     var cmpBuys=document.querySelectorAll('.hosting-compare-buy');
+    // Every row and every compare column carries its own data-soon-* flags
+    // (data-soon-monthly / -yearly / -twoyear / -threeyear), so a card
+    // without the selected billing term shows "Coming soon" on its own.
+    var soonKey=function(period){return 'soon'+period.charAt(0).toUpperCase()+period.slice(1).toLowerCase();};
     function select(tab){
         var period=tab.dataset.period;
-        var soon=(period==='twoYear'||period==='threeYear');
         tabs.forEach(function(t){var on=(t===tab);t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
         document.querySelectorAll('.hosting-plan-row').forEach(function(row){
             var price=row.querySelector('.hosting-price-value');
             var unit=row.querySelector('.hosting-price-unit');
             var buy=row.querySelector('.hosting-buy-btn');
             var wrap=row.querySelector('.hosting-plan-buy');
+            var soon=price.dataset[soonKey(period)]==='true';
+            var visible=row.dataset['visible'+period.charAt(0).toUpperCase()+period.slice(1).toLowerCase()] === 'true';
+            row.hidden=!visible;
             price.textContent=soon?'Coming soon':Number(price.dataset[period]).toLocaleString('en-US');
             unit.textContent=soon?'':units[period];
             wrap.classList.toggle('is-coming-soon',soon);
             buy.setAttribute('aria-disabled',soon?'true':'false');
             buy.textContent=soon?'Coming soon':'Buy now';
+            // Plan name + specs summary follow the billing term too.
+            var nameEl=row.querySelector('.hosting-plan-name');
+            if(nameEl){var termName=nameEl.dataset[period+'Name'];if(termName!==undefined){nameEl.textContent=termName;}}
+            var specsEl=row.querySelector('.hosting-plan-specs');
+            if(specsEl){var termSpecs=specsEl.dataset[period];if(termSpecs!==undefined){specsEl.textContent=termSpecs;}}
         });
-        var resPeriod=(period==='monthly')?'monthly':'yearly';
-        cmpPrices.forEach(function(price){price.textContent=soon?'Coming soon':'৳'+Number(price.dataset[period]).toLocaleString('en-US');});
-        cmpUnits.forEach(function(unit){unit.textContent=soon?'':units[period];});
+        // Compare-table plan names follow the selected term as well.
+        document.querySelectorAll('.hosting-compare-table [data-monthly-name]').forEach(function(el){
+            var termName=el.dataset[period+'Name'];
+            if(termName!==undefined){el.textContent=termName;}
+        });
+        // Compare values carry all four terms' feature rows via
+        // data-monthly / -yearly / -two-year / -three-year (the keys match
+        // the tab periods), so a term shows that term's rows.
+        var resPeriod=period;
+        cmpPrices.forEach(function(price){
+            var soon=price.dataset[soonKey(period)]==='true';
+            price.textContent=soon?'Coming soon':'৳'+Number(price.dataset[period]).toLocaleString('en-US');
+        });
+        cmpUnits.forEach(function(unit){
+            var price=unit.previousElementSibling;
+            var soon=price&&price.dataset[soonKey(period)]==='true';
+            unit.textContent=soon?'':units[period];
+        });
         cmpVals.forEach(function(val){val.textContent=val.dataset[resPeriod];});
-        cmpBuys.forEach(function(btn){btn.setAttribute('aria-disabled',soon?'true':'false');btn.textContent=soon?'Coming soon':'Buy now';});
+        cmpPrices.forEach(function(price,i){
+            var soon=price.dataset[soonKey(period)]==='true';
+            var buy=cmpBuys[i];
+            if(!buy){return;}
+            buy.setAttribute('aria-disabled',soon?'true':'false');
+            buy.textContent=soon?'Coming soon':'Buy now';
+        });
     }
     tabs.forEach(function(tab){tab.addEventListener('click',function(){select(tab);});});
 })();
