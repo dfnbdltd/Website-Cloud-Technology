@@ -9,41 +9,27 @@
 <main>
     <section class="site-hero" data-hero-slider role="region" aria-roledescription="carousel" aria-label="CloudTech services">
         <div class="site-hero-track">
-            <div class="site-hero-slide site-hero-slide--text is-active" role="group" aria-roledescription="slide" aria-label="Slide 1 of 2: Domain registration">
+            <div class="site-hero-slide site-hero-slide--text is-active" role="group" aria-roledescription="slide" aria-label="Slide 1 of 3: Domain registration">
                 <div class="site-wrap site-hero-grid site-hero-grid--solo">
                     <div class="site-hero-copy">
-                        <span class="site-hero-eyebrow">Domain registration</span>
                         <h1>{{ \App\Models\Setting::get('hero_title') }}<br><em>{{ \App\Models\Setting::get('hero_highlight') }}</em></h1>
                         <p>{{ \App\Models\Setting::get('hero_text') }}</p>
-                        <div class="site-hero-actions">
-                            <a class="site-btn" href="#domain-search">Search a domain <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></a>
-                            <a class="site-btn-ghost" href="#pricing">See pricing</a>
-                        </div>
-                        @if(count($heroProof) > 0)
-                        <div class="site-hero-proof">
-                            @foreach($heroProof as $proof)
-                            <span>{{ $proof }}</span>
-                            @endforeach
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>
-            <div class="site-hero-slide site-hero-slide--text site-hero-slide--ssl" role="group" aria-roledescription="slide" aria-label="Slide 2 of 2: SSL certificates" aria-hidden="true" inert>
+            <div class="site-hero-slide site-hero-slide--text site-hero-slide--ssl" role="group" aria-roledescription="slide" aria-label="Slide 2 of 3: SSL certificates" aria-hidden="true" inert>
                 <div class="site-wrap site-hero-grid site-hero-grid--solo">
                     <div class="site-hero-copy">
-                        <span class="site-hero-eyebrow">SSL certificates</span>
                         <h1>{{ \App\Models\Setting::get('ssl_title') }}<br><em>{{ \App\Models\Setting::get('ssl_highlight') }}</em></h1>
                         <p>{{ \App\Models\Setting::get('ssl_text') }}</p>
-                        <div class="site-hero-actions">
-                            <a class="site-btn" href="{{ route('under.construction', 'ssl-certificate') }}">Get SSL certificate <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>
-                            <a class="site-btn-ghost" href="#pricing">Compare plans</a>
-                        </div>
-                        <div class="site-hero-proof">
-                            <span>256-bit encryption</span>
-                            <span>Free installation</span>
-                            <span>Auto-renew included</span>
-                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="site-hero-slide site-hero-slide--text site-hero-slide--communications" role="group" aria-roledescription="slide" aria-label="Slide 3 of 3: {{ \App\Models\Setting::get('communications_title') }}" aria-hidden="true" inert>
+                <div class="site-wrap site-hero-grid site-hero-grid--solo">
+                    <div class="site-hero-copy">
+                        <h1>{{ \App\Models\Setting::get('communications_title') }}<br><em>{{ \App\Models\Setting::get('communications_highlight') }}</em></h1>
+                        <p>{{ \App\Models\Setting::get('communications_text') }}</p>
                     </div>
                 </div>
             </div>
@@ -52,6 +38,7 @@
             <div class="site-hero-dots" aria-label="Choose a slide">
                 <button type="button" class="is-active" aria-label="Show domain registration" aria-current="true"></button>
                 <button type="button" aria-label="Show SSL certificates" aria-current="false"></button>
+                <button type="button" aria-label="Show {{ \App\Models\Setting::get('communications_title') }}" aria-current="false"></button>
             </div>
         </div>
         <span class="site-hero-wave" aria-hidden="true"><svg viewBox="0 0 1440 120" preserveAspectRatio="none" focusable="false"><path d="M0,64 C240,120 480,8 720,40 C960,72 1200,116 1440,64 L1440,120 L0,120 Z" fill="#ffffff"/></svg></span>
@@ -79,14 +66,34 @@ document.querySelectorAll('[data-hero-slider]').forEach(function(root){
     var dots=Array.prototype.slice.call(root.querySelectorAll('.site-hero-dots button'));
     var current=0;
     var timer;
+    var initialTimer;
+    var typewriterTimer;
+    var reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+    function prepareTypewriter(slide){
+        var highlight=slide.querySelector('.site-hero-copy h1 em');
+        if(!highlight){return;}
+        window.clearInterval(typewriterTimer);
+        var text=highlight.getAttribute('data-typewriter-text')||highlight.textContent.trim();
+        highlight.setAttribute('data-typewriter-text',text);
+        highlight.classList.remove('typewriter-ready');
+        if(reduceMotion.matches){highlight.textContent=text;return;}
+        highlight.textContent='';
+        highlight.classList.add('typewriter-ready');
+        var position=0;
+        typewriterTimer=window.setInterval(function(){
+            position+=1;
+            highlight.textContent=text.slice(0,position);
+            if(position>=text.length){window.clearInterval(typewriterTimer);}
+        },105);
+    }
     function show(index){
         current=(index+slides.length)%slides.length;
         track.style.transform='translateX(-'+(current*100)+'%)';
-        slides.forEach(function(slide,i){var active=i===current;slide.classList.toggle('is-active',active);slide.setAttribute('aria-hidden',active?'false':'true');slide.toggleAttribute('inert',!active);});
+        slides.forEach(function(slide,i){var active=i===current;slide.classList.toggle('is-active',active);slide.setAttribute('aria-hidden',active?'false':'true');slide.toggleAttribute('inert',!active);if(active){prepareTypewriter(slide);}});
         dots.forEach(function(dot,i){var active=i===current;dot.classList.toggle('is-active',active);dot.setAttribute('aria-current',active?'true':'false');});
     }
-    function stop(){window.clearInterval(timer);}
-    function start(){stop();if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){timer=window.setInterval(function(){show(current+1);},6000);}}
+    function stop(){window.clearInterval(timer);window.clearTimeout(initialTimer);}
+    function start(){stop();if(!reduceMotion.matches){initialTimer=window.setTimeout(function(){show(current+1);timer=window.setInterval(function(){show(current+1);},5200);},7000);}}
     dots.forEach(function(dot,i){dot.addEventListener('click',function(){show(i);start();});});
     root.addEventListener('mouseenter',stop);
     root.addEventListener('mouseleave',start);
@@ -95,6 +102,7 @@ document.querySelectorAll('[data-hero-slider]').forEach(function(root){
     var touchX=null;
     root.addEventListener('touchstart',function(e){touchX=e.touches[0].clientX;},{passive:true});
     root.addEventListener('touchend',function(e){if(touchX===null){return;}var dx=e.changedTouches[0].clientX-touchX;if(Math.abs(dx)>45){show(current+(dx<0?1:-1));start();}touchX=null;},{passive:true});
+    show(0);
     start();
 });
 </script>

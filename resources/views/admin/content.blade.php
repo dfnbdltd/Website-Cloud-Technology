@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>@include('partials.head', ['title' => 'Site content'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}"><link rel="stylesheet" href="{{ asset('css/store.css') }}?v={{ filemtime(public_path('css/store.css')) }}"></head><body class="domain-app admin-app">@include('partials.admin-sidebar', ['active' => 'content'])
 <main class="domain-main"><header class="domain-topbar"><div><span class="crumb">CMS /</span><strong>Site content</strong></div><a class="cart-badge" href="{{ route('landing') }}" target="_blank">View website ↗</a></header>
 <div class="domain-content standalone-content">
-<span class="domain-kicker">CONTENT MANAGEMENT</span><h1 class="workspace-title">Site content.</h1><p class="workspace-subtitle">Edit the text on the public website and in customer emails. Leave a field empty to use the default shown in grey.</p>
+<span class="domain-kicker">CONTENT MANAGEMENT</span><h1 class="workspace-title">Site content.</h1><p class="workspace-subtitle">Edit the text on the public website and in customer emails. Homepage carousel copy is stored in the database and can be changed here at any time.</p>
 @if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
 <form method="POST" action="{{ route('admin.content.update') }}">@csrf
@@ -9,7 +9,7 @@
 <section class="store-panel cms-group"><h2>{{ $groupName }}</h2><div class="store-fields">
 @foreach($fields as $key => $field)
 <label class="{{ $field[2] === 'textarea' ? 'cms-wide' : '' }}">{{ $field[0] }}
-@if($field[2] === 'textarea')<textarea name="{{ $key }}" rows="3" placeholder="{{ $field[1] }}">{{ old($key, $values[$key] ?? '') }}</textarea>@else<input type="text" name="{{ $key }}" value="{{ old($key, $values[$key] ?? '') }}" placeholder="{{ $field[1] }}">@endif
+@if($field[2] === 'textarea')<textarea name="{{ $key }}" rows="3" placeholder="{{ $field[1] }}">{{ old($key, $values[$key] ?? $field[1]) }}</textarea>@else<input type="text" name="{{ $key }}" value="{{ old($key, $values[$key] ?? $field[1]) }}" placeholder="{{ $field[1] }}">@endif
 </label>
 @endforeach
 </div></section>

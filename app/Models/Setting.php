@@ -29,14 +29,15 @@ class Setting extends Model
                 'manual_payment_number' => ['bKash / Nagad number for manual payments', '01713-401914', 'text'],
             ],
             'Homepage hero' => [
-                'hero_title' => ['Headline', 'Your Perfect Domain,', 'text'],
-                'hero_highlight' => ['Headline highlight', 'Registered in Minutes.', 'text'],
+                'hero_title' => ['Domain headline', 'Your Perfect Domain,', 'text'],
+                'hero_highlight' => ['Domain headline highlight', 'Registered in Minutes.', 'text'],
                 'hero_text' => ['Intro paragraph', 'Search, register and manage your ideal domain name — real-time availability, transparent pricing in Taka, and zero hidden fees.', 'textarea'],
-            ],
-            'SSL slider' => [
                 'ssl_title' => ['SSL headline', 'Secure your site.', 'text'],
                 'ssl_highlight' => ['SSL headline highlight', 'Win instant trust.', 'text'],
                 'ssl_text' => ['SSL paragraph', 'A padlock in every browser, A+ grade encryption and a trust seal that turns hesitant visitors into customers — issued in minutes, installed free, and renewed automatically.', 'textarea'],
+                'communications_title' => ['Hosting and email headline', 'Build your presence', 'text'],
+                'communications_highlight' => ['Hosting and email headline highlight', 'with confidence.', 'text'],
+                'communications_text' => ['Hosting and email paragraph', 'Reliable web hosting and professional email service to keep your website fast, your brand credible, and your business connected.', 'textarea'],
             ],
             'Homepage trust' => [
                 'trust_items' => ['Trust bar (comma separated)', 'Real-time availability, Live BDT pricing, Free WHOIS privacy, 24/7 local support', 'text'],
