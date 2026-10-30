@@ -152,7 +152,7 @@ class DomainController extends Controller
         ];
         $request->session()->put('domain_cart', $cart);
 
-        return redirect()->back()->with('cart_added', $domain);
+        return redirect()->route('domains.checkout')->with('cart_added', $domain);
     }
 
     /**
@@ -175,58 +175,104 @@ class DomainController extends Controller
         return redirect()->route('cart.index')->with('success', $domain . ' was removed from your cart.');
     }
 
-    public function checkout(Request $request)
+    public function lookupCustomer(Request $request)
     {
-        if (!$this->isCustomer($request)) {
-            return redirect()->guest(route('login'))
-                ->with('success', 'Please sign in or create an account to complete your purchase. Your cart is saved.');
+        $data = $request->validate(['identifier' => ['required', 'string', 'max:255']]);
+        $identifier = trim($data['identifier']);
+        $customerQuery = User::whereNotNull('email_verified_at');
+        $customer = filter_var($identifier, FILTER_VALIDATE_EMAIL)
+            ? $customerQuery->where('email', $identifier)->first()
+            : $customerQuery->where('customer_uid', $identifier)->first();
+
+        if (!$customer) {
+            return response()->json(['message' => 'No customer account was found for that email.'], 404);
         }
 
+        return response()->json(['verified' => true]);
+    }
+
+    public function checkout(Request $request)
+    {
         $cart = $request->session()->get('domain_cart', []);
         if (!$cart) {
             return redirect()->route('cart.index')->withErrors(['domain' => 'Add a domain before checkout.']);
         }
 
         $user = $request->user() ?: User::find(session('customer.id'));
+        $accountDetails = $this->accountDetails($request, $user);
+        $accountDetailsComplete = !empty($accountDetails['name'])
+            && !empty($accountDetails['email']);
         $methods = $this->payments->methods();
+        $defaultPaymentMethod = key($methods);
         if ($user) {
             $methods = ['wallet' => [
                 'label' => 'Wallet balance · ৳ ' . number_format((float) $user->balance, 2),
                 'description' => 'Pay using your available account balance',
             ]] + $methods;
+            if ((float) $user->balance >= $this->total($cart)) {
+                $defaultPaymentMethod = 'wallet';
+            }
         }
 
         return view('domains.checkout', [
             'cart' => $cart,
             'total' => $this->total($cart),
             'methods' => $methods,
-            'walletBalance' => $user ? (float) $user->balance : 0,
             'gatewayReady' => $this->payments->gatewayConfigured('bkash'),
-            // Prefill contact details already on file — editable, not re-asked.
-            'contactPhone' => (string) ($user ? $user->phone : session('customer.phone', '')),
+            'accountDetails' => $accountDetails,
+            'accountDetailsComplete' => $accountDetailsComplete,
+            'defaultPaymentMethod' => $defaultPaymentMethod,
         ]);
     }
 
     public function placeOrder(Request $request)
     {
-        // Login is enforced HERE, right before payment.
-        if (!$request->user() && !session('customer')) {
-            return redirect()
-                ->guest(route('login'))
-                ->with('success', 'Please sign in or create an account to complete your purchase. Your cart is saved.');
-        }
-
         $user = $request->user() ?: User::find(session('customer.id'));
 
         $cart = $request->session()->get('domain_cart', []);
         if (!$cart) {
             return redirect()->route('domains.index')->withErrors(['domain' => 'Your cart is empty.']);
         }
+        $allowedMethods = array_keys($this->payments->methods());
+        if ($user) {
+            array_unshift($allowedMethods, 'wallet');
+        }
+        $purchaseFor = $request->input('purchase_for');
+        $accountDetails = $this->accountDetails($request, $user);
+        $useAccountDetails = $purchaseFor === 'myself'
+            && (bool) session('customer')
+            && !empty($accountDetails['name'])
+            && !empty($accountDetails['email']);
+        $buyingForCustomer = $purchaseFor === 'customer';
         $data = $request->validate([
-            'payment_method' => ['required', 'in:wallet,bkash,nagad,bank'],
-            'full_name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'string', 'max:30'],
+            'payment_method' => ['required', 'in:' . implode(',', $allowedMethods)],
+            'full_name' => $useAccountDetails || $buyingForCustomer ? ['nullable'] : ['required', 'string', 'max:120'],
+            'email' => $useAccountDetails || $buyingForCustomer ? ['nullable'] : ['required', 'email', 'max:255'],
+            'phone' => $useAccountDetails || $buyingForCustomer ? ['nullable'] : ['required', 'string', 'max:30'],
+            'purchase_for' => ['required', 'in:myself,customer'],
+            'customer_identifier' => $buyingForCustomer ? ['required', 'string', 'max:255'] : ['nullable'],
         ]);
+        if ($useAccountDetails) {
+            $data['full_name'] = $accountDetails['name'];
+            $data['email'] = $accountDetails['email'];
+            $data['phone'] = $accountDetails['phone'];
+        } elseif ($buyingForCustomer) {
+            $identifier = trim($data['customer_identifier']);
+            $customerQuery = User::whereNotNull('email_verified_at');
+            $selectedCustomer = filter_var($identifier, FILTER_VALIDATE_EMAIL)
+                ? $customerQuery->where('email', $identifier)->first()
+                : $customerQuery->where('customer_uid', $identifier)->first();
+            if (!$selectedCustomer) {
+                return back()->withInput()->withErrors(['customer_identifier' => 'No verified customer account was found for that email or ID.']);
+            }
+            $data['full_name'] = $selectedCustomer->name;
+            $data['email'] = $selectedCustomer->email;
+            $data['phone'] = (string) $selectedCustomer->phone;
+            $orderUser = $selectedCustomer;
+        } else {
+            $orderUser = $user;
+        }
+        $data['customer_email'] = $data['email'];
 
         $order = [
             'reference' => 'CT-' . date('Ymd') . '-' . strtoupper(substr(sha1(uniqid('', true)), 0, 6)),
@@ -237,7 +283,8 @@ class DomainController extends Controller
         ];
         $order['payment'] = $this->payments->createPendingPayment($order, $data['payment_method']);
         $isWalletPayment = $data['payment_method'] === 'wallet';
-        $persisted = DB::transaction(function () use (&$order, $data, $cart, $user, $isWalletPayment) {
+        $orderUser = $orderUser ?? $user;
+        $persisted = DB::transaction(function () use (&$order, $data, $cart, $user, $orderUser, $isWalletPayment) {
             if ($isWalletPayment) {
                 $walletUser = $user ? User::whereKey($user->id)->lockForUpdate()->first() : null;
                 if (!$walletUser || (float) $walletUser->balance < (float) $order['total']) {
@@ -252,7 +299,7 @@ class DomainController extends Controller
 
             $model = DomainOrder::create([
                 'reference' => $order['reference'],
-                'user_id' => $user ? $user->id : session('customer.id'),
+                'user_id' => $orderUser ? $orderUser->id : null,
                 'total' => $order['total'],
                 'status' => $isWalletPayment ? 'paid' : 'payment_pending',
                 'payment_method' => $data['payment_method'],
@@ -260,7 +307,7 @@ class DomainController extends Controller
                 'provider' => $data['payment_method'] === 'bkash' ? 'bkash' : ($isWalletPayment ? 'wallet' : 'manual'),
                 'customer_name' => $data['full_name'],
                 'customer_phone' => $data['phone'],
-                'customer_email' => $user ? $user->email : session('customer.email'),
+                'customer_email' => $data['customer_email'],
                 'payload' => json_encode($order),
             ]);
             foreach ($cart as $item) {
@@ -344,8 +391,15 @@ class DomainController extends Controller
         }, 0);
     }
 
-    private function isCustomer(Request $request)
+    private function accountDetails(Request $request, $user)
     {
-        return (bool) ($request->user() || $request->session()->get('customer'));
+        $customer = $request->session()->get('customer', []);
+
+        return [
+            'name' => (string) ($user ? $user->name : ($customer['name'] ?? '')),
+            'email' => (string) ($user ? $user->email : ($customer['email'] ?? '')),
+            'phone' => (string) ($user && $user->phone ? $user->phone : ($customer['phone'] ?? '')),
+        ];
     }
+
 }

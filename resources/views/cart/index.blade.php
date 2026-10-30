@@ -44,9 +44,9 @@
                         <span class="domain-kicker">SUMMARY</span>
                         <div class="cart-summary-row"><span>{{ count($cart) }} domain{{ count($cart) > 1 ? 's' : '' }}</span><span>৳ {{ number_format($total) }}</span></div>
                         <div class="cart-summary-row total"><span>Total due</span><strong>৳ {{ number_format($total) }}</strong></div>
-                        <a class="checkout-button" href="{{ route('domains.checkout') }}">{{ session('customer') ? 'Continue to checkout' : 'Sign in to checkout' }} <b>→</b></a>
-                        @unless(session('customer'))<p class="cart-guest-note">New here? <a href="{{ route('register') }}">Create an account</a> — your cart is saved.</p>@endunless
-                        <div class="cart-trust"><span>✓</span><p>Secure checkout<br><small>Pay with bKash or your wallet balance</small></p></div>
+                        <a class="checkout-button" href="{{ route('domains.checkout') }}">Continue to checkout <b>→</b></a>
+                        @unless(session('customer'))<p class="cart-guest-note">You can complete your purchase without an account, or <a href="{{ route('register') }}">create one</a>.</p>@endunless
+                        <div class="cart-trust"><span>✓</span><p>Secure checkout<br><small>{{ session('customer') ? 'Pay with bKash or your wallet balance' : 'Pay securely without creating an account' }}</small></p></div>
                     </aside>
                 </div>
             @else

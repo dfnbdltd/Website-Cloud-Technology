@@ -50,6 +50,20 @@ Route::get('/hosting/dedicated', [HostingController::class, 'dedicated'])->name(
 Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
 Route::post('/chat/messages', [ChatController::class, 'send'])->name('chat.send');
 
+// Domain search, cart and checkout are available without a customer account.
+Route::prefix('domains')->group(function () {
+    Route::get('/', [DomainController::class, 'index'])->name('domains.index');
+    Route::post('/search', [DomainController::class, 'search'])->name('domains.search');
+    Route::post('/cart', [DomainController::class, 'addToCart'])->name('domains.cart');
+    Route::get('/cart', [DomainController::class, 'cart'])->name('cart.index');
+    Route::post('/cart/remove', [DomainController::class, 'removeFromCart'])->name('cart.remove');
+    Route::get('/checkout', [DomainController::class, 'checkout'])->name('domains.checkout');
+    Route::post('/checkout', [DomainController::class, 'placeOrder'])->name('domains.place-order');
+    Route::post('/customer/lookup', [DomainController::class, 'lookupCustomer'])
+        ->middleware('throttle:10,1')
+        ->name('domains.customer.lookup');
+});
+
 // Client area: signed-in customers only.
 Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
@@ -72,15 +86,6 @@ Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/support', [CustomerController::class, 'support'])->name('support');
     Route::post('/support/tickets', [CustomerController::class, 'createTicket'])->name('support.create');
 
-    Route::prefix('domains')->group(function () {
-        Route::get('/', [DomainController::class, 'index'])->name('domains.index');
-        Route::post('/search', [DomainController::class, 'search'])->name('domains.search');
-        Route::post('/cart', [DomainController::class, 'addToCart'])->name('domains.cart');
-        Route::get('/cart', [DomainController::class, 'cart'])->name('cart.index');
-        Route::post('/cart/remove', [DomainController::class, 'removeFromCart'])->name('cart.remove');
-        Route::get('/checkout', [DomainController::class, 'checkout'])->name('domains.checkout');
-        Route::post('/checkout', [DomainController::class, 'placeOrder'])->name('domains.place-order');
-    });
 });
 
 // bKash direct checkout (popup) — see app/Services/BkashClient.php

@@ -258,3 +258,51 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 @media(max-width:1200px){
     .admin-app .domain-content.standalone-content{padding-right:24px;padding-left:24px}
 }
+
+/* Compact dividers keep the sidebar sections clear without extra headings. */
+.domain-sidebar nav>.nav-divider{border:0;border-top:1px solid #e5e7eb;margin:16px 10px 12px}
+.domain-sidebar.collapsed nav>.nav-divider{visibility:hidden}
+
+/* Domain checkout */
+.buyer-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 24px}
+.buyer-option{display:flex;align-items:center;gap:12px;padding:15px 16px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+.buyer-option:focus-within{border-color:#3c7ff0;background:#f5f9ff}
+.buyer-option input{width:18px;height:18px;margin:0;accent-color:#3c7ff0;flex:none}
+.buyer-option span,.buyer-option strong,.buyer-option small{display:block}
+.buyer-option strong{font-size:15px}
+.buyer-option small{margin-top:3px;color:var(--muted);font-size:12px}
+.checkout-account-summary{display:flex;flex-direction:column;gap:4px;padding:14px 16px;margin:12px 0 24px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:14px}
+.checkout-account-summary span,.checkout-account-summary small{color:var(--muted)}
+.checkout-account-summary small{margin-top:5px;font-size:12px}
+.existing-customer-panel{margin:-8px 0 24px;padding:0 12px 0 38px}
+.existing-customer-panel[hidden],.existing-customer-entry[hidden],.existing-customer-result[hidden]{display:none}
+.existing-customer-search{display:flex;gap:8px;padding:6px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.existing-customer-search input{flex:1;min-width:0;border:0!important;outline:0;padding:10px 12px!important;font-size:14px!important}
+.existing-customer-confirm{min-width:110px;border:0;border-radius:4px;background:#2563eb;color:#fff;font:700 12px 'DM Sans',sans-serif;text-transform:uppercase;cursor:pointer}
+.existing-customer-confirm:disabled{background:#d1d5db;color:#6b7280;cursor:wait}
+.customer-lookup-message{min-height:0;margin-top:6px;color:#b91c1c;font-size:12px}
+.customer-sign-in-note{color:var(--muted);font-size:13px}
+.customer-sign-in-note a,.create-customer-link{color:#3c7ff0;font-weight:600}
+.customer-create-divider{display:flex;align-items:center;gap:12px;margin:12px 0;color:var(--muted);font-size:12px}
+.customer-create-divider:before,.customer-create-divider:after{content:'';height:1px;background:var(--line);flex:1}
+.create-customer-link{display:inline-block;padding:2px 0;font-size:14px}
+.existing-customer-result{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border:1px solid #bfdbfe;border-radius:8px;background:#f5f9ff}
+.existing-customer-result>div,.existing-customer-result span{display:block}
+.existing-customer-result strong{display:block;margin-bottom:4px}
+.existing-customer-result span{color:var(--muted);font-size:13px}
+.change-customer-button{flex:none;padding:7px 12px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink);font:600 12px 'DM Sans',sans-serif;cursor:pointer}
+.checkout-summary-heading{display:flex;justify-content:space-between;align-items:center}
+.checkout-summary-heading .domain-kicker:last-child{color:var(--muted)}
+.checkout-summary .summary-item{justify-content:space-between}
+.checkout-summary-tax{display:flex;justify-content:space-between;margin-top:12px;color:var(--muted);font-size:14px}
+.checkout-summary .summary-total{display:flex;justify-content:space-between;align-items:center}
+.checkout-summary .checkout-grand-total{border-top:1px solid var(--line);margin-top:18px;padding-top:16px;font-size:17px}
+.checkout-form .checkout-submit:disabled{background:#d1d5db;box-shadow:none;color:#6b7280;cursor:not-allowed}
+.domain-registration-guest .domain-main{margin-left:0;min-height:60vh;padding-bottom:24px}
+.domain-registration-guest .domain-content.no-cart{max-width:1180px;padding:38px 28px 48px}
+.domain-registration-guest .domain-search{margin-top:0}
+.domain-registration-guest .domain-results,.domain-registration-guest .catalog-section{margin-top:32px}
+@media(max-width:640px){
+    .buyer-options{grid-template-columns:1fr}
+    .domain-registration-guest .domain-content.no-cart{padding:24px 16px 36px}
+}

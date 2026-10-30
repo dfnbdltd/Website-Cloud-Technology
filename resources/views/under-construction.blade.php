@@ -1,10 +1,11 @@
 @php($isCustomer = (bool) session('customer'))
+@php($sidebarActive = strtolower(str_replace(' ', '-', $section ?? '')) === 'domain-transfer' ? 'domain-transfer' : 'construction')
 <!doctype html>
 <html lang="en">
 <head>@include('partials.head', ['title' => 'Coming soon'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}">@unless($isCustomer)<link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ md5_file(public_path('css/home.css')) }}">@endunless</head>
 <body class="{{ $isCustomer ? 'domain-app' : 'site coming-page' }}">
 @if($isCustomer)
-@include('partials.sidebar', ['active' => 'construction', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
+@include('partials.sidebar', ['active' => $sidebarActive, 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <main class="domain-main">@include('partials.topbar', ['title' => 'Under construction', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 @else
 <header class="site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'h'])</a><div class="site-account"><a class="site-btn-ghost" href="{{ route('login') }}">Log in</a><a class="site-btn" href="{{ route('register') }}">Sign up</a></div></div></header>
