@@ -36,6 +36,9 @@ Route::get('/email/verify', [AuthController::class, 'verificationNotice'])->name
 Route::post('/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1')->name('verification.resend');
 // Guide section 5: one-time token link (replaces the old signed-URL route).
 Route::get('/verify-email/{token}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+// Green-tick confirmation shown right after a successful verification, then it
+// auto-continues to the destination the user was on (e.g. checkout).
+Route::get('/email/verified', [AuthController::class, 'verifiedNotice'])->name('email.verified');
 
 // Linked from the public landing page (Blog, Offers, ...), so guests may see it.
 Route::get('/coming-soon/{section?}', function ($section = 'This section') {

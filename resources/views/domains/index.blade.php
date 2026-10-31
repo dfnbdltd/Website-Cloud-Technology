@@ -20,6 +20,28 @@
             .result-term-column { min-width:120px; }
             .domain-add-form { flex-wrap:wrap; }
         }
+
+        /* Lucrative search-result rows: headline-sized name + big price */
+        .domain-result { padding:20px 24px; border-radius:12px; border-color:#e3ebf5; background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%); transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+        .domain-result:hover { border-color:#c8dcf7; box-shadow:0 14px 34px #2b5ea016; transform:translateY(-1px); }
+        .result-status { width:38px; height:38px; font-size:18px; }
+        .result-name strong { font-size:23px; font-weight:800; letter-spacing:-.4px; color:var(--navy); display:block; }
+        .result-name small { font-size:13px; font-weight:600; }
+        .result-status.is-available ~ .result-name small { color:#0fa371; }
+        .result-status.is-taken ~ .result-name small { color:#b38080; }
+        .result-price strong { font-size:15px; }
+        .result-price strong .term-price { font-size:28px; font-weight:800; color:var(--blue); letter-spacing:-.6px; }
+        .result-price .term-period { font-size:13px; font-weight:700; color:#74869b; }
+        .result-price small { font-size:12.5px; color:#90a0b4; }
+        .add-domain { padding:16px 24px; font-size:13px; border-radius:9px; box-shadow:0 10px 22px #3c7ff038; }
+        .catalog-section .result-name strong { font-size:19px; }
+        .catalog-section .result-price strong .term-price { font-size:22px; }
+        @media(max-width:760px) {
+            .result-name strong { font-size:19px; }
+            .result-price strong .term-price { font-size:22px; }
+            .result-status { width:32px; height:32px; font-size:15px; }
+            .add-domain { padding:14px 20px; }
+        }
     </style>
 </head>
 <body class="{{ session('customer') ? 'domain-app' : 'site domain-registration-guest' }}">
@@ -79,7 +101,7 @@
                                                 <option value="{{ $years }}" data-price="{{ $termPrice }}" @if((int) $years === $selectedYears) selected @endif>{{ $years }} year{{ $years > 1 ? 's' : '' }} · ৳ {{ number_format($termPrice) }}</option>
                                             @endforeach
                                             </select>
-                                            <button class="add-domain" type="submit">{{ isset($cart[$result['domain']]) ? 'Update cart' : 'Add to cart' }} <b>+</b></button>
+                                            <button class="add-domain" type="submit">{{ isset($cart[$result['domain']]) ? 'Update cart' : (session('customer') ? 'Add to cart' : 'Purchase now') }} <b>+</b></button>
                                         </form>
                                     @else
                                         <select id="years-{{ $loop->index }}" class="domain-years" aria-label="No. of years" onchange="updateTermPrice(this)">
@@ -108,7 +130,7 @@
                         @if(isset($cart[$domain]))
                             <a class="add-domain in-cart" href="{{ route('cart.index') }}">In cart ✓</a>
                         @else
-                            <form method="POST" action="{{ route('domains.cart') }}">@csrf<input type="hidden" name="domain" value="{{ $domain }}"><input type="hidden" name="years" value="1"><button class="add-domain" type="submit">Add to cart <b>+</b></button></form>
+                            <form method="POST" action="{{ route('domains.cart') }}">@csrf<input type="hidden" name="domain" value="{{ $domain }}"><input type="hidden" name="years" value="1"><button class="add-domain" type="submit">{{ session('customer') ? 'Add to cart' : 'Purchase now' }} <b>+</b></button></form>
                         @endif
                     </div>
                 @endforeach

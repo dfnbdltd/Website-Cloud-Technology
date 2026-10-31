@@ -17,10 +17,20 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function showLogin()
+    /**
+     * Optional post-login destination (the checkout page sends guests here).
+     * Only same-site paths are accepted so the value can never bounce off-site.
+     * Without the query param this method behaves exactly as before.
+     */
+    public function showLogin(Request $request)
     {
         if (Auth::check() || session('customer')) {
             return redirect()->route('dashboard');
+        }
+
+        $returnTo = (string) $request->query('return_to', '');
+        if ($returnTo !== '' && $returnTo[0] === '/' && substr($returnTo, 0, 2) !== '//') {
+            $request->session()->put('url.intended', $returnTo);
         }
 
         return view('auth.login');
@@ -129,17 +139,44 @@ class AuthController extends Controller
                 ->withInput();
         }
 
+        return $this->signIn($request, $user);
+    }
+
+    /**
+     * Post-authentication response shared by login and email verification:
+     * establishes the customer session then honors the stored intended URL.
+     */
+    private function signIn(Request $request, User $user)
+    {
+        $this->establishSession($request, $user);
+
+        return redirect()->intended(route('dashboard'));
+    }
+
+    /**
+     * Session mechanics shared by login and email verification: regenerate
+     * the session against fixation, guarantee a customer UID and snapshot
+     * the customer into the session.
+     */
+    private function establishSession(Request $request, User $user): void
+    {
         $request->session()->regenerate();
         if (!$user->customer_uid) {
             $user->forceFill(['customer_uid' => User::generateUid()])->save();
         }
         $request->session()->put('customer', self::customerSession($user));
-
-        return redirect()->intended(route('dashboard'));
     }
 
-    public function showRegister()
+    public function showRegister(Request $request)
     {
+        // The checkout page sends guests here with return_to so a brand-new
+        // buyer can be returned to their purchase after verification.
+        // Without the query param this method behaves exactly as before.
+        $returnTo = (string) $request->query('return_to', '');
+        if ($returnTo !== '' && $returnTo[0] === '/' && substr($returnTo, 0, 2) !== '//') {
+            $request->session()->put('url.intended', $returnTo);
+        }
+
         return view('auth.register');
     }
 
@@ -242,8 +279,10 @@ class AuthController extends Controller
     /**
      * Guide section 5: consume the one-time token from /verify-email/{token}.
      * Marks the address verified, burns the token and mails login details.
+     * Then signs the user in and returns them to their intended page
+     * (e.g. straight back to checkout) — no separate login step needed.
      */
-    public function verifyEmail($token)
+    public function verifyEmail(Request $request, $token)
     {
         try {
             $record = EmailVerificationToken::where('token', $token)->whereNull('used_at')->first();
@@ -272,9 +311,39 @@ class AuthController extends Controller
             'email' => $user->email,
             'customer_id' => $user->customer_uid,
             'login_url' => route('login'),
+            'year' => date('Y'),
+            'logo_url' => url('image/logo.png'),
+            'support_email' => \App\Models\Setting::get('support_email'),
+            'support_phone' => \App\Models\Setting::get('support_phone'),
+            'footer_text' => \App\Models\Setting::get('footer_text'),
         ]);
 
-        return redirect()->route('login')->with('success', 'Email verified successfully.');
+        $this->establishSession($request, $user);
+
+        // Show the green-tick confirmation first, then let it continue to
+        // the page the user started from (checkout for a returning buyer).
+        $destination = $request->session()->pull('url.intended', route('dashboard'));
+        $request->session()->flash('verified_destination', $destination);
+
+        return redirect()->route('email.verified');
+    }
+
+    /**
+     * Green-tick "email verified" confirmation page (verifyEmail sends
+     * freshly verified users here). Shows the success moment for a few
+     * seconds, then continues to the stored destination. A session-less
+     * visit (other device, stale link) simply falls through to the dashboard.
+     */
+    public function verifiedNotice(Request $request)
+    {
+        if (!$request->session()->has('verified_destination')) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.verified', [
+            'destination' => $request->session()->get('verified_destination'),
+            'name' => $request->session()->get('customer.name', 'there'),
+        ]);
     }
 
     /**
@@ -301,6 +370,11 @@ class AuthController extends Controller
             SendEmailJob::dispatch(0, 'email_verification', $user->email, [
                 'name' => $user->first_name ?: $user->name,
                 'link' => url('/verify-email/' . $token),
+                'year' => date('Y'),
+                'logo_url' => url('image/logo.png'),
+                'support_email' => \App\Models\Setting::get('support_email'),
+                'support_phone' => \App\Models\Setting::get('support_phone'),
+                'footer_text' => \App\Models\Setting::get('footer_text'),
             ]);
         } catch (\Throwable $e) {
             Log::error('Could not queue verification email', ['error' => $e->getMessage()]);
