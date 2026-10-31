@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <style>
-    body { font-family: dejavusans, sans-serif; color:#0f172a; font-size:8pt; }
+    body { font-family: dejavusans, sans-serif; color:#0f172a; font-size:{{ $isAdmin ? '8' : '9.5' }}pt; }
+    @if($isAdmin)
+    /* ===== Admin internal sheet (landscape report, unchanged) ===== */
+    body { font-size:8pt; }
     .brand { font-size:9pt; letter-spacing:1.4px; font-weight:bold; color:#1e3a8a; }
     .brand small { display:block; font-size:7pt; letter-spacing:.2px; color:#64748b; font-weight:normal; margin-top:1px; }
     .doc-title { text-align:center; font-size:14pt; font-weight:bold; color:#0f172a; border-bottom:2px solid #1e3a8a; padding-bottom:5px; margin:9px 0 3px; }
@@ -32,9 +35,46 @@
 
     .notes { margin-top:8px; border:0.5pt solid #cbd5e1; background:#f8fafc; padding:6px 8px; font-size:7pt; line-height:1.45; color:#334155; }
     .foot { margin-top:9px; border-top:0.5pt solid #cbd5e1; padding-top:5px; text-align:center; font-size:6.5pt; color:#64748b; }
+    @else
+    /* ===== Customer invoice sheet (portrait, mirrors the on-site design) ===== */
+    .inv-head { width:100%; border-collapse:collapse; border-bottom:2px solid #2563eb; padding-bottom:10px; margin-bottom:18px; }
+    .inv-head td { vertical-align:top; }
+    .inv-head td.logo-cell { width:56px; padding-right:2px; }
+    .inv-head td.logo-cell img { width:52px; height:47px; }
+    .inv-head td.brand-cell { padding-left:8px; }
+    .inv-brand { font-size:15.5pt; font-weight:bold; color:#2563eb; }
+    .inv-tagline { font-size:7.5pt; color:#6b7280; margin-top:4px; }
+    .inv-meta { text-align:right; font-size:9pt; line-height:1.62; color:#1f2937; }
+    .inv-meta b { font-size:12.5pt; }
+    table.inv-badge-wrap { margin-left:auto; margin-top:4px; border-collapse:separate; }
+    table.inv-badge-wrap td { font-size:7.5pt; font-weight:bold; letter-spacing:.5px; padding:3px 12px; border-radius:9px; }
+    table.inv-badge-wrap td.paid { background:#dcfce7; color:#166534; }
+    table.inv-badge-wrap td.unpaid { background:#fef3c7; color:#92400e; }
+    table.inv-badge-wrap td.void { background:#fee2e2; color:#b91c1c; }
+
+    table.inv-parties { width:100%; border-collapse:collapse; margin-bottom:20px; }
+    table.inv-parties td { width:50%; vertical-align:top; font-size:9.5pt; line-height:1.65; color:#1f2937; }
+    table.inv-parties h4 { margin:0 0 6px; font-size:7.5pt; text-transform:uppercase; color:#6b7280; letter-spacing:.5px; }
+
+    table.inv-items { width:100%; border-collapse:collapse; }
+    table.inv-items th { background:#f4f7fb; text-align:left; padding:7px 10px; border-bottom:1pt solid #e5e7eb; font-size:7.5pt; text-transform:uppercase; color:#4b5563; letter-spacing:.5px; }
+    table.inv-items td { padding:9px 10px; border-bottom:0.5pt solid #eef0f3; font-size:9.5pt; vertical-align:top; }
+    table.inv-items th.num, table.inv-items td.num { text-align:right; white-space:nowrap; }
+    table.inv-items td small { color:#6b7280; font-size:7.5pt; }
+
+    table.inv-totals { width:320px; margin-left:auto; border-collapse:collapse; font-size:9.5pt; margin-top:14px; }
+    table.inv-totals td { padding:5px 0; }
+    table.inv-totals td:last-child { text-align:right; font-weight:bold; }
+    table.inv-totals tr.paidrow td:last-child { color:#166534; }
+    table.inv-totals tr.balance td { font-size:11pt; font-weight:bold; color:#92400e; border-top:1pt solid #e5e7eb; padding-top:9px; }
+
+    .inv-notes { margin-top:16px; font-size:8.5pt; color:#4b5563; background:#f8fafc; border:0.5pt solid #e5e7eb; padding:9px 12px; }
+    .inv-foot { margin-top:18px; border-top:0.5pt solid #eef0f3; padding-top:9px; text-align:center; font-size:7.5pt; color:#6b7280; }
+    @endif
 </style>
 </head>
 <body>
+@if($isAdmin)
 @php
     $user = $invoice->user;
     $source = $invoice->source;
@@ -175,5 +215,88 @@
     Payments: {{ \App\Models\Setting::get('manual_payment_number', 'see our support page') }} ·
     Support: {{ \App\Models\Setting::get('support_email', 'support@cloudtechnologybd.net') }} — Phone: {{ \App\Models\Setting::get('support_phone', '+880 9613 003 001') }}
 </div>
+@else
+@php
+    $user = $invoice->user;
+    $source = $invoice->source;
+@endphp
+<table class="inv-head" width="100%">
+    <tr>
+        <td class="logo-cell" width="58"><img src="{!! public_path('image/logo.png') !!}" width="52" height="47" alt="CloudTech"></td>
+        <td class="brand-cell">
+            <div class="inv-brand">Cloud Technology</div>
+            <div class="inv-tagline">Domain &amp; hosting services · cloudtechnologybd</div>
+        </td>
+        <td class="inv-meta" width="42%">
+            <b>Invoice {{ $invoice->invoice_number }}</b><br>
+            Date: {{ $invoice->created_at->format('d M Y') }}<br>
+            @if($invoice->due_date && !$invoice->isPaid())Due: {{ $invoice->due_date->format('d M Y') }}<br>@endif
+            @if($invoice->paid_at)Paid: {{ $invoice->paid_at->format('d M Y') }}<br>@endif
+            <table class="inv-badge-wrap"><tr><td class="{{ $invoice->status }}">{{ strtoupper($invoice->status) }}</td></tr></table>
+        </td>
+    </tr>
+</table>
+
+<table class="inv-parties">
+    <tr>
+        <td>
+            <h4>Billed to</h4>
+            @if($user)
+                {{ $user->name }}<br>
+                @if($user->customer_uid)Customer ID: {{ $user->customer_uid }}<br>@endif
+                @if($user->company_name){{ $user->company_name }}<br>@endif
+                {{ $user->email }}@if($user->phone)<br>{{ $user->phone }}@endif
+            @else
+                Customer record unavailable
+            @endif
+        </td>
+        <td>
+            <h4>Payment</h4>
+            Method: {{ $invoice->payment_method ? ucfirst($invoice->payment_method) : 'Not set' }}<br>
+            Currency: {{ $invoice->currency }}<br>
+            Source: {{ str_replace('App\\Models\\', '', (string) $invoice->source_type) ?: 'Manual' }}
+            @if($invoice->source) · ref {{ $invoice->source->reference }}@endif
+        </td>
+    </tr>
+</table>
+
+<table class="inv-items">
+    <tr>
+        <th style="width:5%">SL</th>
+        <th>Description</th>
+        <th class="num" style="width:11%">Years</th>
+        <th class="num" style="width:9%">Qty</th>
+        <th class="num" style="width:16%">Unit price</th>
+        <th class="num" style="width:15%">Total</th>
+    </tr>
+    @foreach($invoice->items as $item)
+        <tr>
+            <td>{{ $item->sl_no }}</td>
+            <td>{{ $item->description }}<br><small>{{ $item->item_type ? str_replace('-', ' ', $item->item_type) : 'manual item' }}</small></td>
+            <td class="num">{{ $item->years ?: '—' }}</td>
+            <td class="num">{{ $item->quantity }}</td>
+            <td class="num">BDT {{ number_format($item->unit_price, 2) }}</td>
+            <td class="num"><b>BDT {{ number_format($item->line_total, 2) }}</b></td>
+        </tr>
+    @endforeach
+</table>
+
+<table class="inv-totals">
+    <tr><td>Subtotal</td><td>BDT {{ number_format($invoice->subtotal, 2) }}</td></tr>
+    <tr><td>VAT ({{ $invoice->vat_percent }}%)</td><td>BDT {{ number_format($invoice->vat_amount, 2) }}</td></tr>
+    <tr><td>Total</td><td>BDT {{ number_format($invoice->total, 2) }}</td></tr>
+    <tr class="paidrow"><td>Amount paid</td><td>BDT {{ number_format($invoice->amount_paid, 2) }}</td></tr>
+    <tr class="balance"><td>Balance due</td><td>BDT {{ number_format($invoice->balanceDue(), 2) }}</td></tr>
+</table>
+
+@if($invoice->notes)
+    <div class="inv-notes"><b>Notes:</b><br>{!! nl2br(e($invoice->notes)) !!}</div>
+@endif
+
+<div class="inv-foot">
+    Payments: {{ \App\Models\Setting::get('manual_payment_number', 'see our support page') }} ·
+    Support: {{ \App\Models\Setting::get('support_email', 'support@cloudtechnologybd.net') }} — Phone: {{ \App\Models\Setting::get('support_phone', '+880 9613 003 001') }}
+</div>
+@endif
 </body>
 </html>

@@ -6,11 +6,11 @@ use App\Models\Invoice;
 
 /**
  * Renders invoices as PDF with mPDF (pure PHP — no external binary).
- * Print layout comes from resources/views/invoices/pdf.blade.php.
+ * Customer invoices use the portrait invoice sheet that mirrors the
+ * on-site design; admins get the landscape customer-information report.
  *
  * The same document adapts to its viewer: admins get the internal
- * customer-information sheet (purchase/profit columns), customers get the
- * same layout without any cost or margin data.
+ * sheet (purchase/profit columns), customers get the invoice sheet.
  */
 class InvoicePdf
 {
@@ -28,14 +28,15 @@ class InvoicePdf
 
         $pdf = new \Mpdf\Mpdf([
             'mode' => 'utf-8',
-            'format' => 'A4-L', // landscape: 11 columns need the width
+            // landscape: admin's 11 columns need the width; customer sheet is portrait A4
+            'format' => $isAdmin ? 'A4-L' : 'A4',
             'tempDir' => $tempDir,
-            'margin_left' => 8,
-            'margin_right' => 8,
-            'margin_top' => 9,
-            'margin_bottom' => 14,
+            'margin_left' => $isAdmin ? 8 : 15,
+            'margin_right' => $isAdmin ? 8 : 15,
+            'margin_top' => $isAdmin ? 9 : 13,
+            'margin_bottom' => $isAdmin ? 14 : 18,
             'default_font' => 'dejavusans',
-            'default_font_size' => 8,
+            'default_font_size' => $isAdmin ? 8 : 9,
         ]);
         $pdf->SetTitle(($isAdmin ? 'Customer information ' : 'Invoice ') . $invoice->invoice_number);
         $pdf->SetHTMLFooter('<div style="text-align:center;font-size:7.5px;color:#94a3b8;">Cloud Technology · cloudtechnologybd.net · Page {PAGENO} of {nbpg}</div>');

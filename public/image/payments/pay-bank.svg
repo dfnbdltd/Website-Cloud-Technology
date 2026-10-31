@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="#2f6fe4">
+    <!-- pediment -->
+    <path d="M32 5 7 18.5h50L32 5z"/>
+    <!-- architrave beam -->
+    <rect x="9" y="21.5" width="46" height="4" rx="1.2"/>
+    <!-- columns -->
+    <rect x="15" y="29" width="5.2" height="15" rx="1"/>
+    <rect x="24.6" y="29" width="5.2" height="15" rx="1"/>
+    <rect x="34.2" y="29" width="5.2" height="15" rx="1"/>
+    <rect x="43.8" y="29" width="5.2" height="15" rx="1"/>
+    <!-- steps -->
+    <rect x="14" y="47.5" width="36" height="3.6" rx="1"/>
+    <rect x="10" y="54.4" width="44" height="4.2" rx="1.2"/>
+</svg>

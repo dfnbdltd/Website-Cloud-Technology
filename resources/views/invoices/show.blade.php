@@ -33,6 +33,29 @@
     table.inv-totals tr.balance td { font-size:15px; font-weight:bold; color:#92400e; border-top:2px solid #e5e7eb; padding-top:9px; }
     .inv-notes { margin-top:18px; font-size:12px; color:#4b5563; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:12px 14px; }
     .inv-foot { margin-top:22px; font-size:12px; color:#6b7280; text-align:center; border-top:1px solid #eef0f3; padding-top:12px; }
+
+    /* ---- Print: exactly the invoice sheet, nothing else ---- */
+    @media print {
+        @page { margin: 12mm 12mm; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        html, body { background:#ffffff !important; }
+        /* hide everything that isn't the sheet */
+        .invoice-toolbar, .invoice-flash, .revechat-fab, .revechat-minimize { display:none !important; }
+        /* strip the page shell */
+        section.domain-content { max-width:none !important; margin:0 !important; padding:0 !important; }
+        body.domain-app { background:#fff !important; font-family:Arial,Helvetica,sans-serif !important; }
+        /* the sheet becomes the paper itself */
+        .invoice-sheet { border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; max-width:none !important; }
+        /* keep the design colors (blue rule, green badge, header band) on paper */
+        .invoice-head { border-bottom:2px solid #2563eb !important; }
+        .inv-badge.paid { background:#dcfce7 !important; color:#166534 !important; }
+        .inv-badge.unpaid { background:#fef3c7 !important; color:#92400e !important; }
+        table.inv-items th { background:#f4f7fb !important; border-bottom:2px solid #e5e7eb !important; }
+        table.inv-totals tr.balance td { border-top:2px solid #e5e7eb !important; }
+        table.inv-items tr { page-break-inside:avoid; }
+        a { color:inherit !important; text-decoration:none !important; }
+        .inv-notes { background:#f9fafb !important; border:1px solid #e5e7eb !important; }
+    }
 </style></head>
 <body class="domain-app">
 <section class="domain-content standalone-content">
@@ -61,7 +84,7 @@
 
     <div class="invoice-sheet">
         <div class="invoice-head">
-            <div class="invoice-brand">CloudTech<small>Domain &amp; hosting services · cloudtechnologybd</small></div>
+            <div class="invoice-brand">Cloud Technology<small>Domain &amp; hosting services · cloudtechnologybd</small></div>
             <div class="invoice-meta">
                 <b>Invoice {{ $invoice->invoice_number }}</b><br>
                 Date: {{ $invoice->created_at->format('d M Y') }}<br>
