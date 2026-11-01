@@ -26,9 +26,9 @@ SET is_active = 1,
 WHERE key_name = 'account_ready';
 
 -- SPLIT
--- Verify both templates replaced every branding token (optional check):
+-- Verify both templates were updated (optional check):
 SELECT key_name, is_active,
-       body LIKE '%{{logo_url}}%' AS has_logo,
-       body LIKE '%{{support_email}}%' AS has_support
+  CASE WHEN body LIKE '%{{logo_url}}%' THEN 1 ELSE 0 END AS has_logo,
+  CASE WHEN body LIKE '%{{support_email}}%' THEN 1 ELSE 0 END AS has_support
 FROM email_templates
 WHERE key_name IN ('email_verification', 'account_ready');
