@@ -7,6 +7,7 @@ use App\Models\SupportTicket;
 use App\Models\Topup;
 use App\Rules\StrongPassword;
 use App\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -16,12 +17,71 @@ class CustomerController extends Controller
     {
         if (!$this->customer($request)) { return redirect()->route('login'); }
         $userId = session('customer.id');
-        $orders = DomainOrder::where('user_id', $userId)->latest()->take(5)->get();
+        // The dashboard represents owned services only. Never expose an order
+        // as a purchased domain until its payment is confirmed in the DB.
+        $orders = DomainOrder::with('items')
+            ->where('user_id', $userId)
+            ->where('payment_status', 'paid')
+            ->latest()
+            ->take(10)
+            ->get();
         $allOrders = DomainOrder::where('user_id', $userId);
-        $orderCount = (clone $allOrders)->count();
-        $pendingCount = (clone $allOrders)->where('payment_status', 'pending')->count();
-        $outstanding = (clone $allOrders)->whereIn('payment_status', ['pending', 'failed'])->sum('total');
+        $orderCount = (clone $allOrders)->where('payment_status', 'paid')->count();
+        $pendingCount = (clone $allOrders)->where('payment_status', 'pending')->where('status', '!=', 'cancelled')->count();
+        $outstanding = (clone $allOrders)->whereIn('payment_status', ['pending', 'failed'])->where('status', '!=', 'cancelled')->sum('total');
         $openTickets = SupportTicket::where('user_id', $userId)->where('status', 'open')->count();
+        $orderTrend = collect(range(5, 0))->map(function ($monthsAgo) use ($userId) {
+            $month = Carbon::now()->subMonths($monthsAgo);
+            return [
+                'label' => $month->format('M'),
+                'count' => DomainOrder::where('user_id', $userId)
+                    ->whereBetween('created_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+                    ->count(),
+            ];
+        });
+        $paymentBreakdown = [
+            'paid' => (clone $allOrders)->where('payment_status', 'paid')->count(),
+            'pending' => $pendingCount,
+            'failed' => (clone $allOrders)->where('payment_status', 'failed')->count(),
+        ];
+        $invoiceMap = \App\Models\Invoice::whereIn('source_id', $orders->modelKeys())
+            ->where('source_type', DomainOrder::class)
+            ->get()
+            ->keyBy('source_id');
+        $hostingInvoices = \App\Models\Invoice::with('items')
+            ->where('user_id', $userId)
+            ->where('status', \App\Models\Invoice::STATUS_PAID)
+            ->whereHas('items', function ($items) {
+                $items->where('item_type', 'like', '%hosting%')
+                    ->orWhere('description', 'like', '%hosting%');
+            })
+            ->latest()
+            ->get();
+        $today = Carbon::today();
+        $domainLifecycle = collect();
+        foreach ($orders as $order) {
+            foreach ($order->items as $item) {
+                $purchaseDate = $order->created_at->copy()->startOfDay();
+                $years = max(1, (int) $item->years);
+                $expiryDate = $purchaseDate->copy()->addYears($years);
+                $totalDays = max(1, $purchaseDate->diffInDays($expiryDate));
+                $elapsedDays = $today->greaterThanOrEqualTo($expiryDate)
+                    ? $totalDays
+                    : min($totalDays, max(0, $purchaseDate->diffInDays($today)));
+                $remainingDays = $today->lessThan($expiryDate) ? $today->diffInDays($expiryDate) : 0;
+                $domainLifecycle->push([
+                    'domain' => $item->domain,
+                    'order' => $order,
+                    'years' => $years,
+                    'purchaseDate' => $purchaseDate,
+                    'expiryDate' => $expiryDate,
+                    'progress' => round(($elapsedDays / $totalDays) * 100, 1),
+                    'remainingDays' => $remainingDays,
+                    'expired' => $today->greaterThanOrEqualTo($expiryDate),
+                    'amount' => (float) ($item->purchase_price ?: $item->price),
+                ]);
+            }
+        }
         return view('dashboard', [
             'customer' => session('customer'),
             'orders' => $orders,
@@ -30,6 +90,11 @@ class CustomerController extends Controller
             'outstanding' => $outstanding,
             'openTickets' => $openTickets,
             'domainCount' => $orderCount,
+            'orderTrend' => $orderTrend,
+            'paymentBreakdown' => $paymentBreakdown,
+            'invoiceMap' => $invoiceMap,
+            'hostingInvoices' => $hostingInvoices,
+            'domainLifecycle' => $domainLifecycle,
         ]);
     }
 
@@ -40,9 +105,16 @@ class CustomerController extends Controller
     {
         if (!$this->customer($request)) { return redirect()->route('login'); }
         $userId = session('customer.id');
-        $orders = DomainOrder::where('user_id', $userId)->latest()->take(6)->get();
+        $orders = DomainOrder::with('items')
+            ->where('user_id', $userId)
+            ->where('payment_status', 'paid')
+            ->latest()
+            ->take(6)
+            ->get();
         $payments = Topup::where('user_id', $userId)->latest()->take(6)->get();
-        $domainCount = DomainOrder::where('user_id', $userId)->count();
+        $domainCount = DomainOrder::where('user_id', $userId)
+            ->where('payment_status', 'paid')
+            ->count();
         $paidTotal = (float) DomainOrder::where('user_id', $userId)->where('payment_status', 'paid')->sum('total');
         $pendingTopup = Topup::where('user_id', $userId)->where('status', 'pending')->count();
 
@@ -169,7 +241,10 @@ class CustomerController extends Controller
     public function invoices(Request $request)
     {
         if (!$this->customer($request)) { return redirect()->route('login'); }
-        $orders = DomainOrder::where('user_id', session('customer.id'))->latest()->get();
+        $orders = DomainOrder::where('user_id', session('customer.id'))
+            ->where('payment_status', 'paid')
+            ->latest()
+            ->get();
 
         // Invoice rows created beside each order, keyed by order id for the list.
         $invoiceMap = \App\Models\Invoice::whereIn('source_id', $orders->modelKeys())

@@ -5,7 +5,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
+@php
+    $assetVersion = static function ($path) {
+        $timestamp = @filemtime(public_path($path));
+
+        return $timestamp === false ? null : (string) $timestamp;
+    };
+    $appCssVersion = $assetVersion('css/app.css');
+    $workspaceCssVersion = $assetVersion('css/workspace.css');
+    $comingSoonCssVersion = $assetVersion('css/coming-soon.css');
+    $passwordStrengthVersion = $assetVersion('js/password-strength.js');
+@endphp
+<link rel="stylesheet" href="{{ asset('css/app.css') }}@if($appCssVersion)?v={{ $appCssVersion }}@endif">
 <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-<link rel="stylesheet" href="{{ asset('css/workspace.css') }}?v={{ filemtime(public_path('css/workspace.css')) }}">
-<script src="{{ asset('js/password-strength.js') }}?v={{ filemtime(public_path('js/password-strength.js')) }}" defer></script>
+<link rel="stylesheet" href="{{ asset('css/workspace.css') }}@if($workspaceCssVersion)?v={{ $workspaceCssVersion }}@endif">
+<link rel="stylesheet" href="{{ asset('css/coming-soon.css') }}@if($comingSoonCssVersion)?v={{ $comingSoonCssVersion }}@endif">
+<script src="{{ asset('js/password-strength.js') }}@if($passwordStrengthVersion)?v={{ $passwordStrengthVersion }}@endif" defer></script>

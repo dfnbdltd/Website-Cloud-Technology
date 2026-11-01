@@ -48,8 +48,9 @@
     @if(session('customer'))
         @include('partials.sidebar', ['active' => 'domains', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
     @else
-        <div class="site-top"><div class="site-wrap site-top-inner"><div class="site-top-links"><a href="{{ route('under.construction', 'blog') }}">Blog</a><a href="{{ route('under.construction', 'offers') }}">Offers</a><span>☎ {{ \App\Models\Setting::get('support_phone') }}</span></div><div class="site-top-links"><a href="{{ route('cart.index') }}">🛒 Cart <b class="site-count">{{ count($cart) }}</b></a></div></div></div>
-        <header class="site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'h'])</a><nav class="site-nav"><a href="{{ route('landing') }}">Home</a><div class="site-nav-dropdown"><a class="selected" href="{{ route('domains.index') }}">Domains</a><div class="site-submenu"><a href="{{ route('domains.index') }}">Domain Registration</a><a href="{{ route('under.construction', 'domain-transfer') }}">Domain Transfer</a></div></div><div class="site-nav-dropdown"><a href="{{ route('hosting.shared') }}">Web Hosting</a><div class="site-submenu"><a href="{{ route('hosting.shared') }}">Shared Hosting</a><a href="{{ route('hosting.vps') }}">VPS Hosting</a><a href="{{ route('hosting.dedicated') }}">Dedicated Hosting</a></div></div><a href="{{ route('under.construction', 'email-hosting') }}">Email</a><a href="{{ route('under.construction', 'sms-service') }}">SMS Service</a><a href="{{ route('under.construction', 'support') }}">Support</a></nav><div class="site-account"><a class="site-btn-ghost" href="{{ route('login') }}">Log in</a><a class="site-btn" href="{{ route('register') }}">Sign up</a></div></div></header>
+        <div class="site-top"><div class="site-wrap site-top-inner"><div class="site-top-links"><a class="coming-soon-trigger" href="#" data-service="Blog">Blog</a><a class="coming-soon-trigger" href="#" data-service="Offers">Offers</a><span>☎ {{ \App\Models\Setting::get('support_phone') }}</span></div><div class="site-top-links"><a href="{{ route('cart.index') }}">🛒 Cart <b class="site-count">{{ count($cart) }}</b></a></div></div></div>
+        <header class="site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'h'])</a><nav class="site-nav"><a href="{{ route('landing') }}">Home</a><div class="site-nav-dropdown"><a class="selected" href="{{ route('domains.index') }}">Domains</a><div class="site-submenu"><a href="{{ route('domains.index') }}">Domain Registration</a><a class="coming-soon-trigger" href="#" data-service="Domain Transfer">Domain Transfer</a></div></div><div class="site-nav-dropdown"><a href="{{ route('hosting.shared') }}">Web Hosting</a><div class="site-submenu"><a href="{{ route('hosting.shared') }}">Shared Hosting</a><a href="{{ route('hosting.vps') }}">VPS Hosting</a><a href="{{ route('hosting.dedicated') }}">Dedicated Hosting</a></div></div><a class="coming-soon-trigger" href="#" data-service="Email hosting">Email</a><a class="coming-soon-trigger" href="#" data-service="SMS Service">SMS Service</a><a class="coming-soon-trigger" href="#" data-service="Support">Support</a></nav><div class="site-account"><a class="site-btn-ghost" href="{{ route('login') }}">Log in</a><a class="site-btn" href="{{ route('register') }}">Sign up</a></div></div></header>
+        @include('partials.coming-soon-modal')
     @endif
     <main class="domain-main">
         @if(session('customer'))
@@ -60,16 +61,29 @@
             @if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
             @if(session('cart_added'))<div class="domain-alert success cart-added"><span>✓ <b>{{ session('cart_added') }}</b> was added to your cart.</span><a href="{{ route('cart.index') }}">View cart ({{ count($cart) }}) →</a></div>@endif
 
-            <form class="domain-search" method="POST" action="{{ route('domains.search') }}">
+            <section class="domain-page-intro" aria-labelledby="domain-page-title">
+                <div class="domain-page-intro-copy">
+                    <span class="domain-kicker">FIND YOUR PLACE ONLINE</span>
+                    <h1 id="domain-page-title">Choose a domain<br><em>that feels like you.</em></h1>
+                    <p>Search your perfect name, compare popular extensions, and add it to your cart in seconds.</p>
+                </div>
+                <div class="domain-page-intro-points" aria-label="Domain registration benefits">
+                    <span><b>✓</b> Fast search</span>
+                    <span><b>✓</b> Clear pricing</span>
+                    <span><b>✓</b> Secure checkout</span>
+                </div>
+            </section>
+
+            <form class="domain-search domain-search-primary" method="POST" action="{{ route('domains.search') }}">
                 @csrf
-                <label>Search for your domain</label>
-                <div class="domain-search-row"><input name="domain" value="{{ $query }}" placeholder="yourbrand.com" required><button type="submit">Search domain <b>⌕</b></button></div>
-                <small>Try a name without spaces. You can search a specific extension or compare all popular extensions.</small>
+                <label for="domain-search-input">Search for your domain</label>
+                <div class="domain-search-row"><span aria-hidden="true">⌕</span><input id="domain-search-input" name="domain" value="{{ $query }}" placeholder="yourbrand.com" autocomplete="off" required><button type="submit">Search domain <b>→</b></button></div>
+                <small>Try a name without spaces. Search a specific extension or compare all popular extensions.</small>
             </form>
 
             @if($results)
                 <section class="domain-results">
-                    <div class="results-heading"><div><span class="domain-kicker">SEARCH RESULTS</span><h2>Available domains for “{{ $query }}”</h2></div><span class="result-source">Live availability where enabled</span></div>
+                    <div class="results-heading"><div><span class="domain-kicker">SEARCH RESULTS</span><h2>Available domains for “{{ $query }}”</h2><p class="results-heading-note">Pick a name below, choose your term, and continue when you’re ready.</p></div><span class="result-source">Live availability where enabled</span></div>
                     @foreach($results as $result)
                         @php($selectedYears = isset($cart[$result['domain']]) ? (int) $cart[$result['domain']]['years'] : 1)
                         @php($selectedTermPrice = $result['year_prices'][$selectedYears] ?? $result['year_prices'][1] ?? $result['price'])
@@ -121,7 +135,7 @@
             @endif
 
             <section class="catalog-section">
-                <div class="results-heading"><div><span class="domain-kicker">TEST CHECKOUT</span><h2>Dummy domains · ৳1 each</h2></div><span class="result-source">Test orders only — not real domain registrations</span></div>
+                <div class="results-heading"><div><span class="domain-kicker">TRY THE FLOW</span><h2>Test checkout · ৳1 each</h2><p class="results-heading-note">Use a reserved test domain to preview the checkout experience.</p></div><span class="result-source">Test orders only — not real domain registrations</span></div>
                 @foreach($testDomains as $domain => $plan)
                     <div class="domain-result">
                         <div class="result-status is-available"><span>✓</span></div>
@@ -138,10 +152,28 @@
 
             <section class="catalog-section">
                 <div class="results-heading"><div><span class="domain-kicker">POPULAR EXTENSIONS</span><h2>All domain pricing</h2></div><span class="result-source">Prices in BDT / year</span></div>
-                <div class="catalog-grid">
-                    @foreach($plans as $tld => $plan)
-                        <div class="catalog-card"><span>.{{ $tld }}</span><strong>৳ {{ number_format($plan['price']) }}</strong><small>Renewal ৳ {{ number_format($plan['renewal']) }}</small>@if(isset($plan['popular']))<b>Popular</b>@endif</div>
-                    @endforeach
+                <div class="catalog-table-wrap">
+                    <table class="catalog-table">
+                        <caption class="sr-only">Domain extension pricing in Bangladeshi Taka</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Extension</th>
+                                <th scope="col">First year</th>
+                                <th scope="col">Renewal / year</th>
+                                <th scope="col"><span class="sr-only">Popularity</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($plans as $tld => $plan)
+                                <tr>
+                                    <th scope="row"><span class="catalog-extension">.{{ $tld }}</span></th>
+                                    <td data-label="First year"><strong>৳ {{ number_format($plan['price']) }}</strong></td>
+                                    <td data-label="Renewal / year"><span>৳ {{ number_format($plan['renewal']) }}</span></td>
+                                    <td data-label="Popularity">@if(isset($plan['popular']))<span class="catalog-popular">Popular</span>@else<span class="catalog-standard">Standard</span>@endif</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </section>

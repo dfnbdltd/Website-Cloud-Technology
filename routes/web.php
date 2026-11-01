@@ -96,6 +96,7 @@ Route::get('/bkash/pay', [BkashController::class, 'pay'])->name('bkash.pay');
 Route::post('/bkash/create', [BkashController::class, 'create'])->name('bkash.create');
 Route::post('/bkash/execute', [BkashController::class, 'execute'])->name('bkash.execute');
 Route::post('/bkash/query', [BkashController::class, 'query'])->name('bkash.query');
+Route::post('/bkash/cancel', [BkashController::class, 'cancel'])->name('bkash.cancel');
 
 Route::get('/domains/confirmation/{reference}', [DomainController::class, 'confirmation'])->name('domains.confirmation');
 Route::post('/send-message', [ContactController::class, 'sendMessage'])->name('contact.send');

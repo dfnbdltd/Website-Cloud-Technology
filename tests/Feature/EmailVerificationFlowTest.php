@@ -294,8 +294,8 @@ class EmailVerificationFlowTest extends TestCase
         ]);
 
         $this->get('/verify-email/' . $token->token)
-            ->assertRedirect(route('login'))
-            ->assertSessionHas('success');
+            ->assertRedirect(route('email.verified'))
+            ->assertSessionHas('verified_destination');
 
         $this->assertNotNull($user->fresh()->email_verified_at, 'account should be verified');
         $this->assertNotNull($token->fresh()->used_at, 'token should be burned');

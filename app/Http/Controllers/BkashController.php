@@ -69,6 +69,9 @@ class BkashController extends Controller
         if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
             return response()->json(['errorMessage' => 'This order is already paid.'], 409);
         }
+        if ($databaseOrder && $databaseOrder->status === 'cancelled') {
+            return response()->json(['errorMessage' => 'This order has been cancelled.'], 409);
+        }
 
         if (!$this->bkash->isConfigured()) {
             Log::warning('bKash attempted without BKASH_* configuration');
@@ -126,6 +129,9 @@ class BkashController extends Controller
         if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
             return response()->json(['status' => 'success']);
         }
+        if ($databaseOrder && $databaseOrder->status === 'cancelled') {
+            return response()->json(['errorMessage' => 'This order has been cancelled.'], 409);
+        }
 
         $response = $this->bkash->executePayment($paymentId);
         $status = strtolower((string) ($response['transactionStatus'] ?? ''));
@@ -166,6 +172,9 @@ class BkashController extends Controller
         if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
             return response()->json(['status' => 'success']);
         }
+        if ($databaseOrder && $databaseOrder->status === 'cancelled') {
+            return response()->json(['errorMessage' => 'This order has been cancelled.'], 409);
+        }
 
         $response = $this->bkash->queryPayment($paymentId);
         $status = strtolower((string) ($response['transactionStatus'] ?? ''));
@@ -184,6 +193,33 @@ class BkashController extends Controller
     }
 
     /**
+     * Cancel an unpaid bKash checkout when the customer leaves payment.
+     */
+    public function cancel(Request $request)
+    {
+        $order = $request->session()->get('last_domain_order');
+        $databaseOrder = $order && isset($order['database_id'])
+            ? DomainOrder::find($order['database_id'])
+            : null;
+
+        if (!$databaseOrder || ($order['payment']['method'] ?? null) !== 'bkash') {
+            return response()->json(['status' => 'ignored'], 409);
+        }
+
+        if ($databaseOrder->payment_status === 'paid') {
+            return response()->json(['status' => 'paid'], 409);
+        }
+
+        app(InvoiceService::class)->cancelOrder($databaseOrder);
+        $request->session()->forget('last_domain_order');
+
+        return response()->json([
+            'status' => 'cancelled',
+            'redirect' => route('domains.index'),
+        ]);
+    }
+
+    /**
      * Record the successful payment against the order (DB + session).
      */
     private function markPaid(Request $request, array $order, $databaseOrder, $transactionId, $raw)
@@ -194,6 +230,9 @@ class BkashController extends Controller
         $request->session()->put('last_domain_order', $order);
 
         if ($databaseOrder) {
+            if ($databaseOrder->status === 'cancelled') {
+                return response()->json(['errorMessage' => 'This order has been cancelled.'], 409);
+            }
             $databaseOrder->update([
                 'payment_status' => 'paid',
                 'status' => 'paid',

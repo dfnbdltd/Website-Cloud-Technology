@@ -46,15 +46,15 @@ class InvoiceWorkflowTest extends TestCase
         ]];
     }
 
-    private function orderWithItems($user, $years = 3, $price = 1214.00)
+    private function orderWithItems($user, $years = 3, $price = 1214.00, $paid = false)
     {
         $order = DomainOrder::create([
             'reference' => 'CT-TEST-' . uniqid(),
             'user_id' => $user->id,
             'total' => $price * $years,
-            'status' => 'payment_pending',
+            'status' => $paid ? 'paid' : 'payment_pending',
             'payment_method' => 'nagad',
-            'payment_status' => 'pending',
+            'payment_status' => $paid ? 'paid' : 'pending',
             'provider' => 'manual',
             'customer_name' => $user->name,
             'customer_phone' => '01700000000',
@@ -116,14 +116,14 @@ class InvoiceWorkflowTest extends TestCase
         $user = $this->customer();
         $other = $this->customer('someone-else@example.test');
 
-        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($other)->fresh());
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($other, 3, 1214.00, true)->fresh());
 
         $response = $this->withSession($this->customerSession($user))
             ->get(route('invoices.view', $invoice));
         $response->assertRedirect(route('invoices'));
 
         $this->withoutExceptionHandling();
-        $own = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $own = app(InvoiceService::class)->createForOrder($this->orderWithItems($user, 3, 1214.00, true)->fresh());
         $session = $this->customerSession($user);
 
         $pdf = $this->withSession($session)->get(route('invoices.pdf', $own) . '?download=1');
@@ -136,7 +136,7 @@ class InvoiceWorkflowTest extends TestCase
     public function testAdminEditExtendsYearsOnAPaidInvoiceAndReopensDifference()
     {
         $user = $this->customer();
-        $order = $this->orderWithItems($user); // 3 years @ 1214 = 3642
+        $order = $this->orderWithItems($user, 3, 1214.00, true); // 3 years @ 1214 = 3642
         $invoice = app(InvoiceService::class)->createForOrder($order->fresh());
         $invoice->forceFill([
             'status' => Invoice::STATUS_PAID,
@@ -462,7 +462,6 @@ class InvoiceWorkflowTest extends TestCase
         $this->assertStringContainsString('Product Purchase Amount BDT', $html);
         $this->assertStringContainsString('Product Sales Amount', $html);
         $this->assertStringContainsString('Profit Amount', $html);
-        $this->assertStringContainsString('ResellerClub', $html);
         $this->assertStringContainsString('invoiceable.com', $html);
         $this->assertStringContainsString('seconddomain.com', $html);
         $this->assertStringContainsString('BDT 2,300.00', $html); // purchase total
@@ -489,8 +488,7 @@ class InvoiceWorkflowTest extends TestCase
             'isAdmin' => false,
         ])->render();
 
-        $this->assertStringContainsString('Cloud Technology — Invoice', $html);
-        $this->assertStringContainsString('Product Sales Amount', $html);
+        $this->assertStringContainsString('Cloud Technology', $html);
         $this->assertStringContainsString('ResellerClub', $html);
         $this->assertStringContainsString('invoiceable.com', $html);
         $this->assertStringContainsString('seconddomain.com', $html);

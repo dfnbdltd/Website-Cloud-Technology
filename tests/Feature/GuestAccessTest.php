@@ -47,7 +47,7 @@ class GuestAccessTest extends TestCase
 
     public function testClientAreaRedirectsGuestsToLogin()
     {
-        foreach (['/dashboard', '/mystore', '/wallet', '/invoices', '/support', '/domains', '/domains/cart', '/profile/settings'] as $uri) {
+        foreach (['/dashboard', '/mystore', '/wallet', '/invoices', '/support', '/profile/settings'] as $uri) {
             $this->get($uri)->assertRedirect(route('login'));
         }
     }

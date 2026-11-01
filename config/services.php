@@ -59,6 +59,10 @@ return [
         ],
     ],
 
+    'exchange_rate' => [
+        'usd_to_bdt_fallback' => env('USD_TO_BDT_FALLBACK', 120),
+    ],
+
     // -------------------------------------------------------------------------
     // (Removed) DFN ERP middleware — bKash now runs directly via services.bkash.
     // -------------------------------------------------------------------------

@@ -19,6 +19,25 @@
         .checkout-head p { font-size:13px; }
         .checkout-head > a { color:var(--muted); font-size:13px; font-weight:700; }
         .checkout-head > a:hover { color:var(--blue); }
+        .checkout-breadcrumb { display:flex; gap:12px; align-items:center; margin-bottom:22px; color:#9aabc0; font-size:12px; font-weight:700; }
+        .checkout-breadcrumb a { color:#4779b5; text-decoration:none; }
+        .checkout-breadcrumb a:hover { color:#2563b8; }
+        .checkout-breadcrumb span { padding-left:12px; border-left:1px solid #d9e5f1; }
+        .checkout-trust { display:flex; align-items:center; gap:10px; padding:11px 14px; border:1px solid #d7eee4; border-radius:12px; background:#f4fcf8; color:#217b59; }
+        .checkout-trust > span { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:#d8f4e8; font-weight:800; }
+        .checkout-trust strong,.checkout-trust small { display:block; }
+        .checkout-trust strong { font-size:12px; }
+        .checkout-trust small { margin-top:2px; color:#6f9b88; font-size:10px; }
+        .checkout-progress { display:flex; align-items:center; max-width:650px; margin:0 0 25px; color:#9aaabd; font-size:11px; font-weight:800; }
+        .checkout-progress span { display:flex; align-items:center; gap:7px; white-space:nowrap; }
+        .checkout-progress span:not(.is-current):not(.is-complete) { opacity:.7; }
+        .checkout-progress span:first-child { color:#23815d; }
+        .checkout-progress span.is-current { color:#2469c4; }
+        .checkout-progress em { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:#edf2f7; color:#7f91a5; font-style:normal; font-size:11px; }
+        .checkout-progress .is-complete em { background:#d9f4e8; color:#21815d; }
+        .checkout-progress .is-current em { background:#e1eeff; color:#2469c4; box-shadow:0 0 0 4px #f1f7ff; }
+        .checkout-progress span b { font-size:11px; }
+        .checkout-progress i { flex:1; height:1px; margin:0 12px; background:#dbe6f1; }
 
         /* ---- Shared card polish ---- */
         .checkout-grid { align-items:start; }
@@ -56,6 +75,7 @@
         .payment-option.static { cursor:default; }
         .payment-option .pay-tile { display:flex; align-items:center; width:auto; min-width:0; height:36px; padding:0; background:transparent; border:0; box-shadow:none; flex:none; font:800 21px 'Manrope',sans-serif; }
         .payment-option .pay-tile img { display:block; width:auto; height:100%; object-fit:contain; }
+        .payment-option .pay-tile img { filter:drop-shadow(0 5px 8px rgba(32,70,110,.12)); }
         .pay-tile.is-bank img { height:64%; }
         .pay-tile.is-wallet { color:#1fa06d; }
         .payment-option.is-disabled { opacity:.5; }
@@ -71,17 +91,81 @@
             .co-anim, .checkout-auth-icon { animation:none; }
             .checkout-summary .checkout-grand-total strong { animation:none; color:var(--navy); }
         }
+
+        /* Premium checkout surface */
+        body.site:has(.checkout-page) { background:#f4f8fd; }
+        body.site:has(.checkout-page):before,
+        body.site:has(.checkout-page):after {
+            content:''; position:fixed; z-index:-1; border-radius:50%; pointer-events:none;
+            filter:blur(2px); opacity:.58; animation:co-drift 16s ease-in-out infinite alternate;
+        }
+        body.site:has(.checkout-page):before { width:390px; height:390px; top:120px; left:-170px; background:#dcecff; }
+        body.site:has(.checkout-page):after { width:330px; height:330px; right:-130px; bottom:20px; background:#d9f6ec; animation-delay:-4s; }
+        @keyframes co-drift { from { transform:translate3d(-12px,10px,0) scale(.96); } to { transform:translate3d(18px,-12px,0) scale(1.05); } }
+        .checkout-site-header .site-logo { animation:co-logo-in .7s cubic-bezier(.22,.61,.36,1) both; }
+        @keyframes co-logo-in { from { opacity:0; transform:translateY(-8px) scale(.94); } to { opacity:1; transform:none; } }
+        .checkout-page { position:relative; max-width:1240px; padding-top:48px; }
+        .checkout-page:before { content:''; position:absolute; inset:0 12% auto; height:1px; background:linear-gradient(90deg,transparent,#cfe0f4,transparent); }
+        .checkout-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:30px; }
+        .checkout-head h1 { font-size:42px; line-height:1.08; letter-spacing:-1.8px; max-width:650px; }
+        .checkout-head p { font-size:15px; color:#6f8198; margin-top:10px; }
+        .checkout-grid { gap:28px; }
+        .checkout-form, .checkout-auth-panel, .checkout-summary {
+            background:rgba(255,255,255,.92); border:1px solid rgba(211,225,241,.95);
+            box-shadow:0 24px 70px rgba(39,77,120,.12); backdrop-filter:blur(12px);
+        }
+        .checkout-form { padding:34px; }
+        .checkout-form h2 { font-size:18px; letter-spacing:-.3px; margin-bottom:16px; }
+        .checkout-contact-section { padding-bottom:25px; margin-bottom:27px; border-bottom:1px solid #edf2f8; }
+        .checkout-account-summary { border:1px solid #d6ebdf; background:linear-gradient(135deg,#f3fcf8,#fff); border-radius:13px; padding:17px 18px; }
+        .checkout-account-summary strong { font-size:17px; }
+        .checkout-account-summary small { color:#26946b; font-weight:700; }
+        .payment-options { gap:12px; }
+        .payment-option { min-height:70px; padding:14px 16px; border-radius:13px; border-color:#e0e9f4; }
+        .payment-option .pay-tile { width:92px; justify-content:center; padding:8px 12px; border-radius:10px; background:#f7fbff; }
+        .payment-option .pay-tile img { max-width:76px; }
+        .payment-option:has(input:checked) { border-color:#4389ee; background:#f5f9ff; box-shadow:0 10px 24px rgba(67,137,238,.13); }
+        .payment-option input { accent-color:#347bea; }
+        .checkout-submit { min-height:52px; border-radius:12px; box-shadow:0 12px 24px rgba(40,112,219,.2); transition:transform .2s ease, box-shadow .2s ease; }
+        .checkout-submit:hover { transform:translateY(-2px); box-shadow:0 16px 30px rgba(40,112,219,.28); }
+        .checkout-summary { padding:31px; position:sticky; top:24px; }
+        .checkout-summary h2 { font-size:25px; letter-spacing:-.7px; }
+        .checkout-summary .summary-item { padding:17px 0; }
+        .checkout-summary .summary-item strong { font-size:15px; }
+        .checkout-summary .summary-total { margin-top:12px; padding-top:22px; border-top:1px solid #e6edf6; }
+        @media(max-width:760px) {
+            .checkout-page { padding:28px 16px 48px; }
+            .checkout-head h1 { font-size:32px; }
+            .checkout-form { padding:24px 20px; }
+            .checkout-summary { position:static; padding:24px 20px; }
+            .checkout-head { display:block; }
+            .checkout-trust { width:max-content; margin-top:18px; }
+            .checkout-progress { margin-bottom:20px; }
+            .checkout-progress span b { display:none; }
+        }
+        @media(prefers-reduced-motion:reduce) {
+            body.site:has(.checkout-page):before, body.site:has(.checkout-page):after { animation:none; }
+            .checkout-submit, .checkout-site-header .site-logo { animation:none; transition:none; }
+        }
     </style>
 </head>
 <body class="site">
 @php($cartCount = count(session('domain_cart', [])))
-<div class="site-top"><div class="site-wrap site-top-inner"><div class="site-top-links"><a href="{{ route('under.construction', 'blog') }}">Blog</a><a href="{{ route('under.construction', 'offers') }}">Offers</a><span>☎ {{ \App\Models\Setting::get('support_phone') }}</span></div><div class="site-top-links"><a href="{{ route('cart.index') }}">🛒 Cart <b class="site-count">{{ $cartCount }}</b></a></div></div></div>
-<header class="site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'h'])</a><nav class="site-nav"><a href="{{ route('landing') }}">Home</a><div class="site-nav-dropdown"><a class="selected" href="{{ route('domains.index') }}">Domains</a><div class="site-submenu"><a href="{{ route('domains.index') }}">Domain Registration</a><a href="{{ route('under.construction', 'domain-transfer') }}">Domain Transfer</a></div></div><div class="site-nav-dropdown"><a href="{{ route('hosting.shared') }}">Web Hosting</a><div class="site-submenu"><a href="{{ route('hosting.shared') }}">Shared Hosting</a><a href="{{ route('hosting.vps') }}">VPS Hosting</a><a href="{{ route('hosting.dedicated') }}">Dedicated Hosting</a></div></div><a href="{{ route('under.construction', 'email-hosting') }}">Email</a><a href="{{ route('under.construction', 'sms-service') }}">SMS Service</a><a href="{{ route('under.construction', 'support') }}">Support</a></nav><div class="site-account">@if(session('customer'))@include('partials.client-area-menu')<button class="site-user" type="button" onclick="event.stopPropagation(); document.getElementById('accountMenu').classList.toggle('open');">@if(session('customer.logo'))<img class="site-avatar" src="{{ session('customer.logo') }}" alt="">@else<span class="site-avatar">{{ session('customer.initials') ?: \App\User::initials(session('customer.name')) }}</span>@endif<span>{{ session('customer.name') }}</span> ⌄</button><div class="site-menu" id="accountMenu"><div class="site-menu-head"><strong>{{ session('customer.name') }}</strong><span>{{ session('customer.email') }}</span></div><a href="{{ route('dashboard') }}">Dashboard</a><a href="{{ route('mystore') }}">My Store</a><a href="{{ route('wallet.index') }}">Wallet · ৳{{ number_format(session('customer.balance', 0), 2) }}</a><a href="{{ route('invoices') }}">Invoices</a><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Log out</button></form></div>@else<a class="site-btn-ghost" href="{{ route('login') }}">Log in</a><a class="site-btn" href="{{ route('register') }}">Sign up</a>@endif</div></div></header>
+<div class="site-top"><div class="site-wrap site-top-inner"><div class="site-top-links"><a class="coming-soon-trigger" href="#" data-service="Blog">Blog</a><a class="coming-soon-trigger" href="#" data-service="Offers">Offers</a><span>☎ {{ \App\Models\Setting::get('support_phone') }}</span></div><div class="site-top-links"><a href="{{ route('cart.index') }}">🛒 Cart <b class="site-count">{{ $cartCount }}</b></a></div></div></div>
+<header class="site-header checkout-site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'h'])</a><nav class="site-nav"><a href="{{ route('landing') }}">Home</a><div class="site-nav-dropdown"><a class="selected" href="{{ route('domains.index') }}">Domains</a><div class="site-submenu"><a href="{{ route('domains.index') }}">Domain Registration</a><a class="coming-soon-trigger" href="#" data-service="Domain Transfer">Domain Transfer</a></div></div><div class="site-nav-dropdown"><a href="{{ route('hosting.shared') }}">Web Hosting</a><div class="site-submenu"><a href="{{ route('hosting.shared') }}">Shared Hosting</a><a href="{{ route('hosting.vps') }}">VPS Hosting</a><a href="{{ route('hosting.dedicated') }}">Dedicated Hosting</a></div></div><a class="coming-soon-trigger" href="#" data-service="Email hosting">Email</a><a class="coming-soon-trigger" href="#" data-service="SMS Service">SMS Service</a><a class="coming-soon-trigger" href="#" data-service="Support">Support</a></nav><div class="site-account">@if(session('customer'))@include('partials.client-area-menu')<button class="site-user" type="button" onclick="event.stopPropagation(); document.getElementById('accountMenu').classList.toggle('open');">@if(session('customer.logo'))<img class="site-avatar" src="{{ session('customer.logo') }}" alt="">@else<span class="site-avatar">{{ session('customer.initials') ?: \App\User::initials(session('customer.name')) }}</span>@endif<span>{{ session('customer.name') }}</span> ⌄</button><div class="site-menu" id="accountMenu"><div class="site-menu-head"><strong>{{ session('customer.name') }}</strong><span>{{ session('customer.email') }}</span></div><a href="{{ route('dashboard') }}">Dashboard</a><a href="{{ route('mystore') }}">My Store</a><a href="{{ route('wallet.index') }}">Wallet · ৳{{ number_format(session('customer.balance', 0), 2) }}</a><a href="{{ route('invoices') }}">Invoices</a><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Log out</button></form></div>@else<a class="site-btn-ghost" href="{{ route('login') }}">Log in</a><a class="site-btn" href="{{ route('register') }}">Sign up</a>@endif</div></div></header>
+@include('partials.coming-soon-modal')
 
 <main class="checkout-page">
     <div class="checkout-head co-anim">
-        <div><span class="domain-kicker">SECURE CHECKOUT</span><h1>Complete your domain order.</h1><p>Your domain will be prepared after payment verification.</p></div>
+        <div>
+            <div class="checkout-breadcrumb"><a href="{{ route('cart.index') }}">← Back to cart</a><span>Checkout</span></div>
+            <span class="domain-kicker">SECURE CHECKOUT</span>
+            <h1>Complete your domain order.</h1>
+            <p>Your domain will be prepared after payment verification.</p>
+        </div>
+        <div class="checkout-trust"><span>✓</span><div><strong>Safe &amp; secure</strong><small>Protected checkout</small></div></div>
     </div>
+    <div class="checkout-progress co-anim" aria-label="Checkout progress"><span class="is-complete"><em>1</em><b>Cart</b></span><i></i><span class="is-current"><em>2</em><b>Payment</b></span><i></i><span><em>3</em><b>Confirmation</b></span></div>
     <div class="checkout-grid">
         @if(session('customer'))
             <form class="checkout-form checkout-card co-anim d1" method="POST" action="{{ route('domains.place-order') }}">
@@ -178,7 +262,7 @@
             @endforeach
             <div class="summary-total"><span>Subtotal</span><strong>৳ {{ number_format($total) }}</strong></div>
             <div class="checkout-summary-tax"><span>Tax (incl. VAT)</span><span>৳ 0</span></div>
-            <div class="summary-total checkout-grand-total"><span>Your total cost</span><strong>৳ {{ number_format($total) }}</strong></div>
+            <div class="summary-total checkout-grand-total"><span>Total due</span><strong>৳ {{ number_format($total) }}</strong></div>
         </aside>
     </div>
 </main>

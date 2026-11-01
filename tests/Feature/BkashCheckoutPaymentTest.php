@@ -40,6 +40,7 @@ class BkashCheckoutPaymentTest extends TestCase
         $this->post('/domains/cart', ['domain' => 'example.com', 'price' => 1200]);
         $this->post('/domains/checkout', [
             'payment_method' => 'bkash',
+            'purchase_for' => 'myself',
             'full_name' => 'Pay Test',
             'phone' => '01712345678',
         ]);
@@ -202,6 +203,7 @@ class BkashCheckoutPaymentTest extends TestCase
         $this->post('/domains/cart', ['domain' => 'example.com', 'price' => 1200]);
         $this->post('/domains/checkout', [
             'payment_method' => 'bkash',
+            'purchase_for' => 'myself',
             'full_name' => 'Pay Test',
             'phone' => '01712345678',
         ]);

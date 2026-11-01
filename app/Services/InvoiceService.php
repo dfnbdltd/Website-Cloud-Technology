@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DomainOrder;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\Payment;
 use App\Models\Topup;
 use Illuminate\Support\Facades\DB;
 
@@ -146,6 +147,30 @@ class InvoiceService
             'amount_paid' => 0,
             'paid_at' => null,
         ])->save();
+    }
+
+    /**
+     * Cancel an unpaid order without leaving an invoice or payment attempt
+     * that can be mistaken for an actionable pending payment.
+     */
+    public function cancelOrder(DomainOrder $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $invoice = $this->findForSource(DomainOrder::class, $order->id);
+            if ($invoice && $invoice->status !== Invoice::STATUS_PAID) {
+                $invoice->items()->delete();
+                $invoice->delete();
+            }
+
+            Payment::where('domain_order_id', $order->id)
+                ->where('status', '!=', 'paid')
+                ->delete();
+
+            $order->forceFill([
+                'status' => 'cancelled',
+                'payment_status' => 'cancelled',
+            ])->save();
+        });
     }
 
     private static function unpaidUnlessManuallyChanged(Invoice $invoice)

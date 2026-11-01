@@ -16,9 +16,13 @@ class InvoicePdf
 {
     public function render(Invoice $invoice, bool $isAdmin = false): ?string
     {
-        $tempDir = storage_path('framework/mpdf');
+        $tempDir = storage_path('framework');
         if (!is_dir($tempDir)) {
             @mkdir($tempDir, 0755, true);
+        }
+        $mpdfTempDir = $tempDir . DIRECTORY_SEPARATOR . 'mpdf';
+        if (!is_dir($mpdfTempDir)) {
+            @mkdir($mpdfTempDir, 0755, true);
         }
 
         $html = view('invoices.pdf', [
@@ -30,6 +34,7 @@ class InvoicePdf
             'mode' => 'utf-8',
             // landscape: admin's 11 columns need the width; customer sheet is portrait A4
             'format' => $isAdmin ? 'A4-L' : 'A4',
+            // mPDF appends its own "mpdf" directory to this base path.
             'tempDir' => $tempDir,
             'margin_left' => $isAdmin ? 8 : 15,
             'margin_right' => $isAdmin ? 8 : 15,

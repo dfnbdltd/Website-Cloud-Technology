@@ -45,7 +45,7 @@ class InvoiceController extends Controller
         try {
             $bytes = app(\App\Services\InvoicePdf::class)->render(
                 $invoice,
-                (bool) $request->session()->get('admin')
+                $request->routeIs('admin.invoices.pdf') && (bool) $request->session()->get('admin')
             );
         } catch (\Throwable $e) {
             Log::error('Invoice PDF render failed', ['invoice' => $invoice->invoice_number, 'error' => $e->getMessage()]);

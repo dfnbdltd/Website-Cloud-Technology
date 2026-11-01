@@ -13,6 +13,7 @@ use App\Models\SupportTicket;
 use App\Models\Topup;
 use App\Services\InvoiceService;
 use App\Services\Notifier;
+use App\Services\ExchangeRateService;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,14 +46,22 @@ class AdminController extends Controller
         return view('admin.dashboard', [
             'orders' => DomainOrder::with('items')->latest()->take(50)->get(),
             'tickets' => SupportTicket::latest()->take(20)->get(),
+            'exchangeRate' => app(ExchangeRateService::class)->usdToBdt(),
         ]);
     }
 
     public function updateOrder(Request $request, DomainOrder $order)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
-        $data = $request->validate(['status' => ['required', 'in:payment_pending,paid,registration_pending,active,failed,refunded']]);
+        $data = $request->validate(['status' => ['required', 'in:payment_pending,paid,registration_pending,active,failed,refunded,cancelled']]);
         $wasPaid = $order->payment_status === 'paid';
+        if ($data['status'] === 'cancelled') {
+            if ($wasPaid) {
+                return redirect()->route('admin.dashboard')->withErrors(['status' => 'Paid orders cannot be cancelled.']);
+            }
+            app(InvoiceService::class)->cancelOrder($order);
+            return redirect()->route('admin.dashboard')->with('success', 'Order cancelled and its unpaid invoice removed.');
+        }
         $order->update(['status' => $data['status']]);
 
         // Manual payments (bank / Nagad) are confirmed here: mark paid and email the invoice.
@@ -212,6 +221,7 @@ class AdminController extends Controller
             'customers' => $customers,
             'search' => $search,
             'topups' => Topup::with('user')->latest()->take(15)->get(),
+            'exchangeRate' => app(ExchangeRateService::class)->usdToBdt(),
         ]);
     }
 

@@ -193,6 +193,7 @@ class DomainController extends Controller
 
     public function checkout(Request $request)
     {
+        $this->cancelAbandonedBkashCheckout($request);
         $cart = $request->session()->get('domain_cart', []);
         if (!$cart) {
             return redirect()->route('cart.index')->withErrors(['domain' => 'Add a domain before checkout.']);
@@ -382,6 +383,29 @@ class DomainController extends Controller
             'order' => $order,
             'paid' => $databaseOrder ? $databaseOrder->payment_status === 'paid' : (($order['payment']['status'] ?? null) === 'paid'),
         ]);
+    }
+
+    /**
+     * Returning to checkout means the customer left the bKash payment flow.
+     * Clear that unpaid attempt before the cart redirect can hide the signal.
+     * Manual payment orders are intentionally preserved for admin processing.
+     */
+    private function cancelAbandonedBkashCheckout(Request $request)
+    {
+        $order = $request->session()->get('last_domain_order');
+        if (!$order || ($order['payment']['method'] ?? null) !== 'bkash') {
+            return;
+        }
+
+        $databaseOrder = isset($order['database_id'])
+            ? DomainOrder::find($order['database_id'])
+            : null;
+        if (!$databaseOrder || $databaseOrder->payment_status === 'paid' || $databaseOrder->status === 'cancelled') {
+            return;
+        }
+
+        app(InvoiceService::class)->cancelOrder($databaseOrder);
+        $request->session()->forget('last_domain_order');
     }
 
     private function total(array $cart)

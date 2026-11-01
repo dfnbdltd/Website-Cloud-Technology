@@ -1,0 +1,19 @@
+.coming-soon-modal[hidden]{display:none}
+.coming-soon-modal{position:fixed;z-index:1200;inset:0;display:grid;place-items:center;padding:24px;background:rgba(13,36,67,.28);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);animation:coming-soon-fade-in .2s ease both}
+.coming-soon-dialog{position:relative;width:min(420px,100%);padding:38px 34px 32px;overflow:hidden;border:1px solid rgba(255,255,255,.8);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(235,245,255,.9));box-shadow:0 24px 70px rgba(25,65,108,.25),inset 0 1px 0 rgba(255,255,255,.95);color:#17365e;text-align:center;animation:coming-soon-dialog-in .24s cubic-bezier(.22,1,.36,1) both}
+.coming-soon-dialog::before{position:absolute;top:-100px;left:-70px;width:220px;height:220px;border-radius:50%;background:rgba(133,199,255,.2);content:"";filter:blur(4px)}
+.coming-soon-close{position:absolute;z-index:1;top:15px;right:17px;width:32px;height:32px;border:1px solid #d5e5f4;border-radius:50%;background:rgba(255,255,255,.65);color:#6d88a4;font-size:22px;line-height:1;cursor:pointer;transition:background .18s ease,color .18s ease,transform .18s ease}
+.coming-soon-close:hover{background:#e8f4ff;color:#17365e;transform:rotate(90deg)}
+.coming-soon-close:focus-visible,.coming-soon-action:focus-visible{outline:3px solid rgba(62,137,211,.3);outline-offset:3px}
+.coming-soon-icon{position:relative;display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border:1px solid #b9d9f4;border-radius:20px;background:linear-gradient(145deg,#fafdff,#dff0ff);box-shadow:inset 0 1px 0 #fff,0 10px 24px rgba(53,121,184,.14);color:#3986c9;font-size:29px}
+.coming-soon-icon .ct-logo{display:grid;place-items:center;width:100%;height:100%}
+.coming-soon-icon .ct-logo-img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 3px 4px rgba(57,134,201,.18))}
+.coming-soon-eyebrow{position:relative;color:#3986c9;font-size:10px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase}
+.coming-soon-dialog h2{position:relative;margin:9px 0 10px;color:#17365e;font-size:22px;line-height:1.25}
+.coming-soon-dialog p{position:relative;max-width:320px;margin:0 auto 24px;color:#6d88a4;font-size:14px;line-height:1.65}
+.coming-soon-action{position:relative;min-width:118px;padding:11px 22px;border:1px solid #2f78c8;border-radius:12px;background:#17365e;color:#fff;font-size:13px;font-weight:750;cursor:pointer;box-shadow:0 8px 18px rgba(23,54,94,.2);transition:background .18s ease,box-shadow .18s ease,transform .18s ease}
+.coming-soon-action:hover{background:#2168a8;box-shadow:0 11px 22px rgba(23,54,94,.26);transform:translateY(-1px)}
+body.coming-soon-open{overflow:hidden}
+@keyframes coming-soon-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes coming-soon-dialog-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:520px){.coming-soon-dialog{padding:34px 24px 27px;border-radius:20px}}

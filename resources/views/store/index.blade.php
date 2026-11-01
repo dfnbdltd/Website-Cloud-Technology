@@ -29,7 +29,7 @@
 @forelse($orders as $order)
 <div class="order-row"><span class="order-icon">▣</span><div><strong>{{ $order->reference }}</strong><small>{{ $order->created_at->format('d M Y') }}</small></div><b>৳ {{ number_format($order->total) }}</b><b class="table-status {{ $order->payment_status }}">{{ ucfirst($order->payment_status) }}</b></div>
 @empty
-<div class="table-empty">No invoices yet.</div>
+<div class="table-empty">No paid invoices yet.</div>
 @endforelse
 </section>
 

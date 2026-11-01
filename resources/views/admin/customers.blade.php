@@ -2,6 +2,7 @@
 <main class="domain-main"><header class="domain-topbar"><div><span class="crumb">Operations /</span><strong>Client List</strong></div><form method="GET" action="{{ route('admin.customers') }}" class="admin-search"><input type="search" name="q" value="{{ $search }}" placeholder="Search name, email, UID, phone"></form></header>
 <div class="domain-content standalone-content">
 <span class="domain-kicker">CLIENT LIST</span><h1 class="workspace-title">Registered clients.</h1><p class="workspace-subtitle">{{ $customers->total() }} client{{ $customers->total() === 1 ? '' : 's' }}{{ $search !== '' ? ' matching “' . $search . '”' : '' }}.</p>
+<div class="exchange-rate-card"><div><span class="exchange-rate-label">LIVE EXCHANGE RATE</span><strong>1 USD = ৳{{ number_format($exchangeRate['rate'], 2) }}</strong><small>{{ $exchangeRate['source'] === 'live' ? 'Updated from live market data.' : 'Live provider unavailable; using configured fallback.' }}</small></div><span class="exchange-rate-badge">{{ $exchangeRate['source'] === 'live' ? 'LIVE' : 'FALLBACK' }}</span></div>
 @if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
 <div class="table-card admin-table"><div class="table-head"><span>CUSTOMER</span><span>CONTACT</span><span>BALANCE</span><span>STATUS</span><span>ACTION</span></div>

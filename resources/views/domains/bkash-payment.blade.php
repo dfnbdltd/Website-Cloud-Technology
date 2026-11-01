@@ -54,7 +54,7 @@
             </div>
             <div class="bkash-body">
                 <div class="bkash-error" style="display:block">bKash is not configured on this server yet. Your order is saved — our billing team will contact you with payment instructions for reference {{ $order['reference'] }}.</div>
-                <a class="checkout-submit" style="display:inline-block" href="{{ $backUrl }}">Back <b>→</b></a>
+                <a class="checkout-submit bkash-cancel-link" style="display:inline-block" href="{{ route('domains.index') }}">Back <b>→</b></a>
             </div>
         </div>
     @else
@@ -73,7 +73,7 @@
             </div>
             <div class="bkash-foot">
                 <small>🔒 The payment window is provided by bKash. Never share your PIN outside this window.</small>
-                <a href="{{ $backUrl }}">{{ $backLabel ?? 'Back to order status →' }}</a>
+                <a class="bkash-cancel-link" href="{{ route('domains.index') }}">{{ $backLabel ?? 'Cancel and go back →' }}</a>
             </div>
         </div>
 
@@ -110,19 +110,42 @@
                 });
             }
 
+            document.querySelectorAll('.bkash-cancel-link').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    link.style.pointerEvents = 'none';
+                    setStatus('Cancelling checkout…', '');
+                    post('{{ route('bkash.cancel') }}').then(function (result) {
+                        window.location.href = result.data.redirect || link.href;
+                    }).catch(function () {
+                        window.location.href = link.href;
+                    });
+                });
+            });
+
             function finish(data) {
                 setStatus('Payment successful — redirecting…', 'ok');
                 button.disabled = true;
                 window.location.href = data.redirect;
             }
 
-            function pollQuery() {
+            function cancelCheckout() {
+                post('{{ route('bkash.cancel') }}').then(function (result) {
+                    window.location.href = result.data.redirect || '{{ route('domains.index') }}';
+                }).catch(function () {
+                    window.location.href = '{{ route('domains.index') }}';
+                });
+            }
+
+            function handleClosedPayment() {
                 post('{{ $endpoints['query'] ?? route('bkash.query') }}').then(function (result) {
                     if (result.ok && result.data.status === 'success') {
-                        window.location.href = result.data.redirect;
-                    } else if (result.data.status === 'pending') {
-                        setTimeout(pollQuery, 4000);
+                        finish(result.data);
+                        return;
                     }
+                    cancelCheckout();
+                }).catch(function () {
+                    cancelCheckout();
                 });
             }
 
@@ -165,8 +188,8 @@
                     })();
                 },
                 onClose: function () {
-                    setStatus('Payment window closed — you can retry.', '');
-                    pollQuery();
+                    setStatus('Cancelling checkout…', '');
+                    handleClosedPayment();
                 }
             });
 

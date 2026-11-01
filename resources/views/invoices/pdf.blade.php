@@ -54,11 +54,16 @@
 
     table.inv-parties { width:100%; border-collapse:collapse; margin-bottom:20px; }
     table.inv-parties td { width:50%; vertical-align:top; font-size:9.5pt; line-height:1.65; color:#1f2937; }
+    table.inv-parties td.payment-cell { white-space:normal; }
+    table.inv-parties .payment-line { white-space:nowrap; }
+    table.inv-parties .payment-line .payment-method-value { font-weight:bold; }
     table.inv-parties h4 { margin:0 0 6px; font-size:7.5pt; text-transform:uppercase; color:#6b7280; letter-spacing:.5px; }
 
     table.inv-items { width:100%; border-collapse:collapse; }
     table.inv-items th { background:#f4f7fb; text-align:left; padding:7px 10px; border-bottom:1pt solid #e5e7eb; font-size:7.5pt; text-transform:uppercase; color:#4b5563; letter-spacing:.5px; }
     table.inv-items td { padding:9px 10px; border-bottom:0.5pt solid #eef0f3; font-size:9.5pt; vertical-align:top; }
+    table.inv-items th:first-child, table.inv-items td:first-child { width:7%; white-space:nowrap; }
+    table.inv-items th.sl-heading { white-space:nowrap; }
     table.inv-items th.num, table.inv-items td.num { text-align:right; white-space:nowrap; }
     table.inv-items td small { color:#6b7280; font-size:7.5pt; }
 
@@ -250,9 +255,8 @@
                 Customer record unavailable
             @endif
         </td>
-        <td>
-            <h4>Payment</h4>
-            Method: {{ $invoice->payment_method ? ucfirst($invoice->payment_method) : 'Not set' }}<br>
+        <td class="payment-cell">
+            <div class="payment-line">Payment Method: <b class="payment-method-value">{{ $invoice->payment_method ? ucfirst($invoice->payment_method) : 'Not set' }}</b></div>
             Currency: {{ $invoice->currency }}<br>
             Source: {{ str_replace('App\\Models\\', '', (string) $invoice->source_type) ?: 'Manual' }}
             @if($invoice->source) · ref {{ $invoice->source->reference }}@endif
@@ -262,7 +266,7 @@
 
 <table class="inv-items">
     <tr>
-        <th style="width:5%">SL</th>
+        <th class="sl-heading" style="width:7%">SL</th>
         <th>Description</th>
         <th class="num" style="width:11%">Years</th>
         <th class="num" style="width:9%">Qty</th>
