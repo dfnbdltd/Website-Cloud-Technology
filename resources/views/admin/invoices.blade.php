@@ -50,7 +50,7 @@
 
             <form class="invoice-search" method="GET" action="{{ route('admin.invoices') }}">
                 <input type="search" name="q" value="{{ $search }}" placeholder="Search invoice, domain or client" aria-label="Search invoices">
-                <button type="submit">Search</button>
+                <button type="submit"><span class="search-button-icon" aria-hidden="true"></span> Search</button>
             </form>
 
             <div class="invoice-table-wrap">

@@ -60,6 +60,8 @@ class DomainTermPricingTest extends TestCase
 
         $this->withSession($session)->get(route('domains.index', ['domain' => 'brand.com']))
             ->assertStatus(200)
+            ->assertSee('data-sidebar-label="Domain Registration"')
+            ->assertDontSee('client-domain-link')
             ->assertSee('/first year')
             ->assertSee('Renews ৳ 1,399/year')
             ->assertSee('No. of years')

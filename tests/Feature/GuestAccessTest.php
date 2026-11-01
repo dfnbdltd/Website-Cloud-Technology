@@ -52,6 +52,28 @@ class GuestAccessTest extends TestCase
         }
     }
 
+    public function testLogoutReturnsCustomerToCenteredPublicDomainLayout()
+    {
+        $session = ['customer' => [
+            'id' => 1,
+            'uid' => 'CT-1',
+            'name' => 'Test Customer',
+            'initials' => 'TC',
+            'email' => 'customer@example.test',
+            'balance' => 0,
+            'logo' => null,
+        ]];
+
+        $this->withSession($session)->post(route('logout'))
+            ->assertRedirect(route('landing'));
+
+        $this->get(route('domains.index'))
+            ->assertOk()
+            ->assertDontSee('domain-sidebar')
+            ->assertSee('class="selected" href="' . route('domains.index') . '">Domain Registration', false)
+            ->assertSee('site-account');
+    }
+
     public function testAdminChatEndpointsRejectGuests()
     {
         $this->getJson('/admin/chat-poll?session=abc')->assertStatus(401);
