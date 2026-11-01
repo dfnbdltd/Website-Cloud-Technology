@@ -119,13 +119,30 @@ class ResellerClubClient
 
     private function priceOptions($live, array $fallback = [])
     {
-        $firstYearPrice = (float) ($live['addnewdomain']['1'] ?? $fallback['add'] ?? 0);
-        $renewalPrice = (float) ($live['renewdomain']['1'] ?? $fallback['renew'] ?? $firstYearPrice);
+        $liveFirstYearPrice = $live['addnewdomain']['1'] ?? null;
+        $liveRenewalPrice = $live['renewdomain']['1'] ?? null;
+        $firstYearPrice = $liveFirstYearPrice !== null
+            ? $this->convertLivePriceToBdt($liveFirstYearPrice)
+            : (float) ($fallback['add'] ?? 0);
+        $renewalPrice = $liveRenewalPrice !== null
+            ? $this->convertLivePriceToBdt($liveRenewalPrice)
+            : (float) ($fallback['renew'] ?? $firstYearPrice);
         $yearPrices = [];
 
         for ($years = 1; $years <= 10; $years++) {
-            $yearPrices[$years] = (float) ($live['addnewdomain'][(string) $years]
-                ?? ($firstYearPrice + ($renewalPrice * ($years - 1))));
+            $liveYearPrice = $live['addnewdomain'][(string) $years] ?? null;
+            $convertedLiveYearPrice = $liveYearPrice !== null
+                ? $this->convertLivePriceToBdt($liveYearPrice)
+                : null;
+
+            // Some reseller accounts return the one-year price for every term.
+            if ($years > 1 && $convertedLiveYearPrice === $firstYearPrice) {
+                $convertedLiveYearPrice = null;
+            }
+
+            $yearPrices[$years] = $convertedLiveYearPrice !== null
+                ? $convertedLiveYearPrice
+                : ($firstYearPrice + ($renewalPrice * ($years - 1)));
         }
 
         return [
@@ -133,6 +150,24 @@ class ResellerClubClient
             'renewal' => $renewalPrice,
             'year_prices' => $yearPrices,
         ];
+    }
+
+    private function convertLivePriceToBdt($price)
+    {
+        $currency = strtoupper((string) ($this->config['price_currency'] ?? 'USD'));
+        $amount = (float) $price;
+
+        if ($currency === 'BDT') {
+            return $amount;
+        }
+
+        if ($currency !== 'USD') {
+            throw new \InvalidArgumentException('Unsupported ResellerClub price currency: ' . $currency);
+        }
+
+        $rate = app(ExchangeRateService::class)->usdToBdt()['rate'];
+
+        return (float) round($amount * $rate);
     }
 
     private function request($path, array $parameters = [])

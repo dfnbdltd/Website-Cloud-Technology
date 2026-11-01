@@ -48,6 +48,7 @@ return [
         'country' => env('RESELLERCLUB_COUNTRY', 'BD'),
         'phone_cc' => env('RESELLERCLUB_PHONE_CC', '880'),
         'base_url' => env('RESELLERCLUB_BASE_URL', 'https://httpapi.com/api'),
+        'price_currency' => env('RESELLERCLUB_PRICE_CURRENCY', 'USD'),
     ],
 
     'payments' => [
