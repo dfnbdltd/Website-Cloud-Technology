@@ -49,16 +49,16 @@ function toggleClientSidebarGroup(event, trigger, submenuId) {
     event.preventDefault();
     var submenu = document.getElementById(submenuId);
     var wasOpen = submenu && submenu.classList.contains('open');
-
-    document.querySelectorAll('#clientSidebar nav > .subnav.open').forEach(function (openSubmenu) {
+    var sidebar = document.getElementById('clientSidebar');
+    sidebar.querySelectorAll('nav > .subnav.open').forEach(function (openSubmenu) {
         openSubmenu.classList.remove('open');
     });
-    document.querySelectorAll('#clientSidebar nav > a[aria-expanded="true"]').forEach(function (openTrigger) {
+    sidebar.querySelectorAll('nav > a[aria-expanded="true"]').forEach(function (openTrigger) {
         openTrigger.setAttribute('aria-expanded', 'false');
         openTrigger.classList.remove('open', 'active');
     });
 
-    if (!wasOpen && submenu) {
+    if (!wasOpen) {
         submenu.classList.add('open');
         trigger.classList.add('open', 'active');
         trigger.setAttribute('aria-expanded', 'true');

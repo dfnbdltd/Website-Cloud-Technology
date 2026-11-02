@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>@include('partials.head', ['title' => 'Dashboard'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}"></head><body class="domain-app">@include('partials.sidebar', ['active' => 'dashboard', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <main class="domain-main" id="mainArea">
-@include('partials.topbar', ['title' => 'Dashboard', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
+@include('partials.topbar', ['title' => 'Dashboard', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', ''), 'showQuickNav' => false])
 <div class="domain-content">@if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
 @php($hostingLifecycle = $hostingLifecycle ?? collect())
 <div class="dashboard-welcome"><div><span class="domain-kicker">CLIENT AREA</span><h1 class="workspace-title">Good to see you, {{ explode(' ', trim(session('customer.name', 'there')))[0] }}.</h1><p class="workspace-subtitle">Here is your CloudTechnology overview, kept simple and easy to act on.</p></div></div>

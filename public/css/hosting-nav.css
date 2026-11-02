@@ -1,7 +1,8 @@
 /* Home-style navbar for the hosting pages (shared/vps/dedicated).
    Scoped under .hosting-nav so the exact page designs stay untouched.
    Rules copied from public/css/home.css (top strip + header only). */
-.hosting-nav{--ink:#0f172a;--text:#475569;--muted:#94a3b8;--line:#e5e7eb;--soft:#f8fafc;--blue:#2563eb;--blue-2:#1d4ed8;--sky:#eff6ff;margin:0;background:#fff;color:var(--ink);font-family:'DM Sans',sans-serif;position:sticky;top:-39px;z-index:30}
+.hosting-nav{--ink:#0f172a;--text:#475569;--muted:#94a3b8;--line:#e5e7eb;--soft:#f8fafc;--blue:#2563eb;--blue-2:#1d4ed8;--sky:#eff6ff;margin:0;background:#fff;color:var(--ink);font-family:'DM Sans',sans-serif;position:sticky;top:0;z-index:100}
+.hosting-nav #site-navbar{position:static}
 .hosting-nav a{text-decoration:none}
 .hosting-nav .site-wrap{max-width:1140px;margin:0 auto;padding:0 24px}
 .hosting-nav .site-top{background:var(--soft);border-bottom:1px solid var(--line);font-size:13px}
