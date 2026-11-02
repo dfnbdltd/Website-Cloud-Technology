@@ -24,6 +24,9 @@ class ResellerClubClient
     public function __construct()
     {
         $this->config = config('services.resellerclub');
+        if (empty($this->config['api_key'])) {
+            $this->config['api_key'] = $this->config['legacy_api_key'] ?? null;
+        }
     }
 
     public function isConfigured()

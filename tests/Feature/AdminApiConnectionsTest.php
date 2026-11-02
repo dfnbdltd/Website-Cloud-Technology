@@ -23,7 +23,8 @@ class AdminApiConnectionsTest extends TestCase
         config([
             'services.resellerclub.enabled' => true,
             'services.resellerclub.auth_userid' => 'reseller-user-id',
-            'services.resellerclub.api_key' => 'reseller-secret-value',
+            'services.resellerclub.api_key' => null,
+            'services.resellerclub.legacy_api_key' => 'reseller-secret-value',
             'services.resellerclub.reseller_id' => 'reseller-account-id',
             'services.resellerclub.customer_id' => 'registrant-customer-id',
             'services.bkash.app_key' => 'bkash-app-key-secret',
@@ -46,8 +47,8 @@ class AdminApiConnectionsTest extends TestCase
             ->assertSee('/domains/available.json')
             ->assertSee('/domains/register.json')
             ->assertSee('/checkout/payment/create')
-            ->assertSee('RESELLERCLUB_HTTP_API_KEY')
-            ->assertSee('Automatic domain registration')
+            ->assertSee('RESELLERCLUB_HTTP_API_KEY (or RESELLERCLUB_API_KEY)')
+            ->assertSee('Automatically attempted after successful payment')
             ->assertSee('Configured')
             ->assertDontSee('reseller-user-id')
             ->assertDontSee('reseller-secret-value')

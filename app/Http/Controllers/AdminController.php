@@ -67,9 +67,11 @@ class AdminController extends Controller
 
         $resellerClubBase = rtrim((string) config('services.resellerclub.base_url'), '/');
         $bkashBase = rtrim((string) config('services.bkash.base_url'), '/');
+        $resellerClubApiKeyConfigured = !empty(config('services.resellerclub.api_key'))
+            || !empty(config('services.resellerclub.legacy_api_key'));
         $resellerClubConfigured = config('services.resellerclub.enabled')
             && !empty(config('services.resellerclub.auth_userid'))
-            && !empty(config('services.resellerclub.api_key'))
+            && $resellerClubApiKeyConfigured
             && !empty(config('services.resellerclub.customer_id'));
 
         return view('admin.apis', [
@@ -86,11 +88,19 @@ class AdminController extends Controller
                     ],
                     'credentials' => [
                         $credential('services.resellerclub.auth_userid', 'RESELLERCLUB_AUTH_USERID'),
-                        $credential('services.resellerclub.api_key', 'RESELLERCLUB_HTTP_API_KEY', true),
+                        [
+                            'name' => 'RESELLERCLUB_HTTP_API_KEY (or RESELLERCLUB_API_KEY)',
+                            'type' => 'Secret',
+                            'status' => $resellerClubApiKeyConfigured ? 'Configured' : 'Missing',
+                        ],
                         $credential('services.resellerclub.reseller_id', 'RESELLERCLUB_RESELLER_ID'),
                         $credential('services.resellerclub.customer_id', 'RESELLERCLUB_CUSTOMER_ID'),
                     ],
                     'settings' => [
+                        [
+                            'name' => 'Integration enabled (RESELLERCLUB_ENABLED)',
+                            'status' => config('services.resellerclub.enabled') ? 'Enabled' : 'Disabled',
+                        ],
                         [
                             'name' => 'Domain registration',
                             'status' => 'Automatically attempted after successful payment',

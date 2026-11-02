@@ -175,6 +175,20 @@ class DomainRegistrationServiceTest extends TestCase
         ]));
     }
 
+    public function testResellerClubAcceptsLegacyApiKeyEnvironmentConfiguration()
+    {
+        config([
+            'services.resellerclub.enabled' => true,
+            'services.resellerclub.auth_userid' => 'test-reseller',
+            'services.resellerclub.api_key' => null,
+            'services.resellerclub.legacy_api_key' => 'legacy-test-key',
+        ]);
+
+        $client = new ResellerClubClient();
+
+        $this->assertTrue($client->isConfigured());
+    }
+
     public function testInsufficientResellerWalletStopsCheckoutBeforePaymentOrderIsCreated()
     {
         $preflight = \Mockery::mock(DomainRegistrationService::class);
