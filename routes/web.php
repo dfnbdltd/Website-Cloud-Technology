@@ -108,6 +108,7 @@ Route::get('/admin/login', [AdminController::class, 'loginForm'])->name('admin.l
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.submit');
 Route::get('/admin', [AdminController::class, 'customers'])->name('admin.dashboard');
 Route::get('/admin/orders', [AdminController::class, 'dashboard'])->name('admin.orders');
+Route::get('/admin/apis', [AdminController::class, 'apis'])->name('admin.apis');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 Route::post('/admin/orders/{order}/status', [AdminController::class, 'updateOrder'])->name('admin.orders.status');
 Route::get('/admin/customers', [AdminController::class, 'customers'])->name('admin.customers');

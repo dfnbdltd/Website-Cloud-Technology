@@ -51,6 +51,98 @@ class AdminController extends Controller
         ]);
     }
 
+    public function apis(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $credential = function ($configKey, $environmentName, $secret = false) {
+            $value = config($configKey);
+
+            return [
+                'name' => $environmentName,
+                'type' => $secret ? 'Secret' : 'Credential',
+                'status' => !empty($value) ? 'Configured' : 'Missing',
+            ];
+        };
+
+        $resellerClubBase = rtrim((string) config('services.resellerclub.base_url'), '/');
+        $bkashBase = rtrim((string) config('services.bkash.base_url'), '/');
+
+        return view('admin.apis', [
+            'integrations' => [
+                [
+                    'name' => 'ResellerClub',
+                    'purpose' => 'Domain availability, pricing, wallet pre-check and registration.',
+                    'status' => config('services.resellerclub.enabled')
+                        && !empty(config('services.resellerclub.auth_userid'))
+                        && !empty(config('services.resellerclub.api_key'))
+                            ? 'Configured'
+                            : 'Needs configuration',
+                    'endpoints' => [
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/domains/available.json', 'usage' => 'Check domain availability.'],
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain from the configured ResellerClub account.'],
+                    ],
+                    'credentials' => [
+                        $credential('services.resellerclub.auth_userid', 'RESELLERCLUB_AUTH_USERID'),
+                        $credential('services.resellerclub.api_key', 'RESELLERCLUB_HTTP_API_KEY', true),
+                        $credential('services.resellerclub.reseller_id', 'RESELLERCLUB_RESELLER_ID'),
+                        $credential('services.resellerclub.customer_id', 'RESELLERCLUB_CUSTOMER_ID'),
+                    ],
+                    'settings' => [
+                        [
+                            'name' => 'Automatic domain registration',
+                            'status' => config('services.resellerclub.auto_register') ? 'Enabled' : 'Disabled',
+                        ],
+                    ],
+                ],
+                [
+                    'name' => 'bKash Checkout',
+                    'purpose' => 'Create and verify online checkout payments.',
+                    'status' => app(\App\Services\BkashClient::class)->isConfigured() ? 'Configured' : 'Needs configuration',
+                    'endpoints' => [
+                        ['method' => 'POST', 'url' => $bkashBase . '/checkout/token/grant', 'usage' => 'Authenticate and obtain a temporary API token.'],
+                        ['method' => 'POST', 'url' => $bkashBase . '/checkout/payment/create', 'usage' => 'Create a payment for the order.'],
+                        ['method' => 'POST', 'url' => $bkashBase . '/checkout/payment/execute/{paymentID}', 'usage' => 'Finalize an authorized payment.'],
+                        ['method' => 'POST', 'url' => $bkashBase . '/checkout/payment/query/{paymentID}', 'usage' => 'Check payment status if execution is pending.'],
+                        ['method' => 'POST', 'url' => $bkashBase . '/checkout/payment/search/{trxID}', 'usage' => 'Transaction search endpoint available for reconciliation.'],
+                        ['method' => 'GET', 'url' => 'https://scripts.pay.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout.js', 'usage' => 'Load the bKash checkout popup in the browser.'],
+                    ],
+                    'credentials' => [
+                        $credential('services.bkash.app_key', 'BKASH_APP_KEY'),
+                        $credential('services.bkash.app_secret', 'BKASH_APP_SECRET', true),
+                        $credential('services.bkash.username', 'BKASH_USERNAME'),
+                        $credential('services.bkash.password', 'BKASH_PASSWORD', true),
+                    ],
+                    'settings' => [],
+                ],
+                [
+                    'name' => 'USD to BDT exchange rate',
+                    'purpose' => 'Convert ResellerClub USD prices to portal BDT prices.',
+                    'status' => 'Public API · no credential',
+                    'endpoints' => [
+                        ['method' => 'GET', 'url' => 'https://hexarate.paikama.co/api/rates/latest/USD?target=BDT', 'usage' => 'Fetch and cache the USD/BDT exchange rate.'],
+                    ],
+                    'credentials' => [],
+                    'settings' => [],
+                ],
+                [
+                    'name' => 'Google reCAPTCHA',
+                    'purpose' => 'Validate the public contact form challenge.',
+                    'status' => config('services.recaptcha.secret') ? 'Configured' : 'Needs configuration',
+                    'endpoints' => [
+                        ['method' => 'POST', 'url' => 'https://www.google.com/recaptcha/api/siteverify', 'usage' => 'Verify the submitted challenge token.'],
+                    ],
+                    'credentials' => [
+                        $credential('services.recaptcha.secret', 'RECAPTCHA_SECRET_KEY', true),
+                    ],
+                    'settings' => [],
+                ],
+            ],
+        ]);
+    }
+
     public function updateOrder(Request $request, DomainOrder $order)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }

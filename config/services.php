@@ -42,6 +42,7 @@ return [
         'legacy_api_key' => env('RESELLERCLUB_API_KEY'),
         'reseller_id' => env('RESELLERCLUB_RESELLER_ID'),
         'customer_id' => env('RESELLERCLUB_CUSTOMER_ID'),
+        'auto_register' => env('RESELLERCLUB_AUTO_REGISTER', false),
         'demo_mode' => env('RESELLERCLUB_DEMO_MODE', false),
         'sandbox' => env('RESELLERCLUB_SANDBOX', false),
         'country' => env('RESELLERCLUB_COUNTRY', 'BD'),
