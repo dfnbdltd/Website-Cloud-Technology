@@ -8,7 +8,7 @@ use App\Models\Payment;
 use App\Services\BkashClient;
 use App\Services\InvoiceService;
 use App\Services\Notifier;
-use App\Services\ResellerClubClient;
+use App\Services\DomainRegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -247,7 +247,7 @@ class BkashController extends Controller
 
             app(InvoiceService::class)->markOrderPaid($databaseOrder);
 
-            $this->registerDomains($databaseOrder);
+            app(DomainRegistrationService::class)->registerPaidOrder($databaseOrder->fresh());
 
             if ($databaseOrder->customer_email) {
                 Notifier::send($databaseOrder->customer_email, new InvoiceMail($databaseOrder->fresh()));
@@ -260,33 +260,4 @@ class BkashController extends Controller
         ]);
     }
 
-    /**
-     * Best-effort ResellerClub registration after a verified payment.
-     */
-    private function registerDomains(DomainOrder $databaseOrder)
-    {
-        if (!config('services.resellerclub.auto_register')) {
-            return;
-        }
-
-        $registrationComplete = true;
-        $hasRegistrableDomain = false;
-        $testDomains = config('services.test_domains', []);
-        foreach ($databaseOrder->items as $item) {
-            if (isset($testDomains[$item->domain])) {
-                continue;
-            }
-
-            $hasRegistrableDomain = true;
-            $registration = app(ResellerClubClient::class)->registerDomain($item->domain, $item->years);
-            if (!is_array($registration) || isset($registration['error'])) {
-                $registrationComplete = false;
-            }
-        }
-        if (!$hasRegistrableDomain) {
-            return;
-        }
-
-        $databaseOrder->update(['status' => $registrationComplete ? 'active' : 'registration_pending']);
-    }
 }

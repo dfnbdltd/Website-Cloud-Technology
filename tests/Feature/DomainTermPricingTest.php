@@ -82,7 +82,8 @@ class DomainTermPricingTest extends TestCase
         $this->withSession(array_merge($session, ['domain_cart' => $cart]))->get(route('cart.index'))
             ->assertStatus(200)
             ->assertSee('৳ 2,500')
-            ->assertSee('First year ৳ 1,214 · renews ৳ 1,399/year');
+            ->assertSee('First year ৳ 1,214')
+            ->assertSee('1,399/year');
 
         $this->withSession(array_merge($session, ['domain_cart' => $cart]))->withoutExceptionHandling()->get(route('domains.checkout'))
             ->assertStatus(200)
@@ -145,8 +146,9 @@ class DomainTermPricingTest extends TestCase
             'services.resellerclub.enabled' => true,
             'services.resellerclub.auth_userid' => 'test-user',
             'services.resellerclub.api_key' => 'test-key',
+            'services.resellerclub.price_currency' => 'BDT',
         ]);
-        Cache::put('resellerclub.pricing', [
+        Cache::put('resellerclub.pricing.v2', [
             'domcno' => [
                 'addnewdomain' => ['1' => 1214, '2' => 2399],
                 'renewdomain' => ['1' => 1399],

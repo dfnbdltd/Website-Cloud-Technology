@@ -14,6 +14,7 @@ use App\Models\Topup;
 use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\Services\ExchangeRateService;
+use App\Services\DomainRegistrationService;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +68,9 @@ class AdminController extends Controller
         // Manual payments (bank / Nagad) are confirmed here: mark paid and email the invoice.
         if ($data['status'] === 'paid' && !$wasPaid) {
             $order->update(['payment_status' => 'paid']);
-            app(InvoiceService::class)->markOrderPaid($order->fresh());
+            $order = $order->fresh();
+            app(InvoiceService::class)->markOrderPaid($order);
+            app(DomainRegistrationService::class)->registerPaidOrder($order);
             if ($order->customer_email) {
                 Notifier::send($order->customer_email, new InvoiceMail($order->fresh()));
             }

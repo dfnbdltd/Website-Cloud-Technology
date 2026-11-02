@@ -7,6 +7,7 @@ use App\Services\PaymentGatewayManager;
 use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\Services\ResellerClubClient;
+use App\Services\DomainRegistrationService;
 use App\Models\DomainOrder;
 use App\Models\DomainOrderItem;
 use App\Models\Payment;
@@ -346,6 +347,7 @@ class DomainController extends Controller
         $request->session()->forget('domain_cart');
 
         if ($isWalletPayment) {
+            app(DomainRegistrationService::class)->registerPaidOrder($persisted->fresh());
             $request->session()->put('customer.balance', (float) $user->fresh()->balance);
             Notifier::send($persisted->customer_email, new InvoiceMail($persisted->fresh()));
 

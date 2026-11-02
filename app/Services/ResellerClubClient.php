@@ -33,7 +33,8 @@ class ResellerClubClient
 
     /**
      * Live customer pricing for all products, keyed by ResellerClub classkey.
-     * Cached for 6 hours. Returns [] when unavailable.
+     * Cached briefly so ResellerClub price changes are reflected promptly.
+     * Returns [] when unavailable.
      */
     public function pricing()
     {
@@ -41,7 +42,7 @@ class ResellerClubClient
             return [];
         }
 
-        return cache()->remember('resellerclub.pricing', now()->addHours(6), function () {
+        return cache()->remember('resellerclub.pricing.v2', now()->addMinutes(5), function () {
             $response = $this->request('/products/customer-price.json');
 
             if (!is_array($response) || isset($response['status'])) {
