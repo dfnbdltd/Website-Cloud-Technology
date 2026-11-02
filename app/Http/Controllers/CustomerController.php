@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ContactMessage;
 use App\Models\DomainOrder;
 use App\Models\SupportTicket;
 use App\Models\Topup;
@@ -10,6 +11,8 @@ use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class CustomerController extends Controller
 {
@@ -58,6 +61,24 @@ class CustomerController extends Controller
             ->latest()
             ->get();
         $today = Carbon::today();
+        $hostingLifecycle = collect();
+        foreach ($hostingInvoices as $invoice) {
+            foreach ($invoice->items as $item) {
+                if (stripos($item->item_type . ' ' . $item->description, 'hosting') === false) {
+                    continue;
+                }
+                $purchaseDate = $invoice->created_at->copy()->startOfDay();
+                $years = max(1, (int) $item->years);
+                $expiryDate = $purchaseDate->copy()->addYears($years);
+                $hostingLifecycle->push([
+                    'name' => $item->description,
+                    'purchaseDate' => $purchaseDate,
+                    'expiryDate' => $expiryDate,
+                    'remainingDays' => $today->lessThan($expiryDate) ? $today->diffInDays($expiryDate) : 0,
+                    'expired' => $today->greaterThanOrEqualTo($expiryDate),
+                ]);
+            }
+        }
         $domainLifecycle = collect();
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
@@ -94,6 +115,7 @@ class CustomerController extends Controller
             'paymentBreakdown' => $paymentBreakdown,
             'invoiceMap' => $invoiceMap,
             'hostingInvoices' => $hostingInvoices,
+            'hostingLifecycle' => $hostingLifecycle,
             'domainLifecycle' => $domainLifecycle,
         ]);
     }
@@ -257,20 +279,88 @@ class CustomerController extends Controller
 
     public function support(Request $request)
     {
-        if (!$this->customer($request)) { return redirect()->route('login'); }
-        return view('support.index', ['tickets' => SupportTicket::where('user_id', session('customer.id'))->latest()->get()]);
+        $customer = $request->session()->get('customer');
+        $tickets = $customer
+            ? SupportTicket::where('user_id', $customer['id'])->latest()->get()
+            : collect();
+
+        return view('support.index', [
+            'tickets' => $tickets,
+            'customer' => $customer,
+        ]);
     }
 
     public function createTicket(Request $request)
     {
-        if (!$this->customer($request)) { return redirect()->route('login'); }
-        $data = $request->validate([
+        $customer = $request->session()->get('customer');
+        $rules = [
             'subject' => ['required', 'string', 'max:180'],
             'message' => ['required', 'string', 'max:5000'],
             'priority' => ['required', 'in:low,normal,high'],
-        ]);
-        SupportTicket::create(array_merge($data, ['user_id' => session('customer.id'), 'status' => 'open']));
-        return redirect()->route('support')->with('success', 'Your support ticket has been opened.');
+        ];
+
+        if (!$customer) {
+            $rules['name'] = ['required', 'string', 'max:255'];
+            $rules['email'] = ['required', 'email', 'max:255'];
+            $rules['phone'] = ['required', 'string', 'max:20'];
+        }
+
+        $data = $request->validate($rules);
+        $senderName = $customer['name'] ?? $data['name'];
+        $senderEmail = $customer['email'] ?? $data['email'];
+        $senderPhone = $customer['phone'] ?? $data['phone'];
+        $ticket = null;
+
+        if ($customer) {
+            $ticket = SupportTicket::create([
+                'user_id' => $customer['id'],
+                'subject' => $data['subject'],
+                'message' => $data['message'],
+                'priority' => $data['priority'],
+                'status' => 'open',
+            ]);
+        } else {
+            ContactMessage::create([
+                'name' => $senderName,
+                'email' => $senderEmail,
+                'phone' => $senderPhone,
+                'message' => $data['message'],
+            ]);
+        }
+
+        $recipient = config('services.contact.to');
+        if ($recipient) {
+            try {
+                Mail::raw(
+                    "Subject: {$data['subject']}\nPriority: {$data['priority']}\nName: {$senderName}\nEmail: {$senderEmail}\nPhone: {$senderPhone}\n\n{$data['message']}",
+                    function ($mail) use ($data, $senderName, $senderEmail, $recipient, $ticket) {
+                        $mail->to($recipient)
+                            ->replyTo($senderEmail, $senderName)
+                            ->subject('Support request: ' . $data['subject']);
+                    }
+                );
+            } catch (\Throwable $exception) {
+                Log::error('Support notification email failed', [
+                    'ticket_id' => $ticket ? $ticket->id : null,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        return redirect()->route('support')->with('success', 'Your request has been sent. Our support team will contact you shortly.');
+    }
+
+    public function ticket(Request $request, SupportTicket $ticket)
+    {
+        if (!$this->customer($request)) {
+            return redirect()->route('login');
+        }
+
+        if ((int) $ticket->user_id !== (int) session('customer.id')) {
+            abort(404);
+        }
+
+        return view('support.ticket', ['ticket' => $ticket]);
     }
 
     private function customer(Request $request)

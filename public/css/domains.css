@@ -101,11 +101,18 @@
    stand-alone cart page and wallet
    ========================================================================= */
 .domain-sidebar{background:#f3f4f6;color:#374151;border-right:1px solid #e5e7eb}
+.domain-sidebar{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+.domain-sidebar::-webkit-scrollbar{width:6px}
+.domain-sidebar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+.domain-brand{padding-bottom:18px}
 .domain-brand .ct-logo-text{color:#111827}
 .domain-brand .ct-logo-accent{color:#2563eb}
 .domain-sidebar nav{padding-top:8px;border-top:1px solid #e5e7eb}
 .domain-sidebar nav>small{color:#9ca3af;margin:14px 10px 4px}
-.domain-sidebar nav>a{color:#374151;font-size:14px;font-weight:500}
+.domain-sidebar nav>a{color:#374151;font-size:14px;font-weight:500;padding-top:9px;padding-bottom:9px;margin-top:1px;margin-bottom:1px}
+.domain-sidebar nav .subnav{margin-top:1px;margin-bottom:2px}
+.domain-sidebar nav .subnav a{padding-top:6px;padding-bottom:6px}
+.domain-sidebar.collapsed nav>a{margin-top:2px;margin-bottom:2px;padding-top:8px;padding-bottom:8px}
 .domain-sidebar nav>a:hover{background:#e5e7eb;color:#111827}
 .domain-sidebar nav>a.active{background:#fff;color:#2563eb;box-shadow:0 1px 3px #0f172a14}
 .domain-sidebar nav a b{color:inherit}
@@ -2488,6 +2495,8 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     width:0;
     height:0;
 }
+.domain-sidebar nav>a{min-height:40px;padding-top:7px;padding-bottom:7px}
+.domain-sidebar nav .subnav a{min-height:32px;padding-top:5px;padding-bottom:5px}
 @media(max-width:900px){
     .domain-sidebar,
     .domain-sidebar.collapsed{
@@ -2502,6 +2511,166 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     .domain-sidebar nav{
         max-height:none;
     }
+}
+
+/* Keep the complete My Store submenu available after it expands. */
+.domain-sidebar nav .subnav.open{
+    max-height:420px;
+}
+.domain-sidebar nav .subnav a{
+    min-height:32px;
+    padding-top:5px;
+    padding-bottom:5px;
+}
+
+/* Compact tree navigation for nested client services. */
+.domain-sidebar nav .subnav.open{
+    display:flex;
+    gap:0;
+    max-height:420px;
+    margin:0 0 1px 14px;
+    padding:0 0 0 10px;
+    border-left:1px solid #cbdced;
+    transform:none;
+}
+.domain-sidebar nav .subnav a{
+    min-height:24px;
+    margin:0;
+    padding:2px 6px 2px 10px;
+    border-radius:5px;
+    font-size:12px;
+}
+.domain-sidebar nav .subnav a:before{
+    position:absolute;
+    left:-11px;
+    width:7px;
+    height:1px;
+    background:#cbdced;
+    box-shadow:none;
+    content:"";
+}
+.domain-sidebar nav>a{
+    min-height:36px;
+    margin:2px 0;
+    padding:5px 10px;
+}
+.domain-sidebar nav .subnav a{
+    min-height:22px;
+    padding:1px 5px 1px 8px;
+}
+
+/* Keep account links calm and consistent; highlight only the current item. */
+.domain-sidebar nav>a{
+    min-height:34px;
+    margin:1px 0;
+    padding:4px 10px;
+    border-color:transparent;
+    background:transparent;
+    box-shadow:none;
+    transform:none;
+}
+.domain-sidebar nav>a:hover{
+    border-color:transparent;
+    background:#eef6ff;
+    transform:none;
+}
+.domain-sidebar nav>a.active{
+    border-color:#cfe1f4;
+    background:#e5f0fb;
+    color:#2168c1;
+    box-shadow:none;
+}
+.domain-sidebar nav>a.open{
+    border-color:#cfe1f4;
+    background:#e5f0fb;
+}
+
+/* Final sidebar rhythm: every top-level link shares the same row metrics. */
+.domain-sidebar nav>a,
+.domain-sidebar nav>a.service-group-start,
+.domain-sidebar nav>a.service-group-end{
+    min-height:40px;
+    margin:2px 0;
+    padding:4px 10px;
+}
+.domain-sidebar nav>a b{
+    width:30px;
+    height:30px;
+    font-size:16px;
+}
+.domain-sidebar nav .subnav.open{
+    margin:0 0 2px 14px;
+    padding:0 0 0 10px;
+}
+.domain-sidebar nav .subnav a{
+    min-height:28px;
+    margin:0;
+    padding:2px 6px 2px 8px;
+}
+.sidebar-nav-label,
+.sidebar-nav-label-services,
+.sidebar-nav-label-store{
+    margin:12px 10px 6px;
+    line-height:16px;
+}
+.domain-sidebar:not(.collapsed) nav>a.service-group-start,
+.domain-sidebar:not(.collapsed) nav>a.service-group-end,
+.domain-sidebar:not(.collapsed) nav>a.service-nav-item,
+.domain-sidebar:not(.collapsed) nav>a.service-nav-item.active{
+    min-height:38px;
+    height:38px;
+    margin:2px 0;
+    padding:4px 10px;
+}
+.domain-sidebar:not(.collapsed) nav>a.service-nav-item + .subnav.open{
+    margin-top:7px;
+    margin-bottom:7px;
+    padding-top:3px;
+    padding-bottom:3px;
+}
+.domain-sidebar:not(.collapsed) nav>a.service-nav-item + .subnav.open a{
+    min-height:44px;
+    height:44px;
+    padding:10px 14px;
+}
+.domain-sidebar:not(.collapsed) nav>a.service-nav-item{
+    min-height:48px;
+    height:48px;
+    padding:8px 14px;
+}
+.domain-sidebar:not(.collapsed) nav>a.service-nav-item.active{
+    min-height:52px;
+    height:52px;
+    padding:10px 16px;
+}
+.domain-sidebar:not(.collapsed) nav>a.service-nav-item b{
+    width:32px;
+    height:32px;
+}
+.domain-sidebar nav>a,
+.domain-sidebar nav>a.service-group-start,
+.domain-sidebar nav>a.service-group-end{
+    min-height:38px;
+    height:38px;
+    margin:2px 0;
+    padding:4px 10px;
+    gap:10px;
+}
+.domain-sidebar nav>a b{
+    width:28px;
+    height:28px;
+    flex:0 0 28px;
+}
+.domain-sidebar nav .subnav.open{
+    margin:0 0 2px 14px;
+    padding:0 0 0 10px;
+}
+.domain-sidebar nav .subnav a{
+    min-height:26px;
+    height:26px;
+    margin:0;
+    padding:1px 6px 1px 8px;
+    gap:8px;
 }
 
 /* Domain search experience: make the first decision clear, then let each
@@ -2528,6 +2697,75 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 .domain-registration-guest .domain-search-primary label,
 .domain-registration-guest .domain-search-primary small{
     text-align:center;
+}
+
+.dashboard-service-cards{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:16px;
+    margin:24px 0;
+}
+.dashboard-service-card{
+    min-width:0;
+    padding:22px 24px;
+    border:1px solid #dce8f5;
+    border-radius:14px;
+    background:linear-gradient(135deg,#fff,#f7fbff);
+    box-shadow:0 8px 24px #2c5d9210;
+}
+.dashboard-service-card-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+}
+.dashboard-service-icon{
+    display:grid;
+    place-items:center;
+    width:32px;
+    height:32px;
+    border:1px solid #c9dced;
+    border-radius:9px;
+    background:#edf5fd;
+    color:#347de0;
+    font-size:17px;
+}
+.dashboard-service-icon.is-hosting{font-size:15px}
+.dashboard-service-card h2{
+    margin:0;
+    color:#17365e;
+    font:800 19px/1.2 'Manrope';
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.dashboard-service-card p{
+    margin:7px 0 16px;
+    color:#7892ad;
+    font-size:12px;
+}
+.dashboard-service-time{
+    display:block;
+    color:#2168c1;
+    font:800 23px/1.1 'Manrope';
+}
+.dashboard-service-time.is-expired{color:#c95c52}
+.dashboard-service-card small{
+    display:block;
+    margin-top:5px;
+    color:#8aa2bb;
+    font-size:11px;
+}
+.dashboard-service-action{
+    display:inline-flex;
+    margin-top:2px;
+    color:#347de0;
+    font-size:12px;
+    font-weight:700;
+    text-decoration:none;
+}
+@media(max-width:700px){
+    .dashboard-service-cards{grid-template-columns:1fr}
 }
 .domain-search-primary .domain-search-row button{
     display:inline-flex;

@@ -1,3 +1,5 @@
+@php($comingSoonCssVersion = @filemtime(public_path('css/coming-soon.css')))
+<link rel="stylesheet" href="{{ asset('css/coming-soon.css') }}@if($comingSoonCssVersion)?v={{ $comingSoonCssVersion }}@endif">
 <div class="coming-soon-modal" id="comingSoonModal" role="dialog" aria-modal="true" aria-labelledby="comingSoonTitle" aria-describedby="comingSoonMessage" hidden>
     <div class="coming-soon-dialog" role="document">
         <button class="coming-soon-close" type="button" aria-label="Close dialog" data-coming-soon-close>×</button>
@@ -12,8 +14,12 @@
 </div>
 <script>
     (function(){
-        var modal=document.getElementById('comingSoonModal');
+        var modals=document.querySelectorAll('.coming-soon-modal');
+        var modal=modals[0];
         if(!modal){return;}
+        for(var i=1;i<modals.length;i++){modals[i].remove();}
+        if(modal.getAttribute('data-coming-soon-initialized')==='true'){return;}
+        modal.setAttribute('data-coming-soon-initialized','true');
         var title=document.getElementById('comingSoonTitle');
         var message=document.getElementById('comingSoonMessage');
         var lastTrigger=null;

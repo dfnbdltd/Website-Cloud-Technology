@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\SupportTicket;
 use Tests\TestCase;
 
 /**
@@ -47,9 +48,55 @@ class GuestAccessTest extends TestCase
 
     public function testClientAreaRedirectsGuestsToLogin()
     {
-        foreach (['/dashboard', '/mystore', '/wallet', '/invoices', '/support', '/profile/settings'] as $uri) {
+        foreach (['/dashboard', '/mystore', '/wallet', '/invoices', '/profile/settings'] as $uri) {
             $this->get($uri)->assertRedirect(route('login'));
         }
+    }
+
+    public function testSupportPageIsPublic()
+    {
+        $this->get('/support')
+            ->assertOk()
+            ->assertSee('How can we help?')
+            ->assertDontSee('domain-sidebar');
+    }
+
+    public function testCustomerCanOpenOnlyTheirOwnSupportTicket()
+    {
+        $ticket = SupportTicket::create([
+            'user_id' => 1,
+            'subject' => 'DNS issue',
+            'message' => 'The DNS record needs attention.',
+            'priority' => 'normal',
+            'status' => 'open',
+        ]);
+
+        $session = ['customer' => [
+            'id' => 1,
+            'uid' => 'CT-1',
+            'name' => 'Test Customer',
+            'initials' => 'TC',
+            'email' => 'customer@example.test',
+            'balance' => 0,
+            'logo' => null,
+        ]];
+
+        $this->withSession($session)
+            ->get(route('support.ticket', $ticket))
+            ->assertOk()
+            ->assertSee('DNS issue');
+
+        $otherTicket = SupportTicket::create([
+            'user_id' => 2,
+            'subject' => 'Private issue',
+            'message' => 'This must not be visible.',
+            'priority' => 'high',
+            'status' => 'open',
+        ]);
+
+        $this->withSession($session)
+            ->get(route('support.ticket', $otherTicket))
+            ->assertNotFound();
     }
 
     public function testLogoutReturnsCustomerToCenteredPublicDomainLayout()

@@ -143,14 +143,13 @@ class AuthController extends Controller
     }
 
     /**
-     * Post-authentication response shared by login and email verification:
-     * establishes the customer session then honors the stored intended URL.
+     * Complete a customer login and always start in the dashboard.
      */
     private function signIn(Request $request, User $user)
     {
         $this->establishSession($request, $user);
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route('dashboard');
     }
 
     /**

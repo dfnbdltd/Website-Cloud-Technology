@@ -48,9 +48,7 @@
     @if(session('customer'))
         @include('partials.sidebar', ['active' => 'domains', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
     @else
-        <div class="site-top"><div class="site-wrap site-top-inner"><div class="site-top-links"><a class="coming-soon-trigger" href="#" data-service="Blog">Blog</a><a class="coming-soon-trigger" href="#" data-service="Offers">Offers</a><span>☎ {{ \App\Models\Setting::get('support_phone') }}</span></div><div class="site-top-links"><a href="{{ route('cart.index') }}">🛒 Cart <b class="site-count">{{ count($cart) }}</b></a></div></div></div>
-        <header class="site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'h'])</a><nav class="site-nav"><a href="{{ route('landing') }}">Home</a><div class="site-nav-dropdown"><a class="selected" href="{{ route('domains.index') }}">Domain Registration</a><div class="site-submenu"><a href="{{ route('domains.index') }}">Domain Registration</a><a class="coming-soon-trigger" href="#" data-service="Domain Transfer">Domain Transfer</a></div></div><div class="site-nav-dropdown"><a href="{{ route('hosting.shared') }}">Web Hosting</a><div class="site-submenu"><a href="{{ route('hosting.shared') }}">Shared Hosting</a><a href="{{ route('hosting.vps') }}">VPS Hosting</a><a href="{{ route('hosting.dedicated') }}">Dedicated Hosting</a></div></div><a class="coming-soon-trigger" href="#" data-service="Email hosting">Email</a><a class="coming-soon-trigger" href="#" data-service="SMS Service">SMS Service</a><a class="coming-soon-trigger" href="#" data-service="Support">Support</a></nav><div class="site-account"><a class="site-btn-ghost" href="{{ route('login') }}">Log in</a><a class="site-btn" href="{{ route('register') }}">Sign up</a></div></div></header>
-        @include('partials.coming-soon-modal')
+        @include('partials.site-navbar', ['navActive' => 'domains'])
     @endif
     <main class="domain-main">
         @if(session('customer'))

@@ -48,6 +48,13 @@ Route::get('/coming-soon/{section?}', function ($section = 'This section') {
 Route::get('/hosting/shared', [HostingController::class, 'shared'])->name('hosting.shared');
 Route::get('/hosting/vps', [HostingController::class, 'vps'])->name('hosting.vps');
 Route::get('/hosting/dedicated', [HostingController::class, 'dedicated'])->name('hosting.dedicated');
+Route::get('/support', [CustomerController::class, 'support'])->name('support');
+Route::get('/support/tickets/{ticket}', [CustomerController::class, 'ticket'])
+    ->middleware('customer')
+    ->name('support.ticket');
+Route::post('/support/tickets', [CustomerController::class, 'createTicket'])
+    ->middleware('throttle:5,1')
+    ->name('support.create');
 
 // Live chat (client-area widget + admin console) — guests chat from the landing page.
 Route::get('/chat/messages', [ChatController::class, 'poll'])->name('chat.poll');
@@ -86,9 +93,6 @@ Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/invoices', [CustomerController::class, 'invoices'])->name('invoices');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.view');
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
-    Route::get('/support', [CustomerController::class, 'support'])->name('support');
-    Route::post('/support/tickets', [CustomerController::class, 'createTicket'])->name('support.create');
-
 });
 
 // bKash direct checkout (popup) — see app/Services/BkashClient.php

@@ -17,6 +17,7 @@
         <a href="{{ route('cart.index') }}">Cart <b class="site-count">{{ count(session('domain_cart', [])) }}</b></a>
         <a href="{{ route('support') }}">Support Tickets</a>
         <a href="{{ route('wallet.index') }}">Wallet</a>
+        <a href="{{ route('wallet.index') }}#add-balance">Add Balance</a>
     </nav>
 </details>
 <script>
