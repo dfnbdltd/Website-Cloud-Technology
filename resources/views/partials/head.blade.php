@@ -21,3 +21,4 @@
 <link rel="stylesheet" href="{{ asset('css/workspace.css') }}@if($workspaceCssVersion)?v={{ $workspaceCssVersion }}@endif">
 <link rel="stylesheet" href="{{ asset('css/coming-soon.css') }}@if($comingSoonCssVersion)?v={{ $comingSoonCssVersion }}@endif">
 <script src="{{ asset('js/password-strength.js') }}@if($passwordStrengthVersion)?v={{ $passwordStrengthVersion }}@endif" defer></script>
+@include('partials.spinner')

@@ -72,7 +72,7 @@
                 </div>
             </section>
 
-            <form class="domain-search domain-search-primary" method="POST" action="{{ route('domains.search') }}">
+            <form class="domain-search domain-search-primary" method="POST" action="{{ route('domains.search') }}" data-spinner="search">
                 @csrf
                 <label for="domain-search-input">Search for your domain</label>
                 <div class="domain-search-row"><input id="domain-search-input" name="domain" value="{{ $query }}" placeholder="yourbrand.com" autocomplete="off" required><button type="submit">Search domain <span class="search-button-icon" aria-hidden="true"></span></button></div>
@@ -85,9 +85,13 @@
                     @foreach($results as $result)
                         @php($selectedYears = isset($cart[$result['domain']]) ? (int) $cart[$result['domain']]['years'] : 1)
                         @php($selectedTermPrice = $result['year_prices'][$selectedYears] ?? $result['year_prices'][1] ?? $result['price'])
-                        <div class="domain-result" data-first-year="{{ $result['price'] }}" data-renewal="{{ $result['renewal'] }}">
+                        <div class="domain-result{{ $result['available'] === false ? ' is-registered' : '' }}" data-first-year="{{ $result['price'] }}" data-renewal="{{ $result['renewal'] }}">
                             <div class="result-status {{ $result['available'] ? 'is-available' : 'is-taken' }}"><span>{{ $result['available'] ? '✓' : ($result['available'] === null ? '?' : '×') }}</span></div>
                             <div class="result-name"><strong>{{ $result['domain'] }}</strong><small>{{ $result['available'] ? 'Available to register' : ($result['available'] === null ? 'Could not check availability — please try again' : 'Already registered') }}</small></div>
+                            {{-- A registered domain (available === false) shows no price at all.
+                                 available === null means the lookup failed, not that the name is
+                                 taken, so pricing and the term selector stay visible there. --}}
+                            @if($result['available'] !== false)
                             <div class="result-price">
                                 <strong>
                                     <span class="term-price">৳ {{ number_format($selectedTermPrice) }}</span>
@@ -104,28 +108,21 @@
                             @if(count($result['year_prices']) > 1)
                                 <div class="result-term-column">
                                     <label for="years-{{ $loop->index }}">No. of years</label>
-                                    @if($result['available'])
-                                        <form class="domain-add-form" method="POST" action="{{ route('domains.cart') }}">
-                                            @csrf
-                                            <input type="hidden" name="domain" value="{{ $result['domain'] }}">
-                                            <select id="years-{{ $loop->index }}" class="domain-years" name="years" aria-label="No. of years" onchange="updateTermPrice(this)">
-                                            @foreach($result['year_prices'] as $years => $termPrice)
-                                                <option value="{{ $years }}" data-price="{{ $termPrice }}" @if((int) $years === $selectedYears) selected @endif>{{ $years }} year{{ $years > 1 ? 's' : '' }} · ৳ {{ number_format($termPrice) }}</option>
-                                            @endforeach
-                                            </select>
-                                            <button class="add-domain" type="submit">{{ isset($cart[$result['domain']]) ? 'Update cart' : (session('customer') ? 'Add to cart' : 'Purchase now') }} <b>+</b></button>
-                                        </form>
-                                    @else
-                                        <select id="years-{{ $loop->index }}" class="domain-years" aria-label="No. of years" onchange="updateTermPrice(this)">
-                                            @foreach($result['year_prices'] as $years => $termPrice)
-                                                <option value="{{ $years }}" data-price="{{ $termPrice }}">{{ $years }} year{{ $years > 1 ? 's' : '' }} · ৳ {{ number_format($termPrice) }}</option>
-                                            @endforeach
+                                    <form class="domain-add-form" method="POST" action="{{ route('domains.cart') }}">
+                                        @csrf
+                                        <input type="hidden" name="domain" value="{{ $result['domain'] }}">
+                                        <select id="years-{{ $loop->index }}" class="domain-years" name="years" aria-label="No. of years" onchange="updateTermPrice(this)">
+                                        @foreach($result['year_prices'] as $years => $termPrice)
+                                            <option value="{{ $years }}" data-price="{{ $termPrice }}" @if((int) $years === $selectedYears) selected @endif>{{ $years }} year{{ $years > 1 ? 's' : '' }} · ৳ {{ number_format($termPrice) }}</option>
+                                        @endforeach
                                         </select>
-                                    @endif
+                                        <button class="add-domain" type="submit">{{ isset($cart[$result['domain']]) ? 'Update cart' : (session('customer') ? 'Add to cart' : 'Purchase now') }} <b>+</b></button>
+                                    </form>
                                 </div>
                             @endif
+                            @endif
                             @if(!$result['available'])
-                                <span class="taken-label" @if($result['available'] === null) title="ResellerClub could not confirm availability. Pricing is still available." @endif>{{ $result['available'] === null ? 'Not verified' : 'Unavailable' }}</span>
+                                <span class="taken-label{{ $result['available'] === null ? ' is-unverified' : '' }}" @if($result['available'] === null) title="Pricing is still available." @endif>{{ $result['available'] === null ? 'Not verified' : 'Unavailable' }}</span>
                             @endif
                         </div>
                     @endforeach
@@ -184,8 +181,12 @@
         function updateTermPrice(select) {
             var row = select.closest('.domain-result');
             var selected = select.options[select.selectedIndex];
+            // Unavailable rows render no price block at all, so bail out safely.
+            if (!row || !selected || !row.querySelector('.term-price')) {
+                return;
+            }
             var total = Number(selected.getAttribute('data-price')) || 0;
-            var years = Number(selected.value) || 1;
+            var years = Number(select.value) || 1;
             var formatPrice = function (price) {
                 return price.toLocaleString('en-US', { maximumFractionDigits: 0 });
             };

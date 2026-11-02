@@ -1,0 +1,240 @@
+/* ==========================================================================
+   CloudTech — shared loading spinner (site-spinner)
+   Brand palette: navy #17365e · accent #2168c1 · light blues #4d9bff/#8fd0ff
+   Reusable: fullscreen overlay (default) or inline panel (.sspin--inline
+   inside a position:relative .sspin-host), dark (default) or light theme.
+   API: SiteSpinner.show()/progress()/finish()/hide()
+   ========================================================================== */
+
+.sspin-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity .22s ease;
+    background:
+        radial-gradient(900px 520px at 14% -8%, rgba(47, 111, 208, .38) 0%, rgba(47, 111, 208, 0) 55%),
+        radial-gradient(760px 480px at 108% 112%, rgba(33, 104, 193, .42) 0%, rgba(33, 104, 193, 0) 52%),
+        linear-gradient(160deg, rgba(12, 32, 60, .96) 0%, rgba(23, 54, 94, .95) 55%, rgba(9, 24, 45, .97) 100%);
+}
+
+.sspin-overlay[hidden] { display: none !important; }
+
+.sspin-overlay.is-active { opacity: 1; }
+
+body.sspin-lock { overflow: hidden; }
+
+.sspin-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: min(310px, 88vw);
+    padding: 30px 28px 28px;
+    border: 1px solid rgba(255, 255, 255, .17);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, .07);
+    box-shadow: 0 30px 70px rgba(4, 14, 30, .45), inset 0 1px 0 rgba(255, 255, 255, .12);
+    text-align: center;
+    animation: sspin-pop .3s cubic-bezier(.2, .9, .3, 1.18) both;
+}
+
+@keyframes sspin-pop {
+    from { opacity: 0; transform: translateY(12px) scale(.93); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Orbit ring + live percentage core --- */
+.sspin-orbit {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sspin-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 210deg,
+        rgba(255, 255, 255, .07) 0deg,
+        rgba(141, 184, 255, .55) 80deg,
+        #9cc8ff 168deg,
+        #ffffff 262deg,
+        rgba(255, 255, 255, .07) 262.5deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5.5px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5.5px));
+    animation: sspin-spin .9s linear infinite;
+}
+
+@keyframes sspin-spin {
+    to { transform: rotate(360deg); }
+}
+
+.sspin-core {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .22);
+    background: radial-gradient(circle at 32% 28%, rgba(109, 166, 255, .34) 0%, rgba(33, 104, 193, .22) 62%, rgba(16, 42, 78, .3) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18);
+    animation: sspin-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes sspin-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.045); }
+}
+
+/* The percentage sits dead-centre in the ring. The core is a flex box, so
+   the value is optically centred with line-height on the number itself
+   rather than baseline alignment (which used to push it off-centre). */
+.sspin-pct {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    color: #ffffff;
+    font-family: Manrope, "DM Sans", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: -.4px;
+    line-height: 1;
+    transform: none;
+}
+
+.sspin-pct i {
+    font-style: normal;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+    margin: 0;
+    opacity: .78;
+}
+
+/* --- Copy + progress bar --- */
+.sspin-status {
+    margin: 2px 0 0;
+    color: #ffffff;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: .1px;
+    text-align: center;
+}
+
+.sspin-bar {
+    width: 100%;
+    max-width: 224px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .16);
+    overflow: hidden;
+}
+
+.sspin-bar-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2168c1 0%, #6ea8ff 55%, #cfe4ff 100%);
+    box-shadow: 0 0 12px rgba(110, 168, 255, .55);
+    transition: width .16s ease-out;
+}
+
+.sspin-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --- Light theme (for light backgrounds) --- */
+.sspin--light {
+    background:
+        radial-gradient(900px 520px at 14% -8%, rgba(33, 104, 193, .12) 0%, rgba(33, 104, 193, 0) 55%),
+        radial-gradient(760px 480px at 108% 112%, rgba(77, 155, 255, .14) 0%, rgba(77, 155, 255, 0) 52%),
+        linear-gradient(160deg, rgba(240, 246, 253, .95) 0%, rgba(228, 238, 251, .94) 60%, rgba(219, 231, 246, .96) 100%);
+}
+
+.sspin--light .sspin-card {
+    border-color: rgba(23, 54, 94, .12);
+    background: rgba(255, 255, 255, .88);
+    box-shadow: 0 30px 70px rgba(23, 54, 94, .18), inset 0 1px 0 #ffffff;
+}
+
+.sspin--light .sspin-ring {
+    background: conic-gradient(from 210deg,
+        rgba(23, 54, 94, .08) 0deg,
+        rgba(33, 104, 193, .45) 80deg,
+        #6ea8ff 168deg,
+        #2168c1 262deg,
+        rgba(23, 54, 94, .08) 262.5deg);
+}
+
+.sspin--light .sspin-core {
+    border-color: rgba(23, 54, 94, .14);
+    background: radial-gradient(circle at 32% 28%, rgba(110, 168, 255, .2) 0%, rgba(33, 104, 193, .1) 62%, rgba(23, 54, 94, .06) 100%);
+}
+
+.sspin--light .sspin-pct { color: #17365e; }
+
+.sspin--light .sspin-status { color: #17365e; }
+
+.sspin--light .sspin-bar { background: rgba(23, 54, 94, .12); }
+
+.sspin--light .sspin-bar-fill {
+    background: linear-gradient(90deg, #17365e 0%, #2168c1 60%, #6ea8ff 100%);
+    box-shadow: 0 0 10px rgba(33, 104, 193, .35);
+}
+
+/* --- Inline variant (inside .sspin-host { position: relative }) --- */
+.sspin--inline {
+    position: absolute;
+    border-radius: 18px;
+}
+
+.sspin--inline .sspin-card {
+    width: min(280px, 92%);
+    padding: 22px 20px 20px;
+    border-radius: 18px;
+}
+
+.sspin--inline .sspin-orbit { width: 72px; height: 72px; }
+.sspin--inline .sspin-core { width: 50px; height: 50px; }
+.sspin--inline .sspin-pct { font-size: 15px; }
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+    .sspin-ring,
+    .sspin-core,
+    .sspin-card { animation: none; }
+
+    .sspin-bar-fill { transition: none; }
+
+    .sspin-overlay { transition: none; }
+}
+
+/* --- Small screens --- */
+@media (max-width: 480px) {
+    .sspin-card { padding: 24px 20px 22px; border-radius: 18px; }
+    .sspin-orbit { width: 80px; height: 80px; }
+    .sspin-core { width: 54px; height: 54px; }
+    .sspin-pct { font-size: 16.5px; }
+    .sspin-status { font-size: 14.5px; }
+}

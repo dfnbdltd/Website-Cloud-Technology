@@ -3321,3 +3321,58 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 .admin-app .domain-content>.exchange-rate-card{
     display:none;
 }
+
+/* ===== Unavailable domain rows (registered / not verified) =====
+   Registered domains carry no price, no term selector and no add-to-cart:
+   the row collapses to name + one status pill so it reads as a clean dead
+   end instead of a broken price block. Presentation only. */
+.domain-result.is-registered .taken-label{
+    flex:0 0 auto;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    min-width:0;
+    padding:8px 15px;
+    border:1px solid #f2d4d4;
+    border-radius:999px;
+    background:linear-gradient(180deg,#fff7f7 0%,#fdeeee 100%);
+    color:#b45454;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.2px;
+    text-align:center;
+    white-space:nowrap;
+}
+.domain-result.is-registered .taken-label::before{
+    content:'';
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:currentColor;
+    opacity:.55;
+}
+.domain-result.is-registered .result-name small{
+    color:#a88484;
+    font-weight:600;
+}
+/* Soften the whole row for unavailable names. */
+.domain-result.is-registered{
+    background:linear-gradient(180deg,#fffdfd 0%,#fdfafa 100%);
+    border-color:#f0e6e6;
+}
+.domain-result.is-registered .result-status.is-taken{
+    background:#fdecec;
+    color:#c96a6a;
+}
+/* "Not verified" is a soft amber caution state rather than a hard no. */
+.domain-result.is-registered .taken-label.is-unverified{
+    border-color:#f4e3c6;
+    background:linear-gradient(180deg,#fffaf1 0%,#fdf3e3 100%);
+    color:#a9793a;
+}
+@media (max-width:520px){
+    .domain-result.is-registered .taken-label{
+        margin-left:43px;
+        padding:7px 13px;
+    }
+}
