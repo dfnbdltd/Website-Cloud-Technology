@@ -17,7 +17,7 @@ class DomainRegistrationService
 
     public function registerPaidOrder(DomainOrder $order)
     {
-        if (!config('services.resellerclub.auto_register') || $order->payment_status !== 'paid') {
+        if ($order->payment_status !== 'paid') {
             return;
         }
 
@@ -92,12 +92,12 @@ class DomainRegistrationService
             return null;
         }
 
-        if (
-            !config('services.resellerclub.auto_register')
-            || !$this->resellerClub->isConfigured()
-            || !config('services.resellerclub.customer_id')
-        ) {
+        if (!$this->resellerClub->isConfigured()) {
             return 'Domain registration is temporarily unavailable. Please contact support.';
+        }
+
+        if (!config('services.resellerclub.customer_id')) {
+            return 'Domain registration account is not fully configured. Please contact support.';
         }
 
         $wallet = $this->resellerClub->walletBalance();

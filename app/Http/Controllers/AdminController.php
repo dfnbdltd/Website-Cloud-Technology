@@ -67,17 +67,17 @@ class AdminController extends Controller
 
         $resellerClubBase = rtrim((string) config('services.resellerclub.base_url'), '/');
         $bkashBase = rtrim((string) config('services.bkash.base_url'), '/');
+        $resellerClubConfigured = config('services.resellerclub.enabled')
+            && !empty(config('services.resellerclub.auth_userid'))
+            && !empty(config('services.resellerclub.api_key'))
+            && !empty(config('services.resellerclub.customer_id'));
 
         return view('admin.apis', [
             'integrations' => [
                 [
                     'name' => 'ResellerClub',
                     'purpose' => 'Domain availability, pricing, wallet pre-check and registration.',
-                    'status' => config('services.resellerclub.enabled')
-                        && !empty(config('services.resellerclub.auth_userid'))
-                        && !empty(config('services.resellerclub.api_key'))
-                            ? 'Configured'
-                            : 'Needs configuration',
+                    'status' => $resellerClubConfigured ? 'Configured' : 'Needs configuration',
                     'endpoints' => [
                         ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
@@ -92,8 +92,8 @@ class AdminController extends Controller
                     ],
                     'settings' => [
                         [
-                            'name' => 'Automatic domain registration',
-                            'status' => config('services.resellerclub.auto_register') ? 'Enabled' : 'Disabled',
+                            'name' => 'Domain registration',
+                            'status' => 'Automatically attempted after successful payment',
                         ],
                     ],
                 ],
