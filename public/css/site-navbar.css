@@ -67,34 +67,34 @@
 /* ── Fitting seven items + the account block on one row ──────────────────
    Home · Domains · Web Hosting · SSL Certificate · Business Email ·
    SMS Service · Support, then phone + Client Area + the user pill. That is
-   wider than the 1240px content wrap, so the header gets its own slightly
-   wider max-width plus two compaction tiers. Everything stays on one row
-   and nothing spills past the window edge (which used to produce a
+   wider than the 1240px content wrap, so the header gets its own, slightly
+   wider max-width and two compaction tiers. Everything stays on one row and
+   nothing ever spills past the window edge (which used to cause a
    horizontal scrollbar for signed-in visitors). */
-@media(min-width:1401px){
-#site-navbar .site-header-inner{max-width:1400px;gap:28px}
+@media(min-width:1100px){
+#site-navbar .site-header-inner{max-width:1380px;gap:24px}
 #site-navbar .site-nav{gap:4px;margin-left:4px}
 #site-navbar .site-nav a,#site-navbar .site-nav-dropdown>a{padding:8px 11px}
 #site-navbar .site-account{gap:12px}
 #site-navbar .site-client-area>summary{padding:10px 13px}
 #site-navbar .site-user{padding:4px 12px 4px 5px;gap:8px}
-#site-navbar .site-user>span:not(.site-avatar){max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#site-navbar .site-phone{font-size:13px}
+#site-navbar .site-user>span:not(.site-avatar){max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#site-navbar .site-phone{font-size:13px;letter-spacing:-.1px}
 }
-/* 1201–1400px: the phone number folds down to the handset icon (the tel:
-   link and its aria-label are unchanged) and the row tightens up. */
-@media(min-width:1201px) and (max-width:1400px){
+/* 1360px and under: the phone number folds down to the handset icon
+   (the tel: link and its aria-label are unchanged) and the rows tighten. */
+@media(min-width:961px) and (max-width:1360px){
 #site-navbar .site-header-inner{gap:14px;max-width:1240px}
 #site-navbar .site-logo .ct-logo-img{height:44px}
-#site-navbar .site-nav{gap:2px}
 #site-navbar .site-nav a,#site-navbar .site-nav-dropdown>a{padding:8px 9px;font-size:14.5px}
+#site-navbar .site-nav{gap:2px}
 #site-navbar .site-phone span{display:none}
-#site-navbar .site-phone{padding:8px;font-size:16px}
-#site-navbar .site-user>span:not(.site-avatar){max-width:96px}
+#site-navbar .site-phone{padding:8px 8px;font-size:16px}
+#site-navbar .site-user>span:not(.site-avatar){max-width:104px}
 }
-/* Below 1201px a single row cannot hold seven items plus the account
-   block, so the menu drops onto its own row under the logo. */
-@media(max-width:1200px){
+
+/* responsive — same breakpoints as the home page */
+@media(max-width:960px){
 #site-navbar .site-header-inner{height:auto;min-height:72px;flex-wrap:wrap;gap:8px 16px;padding-top:10px;padding-bottom:10px}
 #site-navbar .site-nav{display:flex;order:3;width:100%;margin:0;flex-wrap:wrap}
 #site-navbar .site-nav a,#site-navbar .site-nav-dropdown>a{padding:8px 10px}
