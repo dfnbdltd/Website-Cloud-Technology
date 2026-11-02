@@ -11,6 +11,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\HostingController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\MyStoreController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     $trustItems = array_values(array_filter(array_map('trim', explode(',', (string) \App\Models\Setting::get('trust_items')))));
@@ -77,7 +78,16 @@ Route::prefix('domains')->group(function () {
 // Client area: signed-in customers only.
 Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
-    Route::get('/mystore', [CustomerController::class, 'myStore'])->name('mystore');
+    // My Store: the All Items overview + one page per section (always
+    // reachable, whether the customer owns anything in it or not).
+    Route::get('/mystore', [MyStoreController::class, 'index'])->name('mystore');
+    Route::get('/mystore/domains', [MyStoreController::class, 'domains'])->name('mystore.domains');
+    Route::get('/mystore/hosting', [MyStoreController::class, 'hosting'])->name('mystore.hosting');
+    Route::get('/mystore/{service}', [MyStoreController::class, 'service'])
+        ->where('service', 'ssl|email|sms')
+        ->name('mystore.service');
+    Route::get('/mystore/invoices', [MyStoreController::class, 'invoices'])->name('mystore.invoices');
+    Route::get('/mystore/payments', [MyStoreController::class, 'payments'])->name('mystore.payments');
     Route::get('/store/hosting/{type}', [HostingController::class, 'clientPlans'])->where('type', 'shared|vps|dedicated')->name('client.hosting');
     Route::post('/mystore/add-balance', [CustomerController::class, 'addBalance'])->name('mystore.add-balance');
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');

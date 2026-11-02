@@ -1,0 +1,30 @@
+
+/* ── Collapsed group that still owns the current page ─────────────────────
+   The navy pill means ONE thing now: this group is open. Before this, the
+   group holding the current page also kept the pill while collapsed, so
+   opening Web Hosting left BOTH Web Hosting and My Store navy — two rows
+   claiming to be open at once. The closed-but-current group now keeps a soft
+   tint instead (enough to say "you are here", clearly not an open group) and
+   its +/− control stays dark, so the state of the list is never ambiguous.
+
+   Scoping: id + .is-current + :not(.open) outranks domains.css's
+   `.service-group-start:not(.open)` reset that used to strip the fill from
+   the Domains row only. */
+#clientSidebar:not(.collapsed) nav > a.is-current:not(.open) {
+    background: #eaf2fb;
+    border-color: #d6e6f6;
+    color: #1b5aa0;
+    box-shadow: none;
+}
+
+#clientSidebar:not(.collapsed) nav > a.is-current:not(.open):hover {
+    background: #e1edfa;
+    border-color: #c8ddf2;
+    color: #164b87;
+}
+
+/* the bars stay dark on the soft tint (they are white only on the navy pill) */
+#clientSidebar:not(.collapsed) nav > a.is-current:not(.open) .nav-toggle,
+#clientSidebar:not(.collapsed) nav > a.is-current:not(.open):hover .nav-toggle {
+    color: #3f5d7d;
+}

@@ -181,9 +181,30 @@
     color: #21548f;
 }
 
-/* The open row (and the current page's row) is a navy pill with white
-   text, so the bars are white there too — the accent blue was almost
-   invisible on it. Light rows keep the dark bars. */
+/* ── The navy pill: which rows get it ───────────────────────────────────
+   domains.css paints the current page with `a.active` (a pale blue pill) and
+   promotes a service row to a navy pill with `a.service-nav-item.active`.
+   But `a.service-group-start:not(.open)` has the same specificity and comes
+   later, so it reset the background to transparent while the white text
+   stayed — collapsing Domains left white text on the page background.
+   Domains is the only row with that class, so it disagreed with Web Hosting.
+   Both group rows now keep the navy pill whether their list is open or
+   collapsed: the fill says where you are, the +/− says whether the list is
+   open. Written with the id selector so it cannot be out-ordered again. */
+#clientSidebar:not(.collapsed) nav > a.service-nav-item.active {
+    background: #17365e;
+    border-color: #17365e;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(23, 54, 94, .125);
+}
+
+#clientSidebar:not(.collapsed) nav > a.service-nav-item.active:hover {
+    background: #1c4373;
+    border-color: #1c4373;
+}
+
+/* The pill is navy in both states, so the bars are white in both. Light rows
+   keep the dark bars. */
 #clientSidebar nav > a.open .nav-toggle,
 #clientSidebar nav > a.active .nav-toggle {
     color: #ffffff;
@@ -268,3 +289,106 @@
         animation: none;
     }
 }
+
+/* ── Group submenus: a tree, no icons ──────────────────────────────────────
+   Domains, Web Hosting and My Store list children without repeating a glyph
+   per row. They hang from one vertical rail with a short connector each —
+   the classic "├── Shared Hosting / └── Dedicated Hosting" outline, while the
+   parent row keeps its own icon.
+
+   The rail is drawn per row (not as the group's border-left) so it stops
+   exactly at the last connector instead of trailing into the group's bottom
+   padding, and each connector is positioned at x = 0 of the collapsed
+   wrapper so the accordion's overflow:hidden never clips it.
+
+   Indent maths: the rows are inset 16px from the rail (their hover pill never
+   covers it) and the dash runs from the rail to the pill's left edge. Every
+   rule below is scoped with the sidebar id + the submenu id, so it outranks
+   the older class-only rules in domains.css no matter the load order. */
+#clientSidebar #domainRegistrationSubnav,
+#clientSidebar #hostingPackageSubnav,
+#clientSidebar #myStoreSubnav {
+    border-left: 0;
+    padding-left: 0;
+}
+
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a,
+#clientSidebar #myStoreSubnav > .subnav-inner > a {
+    position: relative;
+    margin-left: 16px;
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 0;
+}
+
+/* no per-row glyph: the connector does the job of the icon */
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a b,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a b,
+#clientSidebar #myStoreSubnav > .subnav-inner > a b {
+    display: none;
+}
+
+/* Corner + dash: vertical segment from above, rounded into the horizontal. */
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a::before,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a::before,
+#clientSidebar #myStoreSubnav > .subnav-inner > a::before {
+    position: absolute;
+    top: -4px;
+    left: -16px;
+    width: 16px;
+    height: calc(50% + 4px);
+    border-bottom: 1px solid #c4d6e7;
+    border-left: 1px solid #c4d6e7;
+    border-radius: 0 0 0 9px;      /* straight corner top-right, round at the elbow */
+    background: none;              /* reset the old blue dot + glow */
+    box-shadow: none;
+    content: "";
+    pointer-events: none;
+}
+
+/* The rail keeps going below this row unless it is the last item. */
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a:not(:last-child)::after,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a:not(:last-child)::after,
+#clientSidebar #myStoreSubnav > .subnav-inner > a:not(:last-child)::after {
+    position: absolute;
+    top: 50%;
+    bottom: -4px;
+    left: -16px;
+    width: 0;
+    border-left: 1px solid #c4d6e7;
+    background: none;
+    box-shadow: none;
+    content: "";
+    pointer-events: none;
+}
+
+/* The current (or hovered) row's branch takes the accent colour with it. */
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a.active::before,
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a.active::after,
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a:hover::before,
+#clientSidebar #domainRegistrationSubnav > .subnav-inner > a:hover::after,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a.active::before,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a.active::after,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a:hover::before,
+#clientSidebar #hostingPackageSubnav > .subnav-inner > a:hover::after,
+#clientSidebar #myStoreSubnav > .subnav-inner > a.active::before,
+#clientSidebar #myStoreSubnav > .subnav-inner > a.active::after,
+#clientSidebar #myStoreSubnav > .subnav-inner > a:hover::before,
+#clientSidebar #myStoreSubnav > .subnav-inner > a:hover::after {
+    border-color: #92b8e0;
+}
+
+/* ── A closed group is painted like any other row ─────────────────────────
+   The navy pill means ONE thing: this group is open. The group that merely
+   holds the current page used to keep the pill while collapsed, so opening
+   Web Hosting left BOTH Web Hosting and My Store navy — two rows claiming to
+   be open at once — and a paler replacement tint still read as "the blue
+   stayed behind". So a collapsed group now carries no fill at all, not even
+   for the page you are on: collapse is its own answer, and the +/− control
+   already says whether the list is open.
+
+   "You are here" is kept in the markup (aria-current="true" on the group row,
+   an .active child row inside the list) so nothing is lost for assistive tech
+   or for the deep-link pass. domains.css's `.service-group-start:not(.open)`
+   reset now agrees with this instead of fighting it. */

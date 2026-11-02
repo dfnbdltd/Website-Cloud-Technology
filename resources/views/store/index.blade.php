@@ -1,48 +1,137 @@
-<!doctype html><html lang="en"><head>@include('partials.head', ['title' => 'My Store'])<link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}"><link rel="stylesheet" href="{{ asset('css/store.css') }}?v={{ filemtime(public_path('css/store.css')) }}"></head><body class="domain-app">@include('partials.sidebar', ['active' => 'mystore', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
-<main class="domain-main">@include('partials.topbar', ['title' => 'My Store', 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])<div class="domain-content standalone-content">
-<span class="domain-kicker">MY STORE</span><h1 class="workspace-title">Everything of yours, in one place.</h1><p class="workspace-subtitle">Domains, hosting, invoices, payments and your available balance.</p>
-@if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
-@if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
+@extends('store.layout', ['pageTitle' => 'My Store', 'navActive' => 'mystore', 'topbarTitle' => 'My Store'])
 
-<div class="store-balance-row" id="balance">
-<div class="balance-card"><small>AVAILABLE BALANCE</small><strong>৳ {{ number_format(session('customer.balance', 0), 2) }}</strong><span>{{ $pendingTopup ? $pendingTopup . ' top-up awaiting approval' : 'Top up instantly with bKash' }}</span></div>
-<div class="balance-card alt"><small>PAID TO DATE</small><strong>৳ {{ number_format($paidTotal, 2) }}</strong><span>{{ $domainCount }} domain order{{ $domainCount === 1 ? '' : 's' }} placed</span></div>
-<a class="add-balance-toggle button-like" href="{{ route('wallet.index') }}#add-balance">＋ Add Balance</a>
-</div>
+@section('store')
+    @php($totalRows = collect($items)->sum(function ($rows) { return $rows->count(); }))
 
-<div class="store-grid">
-<section class="store-panel" id="my-domains"><div class="panel-head"><div><span class="domain-kicker">MY DOMAIN</span><h2>Domains</h2></div><a href="{{ route('domains.index') }}">Register new →</a></div>
-@forelse($orders as $order)
-@foreach($order->items as $item)
-<div class="order-row"><span class="order-icon">◎</span><div><strong>{{ $item->domain }}</strong><small>{{ $order->reference }} · {{ $order->created_at->format('d M Y') }}</small></div><b class="table-status {{ $order->payment_status }}">{{ ucfirst(str_replace('_', ' ', $order->status)) }}</b></div>
-@endforeach
-@empty
-<div class="table-empty">No domains yet. <a href="{{ route('domains.index') }}">Register your first domain →</a></div>
-@endforelse
-</section>
+    <span class="domain-kicker">MY STORE</span>
+    <h1 class="workspace-title">Everything of yours, in one place.</h1>
+    <p class="workspace-subtitle">Domains, hosting, invoices, payments and your available balance — all seven sections, always listed, filled in as you buy.</p>
 
-<section class="store-panel" id="hosting"><div class="panel-head"><div><span class="domain-kicker">MY HOSTING SERVICES</span><h2>Hosting</h2></div></div>
-<div class="table-empty">Hosting services will appear here after your next purchase.<br><a href="{{ route('client.hosting', 'shared') }}">Explore hosting plans →</a></div>
-</section>
+    <div class="store-balance-row" id="balance">
+        <div class="balance-card">
+            <small>AVAILABLE BALANCE</small>
+            <strong>৳ {{ number_format(session('customer.balance', 0), 2) }}</strong>
+            <span>{{ $pendingTopup ? $pendingTopup . ' top-up awaiting approval' : 'Top up instantly with bKash' }}</span>
+        </div>
+        <div class="balance-card alt">
+            <small>PAID TO DATE</small>
+            <strong>৳ {{ number_format($paidTotal, 2) }}</strong>
+            <span>{{ $domainCount }} domain order{{ $domainCount === 1 ? '' : 's' }} placed</span>
+        </div>
+        <a class="add-balance-toggle button-like" href="{{ route('wallet.index') }}#add-balance">＋ Add Balance</a>
+    </div>
 
-<section class="store-panel"><div class="panel-head"><div><span class="domain-kicker">INVOICES</span><h2>Recent invoices</h2></div><a href="{{ route('invoices') }}">View all →</a></div>
-@forelse($orders as $order)
-<div class="order-row"><span class="order-icon">▣</span><div><strong>{{ $order->reference }}</strong><small>{{ $order->created_at->format('d M Y') }}</small></div><b>৳ {{ number_format($order->total) }}</b><b class="table-status {{ $order->payment_status }}">{{ ucfirst($order->payment_status) }}</b></div>
-@empty
-<div class="table-empty">No paid invoices yet.</div>
-@endforelse
-</section>
+    <div class="store-section-head">
+        <div>
+            <h2>All Items</h2>
+            <p>Seven sections in order. Each one opens its own page with the full details.</p>
+        </div>
+        <span class="store-section-chip">
+            {{ $totalRows }} item{{ $totalRows === 1 ? '' : 's' }} · {{ $items['domains']->count() }} domain{{ $items['domains']->count() === 1 ? '' : 's' }}
+        </span>
+    </div>
 
-<section class="store-panel" id="payments"><div class="panel-head"><div><span class="domain-kicker">PAYMENTS</span><h2>Top-ups & payments</h2></div></div>
-@forelse($payments as $payment)
-<div class="order-row"><span class="order-icon {{ $payment->status === 'approved' ? 'ok' : '' }}">৳</span><div><strong>{{ $payment->reference }}</strong><small>{{ ucfirst($payment->method) }} · {{ $payment->created_at->format('d M Y') }}</small></div><b>৳ {{ number_format($payment->amount, 2) }}</b><b class="table-status {{ $payment->status }}">{{ ucfirst($payment->status) }}</b></div>
-@empty
-<div class="table-empty">No payments yet. <a href="{{ route('wallet.index') }}#add-balance">Add balance →</a></div>
-@endforelse
-</section>
-</div>
-</div>
-</main>
+    <div class="store-card-grid">
+        @component('store.partials.card', [
+            'serial' => 1,
+            'section' => $sections['domains'],
+            'count' => $items['domains']->count(),
+            'summary' => $summaries['domains'],
+        ])
+            @foreach($items['domains']->take(3) as $domain)
+                <div class="store-card-row">
+                    <div class="store-card-row-main">
+                        <strong>{{ $domain['domain'] }}</strong>
+                        <small>
+                            @if($domain['expires_at'])
+                                Renews {{ $domain['expires_at']->format('d M Y') }}
+                            @else
+                                Registered in your account
+                            @endif
+                        </small>
+                    </div>
+                    <b class="store-card-row-value">৳ {{ number_format($domain['renewal_price'], 2) }}<i>/yr</i></b>
+                </div>
+            @endforeach
+            @if($items['domains']->count() > 3)
+                <span class="store-card-more">+{{ $items['domains']->count() - 3 }} more</span>
+            @endif
+        @endcomponent
 
-@include('partials.chat')
-</body></html>
+        @component('store.partials.card', [
+            'serial' => 2,
+            'section' => $sections['hosting'],
+            'count' => $items['hosting']->count(),
+            'summary' => $summaries['hosting'],
+        ])
+            @include('store.partials.service-rows', ['items' => $items['hosting'], 'limit' => 3])
+        @endcomponent
+
+        @component('store.partials.card', [
+            'serial' => 3,
+            'section' => $sections['ssl'],
+            'count' => $items['ssl']->count(),
+            'summary' => $summaries['ssl'],
+        ])
+            @include('store.partials.service-rows', ['items' => $items['ssl'], 'limit' => 3])
+        @endcomponent
+
+        @component('store.partials.card', [
+            'serial' => 4,
+            'section' => $sections['email'],
+            'count' => $items['email']->count(),
+            'summary' => $summaries['email'],
+        ])
+            @include('store.partials.service-rows', ['items' => $items['email'], 'limit' => 3])
+        @endcomponent
+
+        @component('store.partials.card', [
+            'serial' => 5,
+            'section' => $sections['sms'],
+            'count' => $items['sms']->count(),
+            'summary' => $summaries['sms'],
+        ])
+            @include('store.partials.service-rows', ['items' => $items['sms'], 'limit' => 3])
+        @endcomponent
+
+        @component('store.partials.card', [
+            'serial' => 6,
+            'section' => $sections['invoices'],
+            'count' => $items['invoices']->count(),
+            'summary' => $summaries['invoices'],
+        ])
+            @foreach($items['invoices']->take(3) as $order)
+                <div class="store-card-row">
+                    <div class="store-card-row-main">
+                        <strong>{{ $order->reference }}</strong>
+                        <small>{{ $order->created_at->format('d M Y') }} · {{ $order->items->count() }} domain{{ $order->items->count() === 1 ? '' : 's' }}</small>
+                    </div>
+                    <b class="store-card-row-value">৳ {{ number_format($order->total, 2) }}</b>
+                </div>
+            @endforeach
+            @if($items['invoices']->count() > 3)
+                <span class="store-card-more">+{{ $items['invoices']->count() - 3 }} more</span>
+            @endif
+        @endcomponent
+
+        @component('store.partials.card', [
+            'serial' => 7,
+            'section' => $sections['payments'],
+            'count' => $items['payments']->count(),
+            'summary' => $summaries['payments'],
+        ])
+            @foreach($items['payments']->take(3) as $payment)
+                <div class="store-card-row">
+                    <div class="store-card-row-main">
+                        <strong>{{ $payment['reference'] }}</strong>
+                        <small>{{ ucfirst($payment['method']) }} · {{ $payment['at'] ? $payment['at']->format('d M Y') : '—' }}</small>
+                    </div>
+                    <b class="store-card-row-value">৳ {{ number_format($payment['amount'], 2) }}</b>
+                </div>
+            @endforeach
+            @if($items['payments']->count() > 3)
+                <span class="store-card-more">+{{ $items['payments']->count() - 3 }} more</span>
+            @endif
+        @endcomponent
+    </div>
+@endsection

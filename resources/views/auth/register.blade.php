@@ -337,7 +337,7 @@
             <button class="reg4-submit" type="submit">Create account <span aria-hidden="true">&rarr;</span></button>
 
             <p class="reg4-signin">
-                <span>Already registered? <a href="{{ route('login') }}">Sign in</a></span>
+                <span>Already registered? <a href="{{ route('login', empty($returnTo) ? [] : ['return_to' => $returnTo]) }}">Sign in</a></span>
                 <span><a href="{{ route('password.request') }}">Forgot password?</a></span>
             </p>
         </form>

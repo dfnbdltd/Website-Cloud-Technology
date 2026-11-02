@@ -60,7 +60,7 @@
 
         <div class="auth-divider"><span>New to CloudTech?</span></div>
 
-        <a class="button form-button signup-button" href="{{ route('register') }}">Create a free account <span>&rarr;</span></a>
+        <a class="button form-button signup-button" href="{{ route('register', empty($returnTo) ? [] : ['return_to' => $returnTo]) }}">Create a free account <span>&rarr;</span></a>
 
         @if(count(session('domain_cart', [])))
             <p class="auth-cart-note">&#128722; Your cart ({{ count(session('domain_cart', [])) }}) is saved &mdash; you'll continue to checkout after signing in.</p>

@@ -5,13 +5,14 @@
         <details class="site-client-area-group">
             <summary>My Store</summary>
             <div class="site-client-area-submenu">
-                <a href="{{ route('mystore') }}#my-domains">Domain</a>
-                <a href="{{ route('client.hosting', 'shared') }}">Web Hosting</a>
-                <a class="coming-soon-trigger" href="#" data-service="SSL Certificate">SSL Certificate</a>
-                <a class="coming-soon-trigger" href="#" data-service="Business Email">Business Email</a>
-                <a class="coming-soon-trigger" href="#" data-service="SMS Service">SMS Service</a>
-                <a href="{{ route('invoices') }}">Invoices</a>
-                <a href="{{ route('mystore') }}#payments">Payments</a>
+                <a href="{{ route('mystore') }}">All Items</a>
+                <a href="{{ route('mystore.domains') }}">Domain</a>
+                <a href="{{ route('mystore.hosting') }}">Web Hosting</a>
+                <a href="{{ route('mystore.service', 'ssl') }}">SSL Certificate</a>
+                <a href="{{ route('mystore.service', 'email') }}">Business Email</a>
+                <a href="{{ route('mystore.service', 'sms') }}">SMS Service</a>
+                <a href="{{ route('mystore.invoices') }}">Invoices</a>
+                <a href="{{ route('mystore.payments') }}">Payments</a>
             </div>
         </details>
         <a href="{{ route('cart.index') }}">Cart <b class="site-count">{{ count(session('domain_cart', [])) }}</b></a>

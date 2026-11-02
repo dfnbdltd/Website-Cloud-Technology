@@ -46,10 +46,14 @@ class GuestAccessTest extends TestCase
         $response->assertSee('domain-sidebar');
     }
 
+    /**
+     * The page the guest asked for travels with them, so signing in resumes it
+     * instead of dropping them on the dashboard (see PostAuthRedirectTest).
+     */
     public function testClientAreaRedirectsGuestsToLogin()
     {
         foreach (['/dashboard', '/mystore', '/wallet', '/invoices', '/profile/settings'] as $uri) {
-            $this->get($uri)->assertRedirect(route('login'));
+            $this->get($uri)->assertRedirect(route('login', ['return_to' => $uri]));
         }
     }
 

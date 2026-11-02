@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\SendEmailJob;
 use App\Models\EmailVerificationToken;
 use App\Rules\StrongPassword;
+use App\Support\AuthIntent;
 use App\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -18,9 +19,10 @@ use Illuminate\Support\Str;
 class AuthController extends Controller
 {
     /**
-     * Optional post-login destination (the checkout page sends guests here).
-     * Only same-site paths are accepted so the value can never bounce off-site.
-     * Without the query param this method behaves exactly as before.
+     * Sign-in screen. The checkout page and the client-area guard send guests
+     * here with ?return_to=..., so a buyer can finish the order they started.
+     * Opening the screen on its own (the header "Log in" button) sends them to
+     * the dashboard as before.
      */
     public function showLogin(Request $request)
     {
@@ -28,12 +30,34 @@ class AuthController extends Controller
             return redirect()->route('dashboard');
         }
 
-        $returnTo = (string) $request->query('return_to', '');
-        if ($returnTo !== '' && $returnTo[0] === '/' && substr($returnTo, 0, 2) !== '//') {
-            $request->session()->put('url.intended', $returnTo);
+        AuthIntent::replace($request->session(), $this->intendedDestination($request));
+
+        return view('auth.login', ['returnTo' => AuthIntent::peek($request->session())]);
+    }
+
+    /**
+     * Where the next successful sign-in should go.
+     *
+     * 1. the return_to the previous screen asked for (checkout, a client-area
+     *    page), else
+     * 2. the checkout, when the guest is carrying a cart — that is where a
+     *    buyer is headed even if they clicked the header "Log in" button, else
+     * 3. null, so a plain sign-in still starts in the dashboard.
+     *
+     * @return string|null
+     */
+    private function intendedDestination(Request $request)
+    {
+        $returnTo = AuthIntent::sanitize($request->query('return_to'));
+        if ($returnTo !== null) {
+            return $returnTo;
         }
 
-        return view('auth.login');
+        if (count((array) $request->session()->get('domain_cart', [])) > 0) {
+            return route('domains.checkout', [], false);
+        }
+
+        return null;
     }
 
     public function showForgotPasswordForm()
@@ -143,13 +167,15 @@ class AuthController extends Controller
     }
 
     /**
-     * Complete a customer login and always start in the dashboard.
+     * Complete a customer login. A guest who was sent here mid-purchase (or
+     * from a client-area page) continues where they left off; everyone else
+     * starts in the dashboard.
      */
     private function signIn(Request $request, User $user)
     {
         $this->establishSession($request, $user);
 
-        return redirect()->route('dashboard');
+        return redirect()->to(AuthIntent::pull($request->session(), route('dashboard')));
     }
 
     /**
@@ -169,14 +195,12 @@ class AuthController extends Controller
     public function showRegister(Request $request)
     {
         // The checkout page sends guests here with return_to so a brand-new
-        // buyer can be returned to their purchase after verification.
-        // Without the query param this method behaves exactly as before.
-        $returnTo = (string) $request->query('return_to', '');
-        if ($returnTo !== '' && $returnTo[0] === '/' && substr($returnTo, 0, 2) !== '//') {
-            $request->session()->put('url.intended', $returnTo);
-        }
+        // buyer can be returned to their purchase after verification. Without
+        // the query param a plain sign-up starts in the dashboard after
+        // verification, so an older destination is dropped.
+        AuthIntent::replace($request->session(), $this->intendedDestination($request));
 
-        return view('auth.register');
+        return view('auth.register', ['returnTo' => AuthIntent::peek($request->session())]);
     }
 
     public function register(Request $request)
@@ -256,7 +280,10 @@ class AuthController extends Controller
      */
     public function verificationNotice(Request $request)
     {
-        return view('auth.verify', ['email' => session('verify_email', old('email'))]);
+        return view('auth.verify', [
+            'email' => session('verify_email', old('email')),
+            'returnTo' => AuthIntent::peek($request->session()),
+        ]);
     }
 
     public function resendVerification(Request $request)
@@ -321,7 +348,7 @@ class AuthController extends Controller
 
         // Show the green-tick confirmation first, then let it continue to
         // the page the user started from (checkout for a returning buyer).
-        $destination = $request->session()->pull('url.intended', route('dashboard'));
+        $destination = AuthIntent::pull($request->session(), route('dashboard'));
         $request->session()->flash('verified_destination', $destination);
 
         return redirect()->route('email.verified');

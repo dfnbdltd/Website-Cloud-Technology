@@ -123,32 +123,6 @@ class CustomerController extends Controller
     /**
      * My Store: domains, hosting, invoices, payments, balance and top-ups.
      */
-    public function myStore(Request $request)
-    {
-        if (!$this->customer($request)) { return redirect()->route('login'); }
-        $userId = session('customer.id');
-        $orders = DomainOrder::with('items')
-            ->where('user_id', $userId)
-            ->where('payment_status', 'paid')
-            ->latest()
-            ->take(6)
-            ->get();
-        $payments = Topup::where('user_id', $userId)->latest()->take(6)->get();
-        $domainCount = DomainOrder::where('user_id', $userId)
-            ->where('payment_status', 'paid')
-            ->count();
-        $paidTotal = (float) DomainOrder::where('user_id', $userId)->where('payment_status', 'paid')->sum('total');
-        $pendingTopup = Topup::where('user_id', $userId)->where('status', 'pending')->count();
-
-        return view('store.index', [
-            'customer' => session('customer'),
-            'orders' => $orders,
-            'payments' => $payments,
-            'domainCount' => $domainCount,
-            'paidTotal' => $paidTotal,
-            'pendingTopup' => $pendingTopup,
-        ]);
-    }
 
     /**
      * Customer submits an "Add Balance" request (manual bKash/Nagad/bank proof).
