@@ -1,0 +1,270 @@
+/* ===========================================================================
+   Client sidebar — the "+" group control, the expand / collapse motion and
+   the mobile drawer. Loaded by resources/views/partials/sidebar.blade.php.
+
+   Why this file exists
+   --------------------
+   The accordion used to be driven from public/css/domains.css by a hard-coded
+   max-height (0 → 220px, later patched to 420px) plus a stack of later
+   overrides. That caused exactly the reported bugs:
+     • groups "snapped" open, because the height animated a range (~420px)
+       far bigger than the real content, so movement finished in a flash;
+     • long lists (My Store has 7 rows) were clipped by the fixed maximum;
+     • the control was a circled "+" glyph swapped by changing `content`,
+       which cannot animate, so the icon blinked instead of morphing;
+     • closing a group also removed the `active` highlight of the page you
+       were actually on.
+   Everything below is scoped to #clientSidebar: an id beats every class-only
+   rule no matter the load order, so this is the single, deterministic
+   implementation. It animates the REAL content height (grid-template-rows
+   0fr → 1fr), so nothing is clipped and any number of rows works.
+
+   Behaviour (see the inline script in partials/sidebar.blade.php):
+   one group open at a time — opening Web Hosting closes Domains, and the
+   group of the page you are on keeps its highlight while collapsed.
+   =========================================================================== */
+
+/* ── Group container: animated height, no magic numbers ─────────────────── */
+#clientSidebar nav > .subnav {
+    display: grid;
+    grid-template-rows: 0fr;
+    max-height: none;          /* kill the old fixed-height animation */
+    margin: 0 0 0 22px;
+    padding: 0 0 0 26px;
+    border-left: 1px solid #cbdced;
+    gap: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: none;
+    transition:
+        grid-template-rows .3s cubic-bezier(.4, 0, .2, 1),
+        opacity .22s ease,
+        margin-bottom .3s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* The single wrapper that actually collapses (grid rows need one child). */
+#clientSidebar nav > .subnav > .subnav-inner {
+    display: grid;
+    gap: 4px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Child rows: same 44px rhythm, a calmer 10px radius instead of a full
+   capsule, and a 22px icon so the indent (rail → row → label) reads as a
+   tree rather than a second list. */
+#clientSidebar nav > .subnav > .subnav-inner > a {
+    min-height: 40px;
+    height: 40px;
+    padding: 8px 14px 8px 10px;
+    border-radius: 10px;
+    gap: 8px;
+}
+
+#clientSidebar nav > .subnav > .subnav-inner > a b {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    font-size: 15px;
+}
+
+#clientSidebar nav > .subnav.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+
+/* Old browsers without animatable grid rows: still smooth, still unclipped. */
+@supports not (grid-template-rows: 1fr) {
+    #clientSidebar nav > .subnav {
+        display: flex;
+        flex-direction: column;
+        max-height: 0;
+        transition: max-height .3s ease, opacity .22s ease;
+    }
+    #clientSidebar nav > .subnav > .subnav-inner {
+        display: contents;
+    }
+    #clientSidebar nav > .subnav.open {
+        max-height: 640px;
+    }
+}
+
+/* Collapsed rail never shows a list (the rail is icons only). */
+#clientSidebar.collapsed nav > .subnav,
+#clientSidebar.collapsed nav > a .nav-toggle {
+    display: none;
+}
+
+/* ── One row rhythm ──────────────────────────────────────────────────────
+   domains.css mixed three different row heights (plain links 38px, group
+   rows 48px, children 44px) and two icon sizes, so the list looked uneven
+   and a group row grew 4px taller the moment it opened. Every top-level row
+   is now 44px with a 30px icon tile, in every state, so nothing shifts and
+   the labels line up in one column. */
+#clientSidebar nav > a {
+    min-height: 44px;
+    height: 44px;
+    padding: 6px 12px;
+    gap: 10px;
+    transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+
+#clientSidebar nav > a b {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    line-height: 1;
+}
+
+/* Counters keep their own box and sit on the same 18px right-hand margin as
+   the +/− control, so the right edge of the menu is one straight line. */
+#clientSidebar nav > a .nav-count {
+    flex: none;
+    margin-right: 5px;
+}
+
+#clientSidebar nav > a .nav-caret {
+    margin-left: auto;
+}
+
+/* ── The control: a small "+", and a plain "−" once the group is open ────
+   No circle, no border, no background — only two thin bars, like the
+   reference. The flat bar is ::before, the upright one ::after; on open the
+   upright bar collapses (scaleX 0), leaving the single flat "−" bar. */
+#clientSidebar nav > a .nav-toggle {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: #3f5d7d;
+    font-size: 0;              /* the old text glyph is no longer used */
+    font-style: normal;
+    line-height: 0;
+    transform: none;
+    transform-origin: 50% 50%;
+    transition: color .18s ease;
+}
+
+#clientSidebar nav > a .nav-toggle::before,
+#clientSidebar nav > a .nav-toggle::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    content: "";
+    transform: translate(-50%, -50%);
+    transition: transform .28s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* the upright bar makes the "+" */
+#clientSidebar nav > a .nav-toggle::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+#clientSidebar nav > a:hover .nav-toggle {
+    color: #21548f;
+}
+
+/* The open row (and the current page's row) is a navy pill with white
+   text, so the bars are white there too — the accent blue was almost
+   invisible on it. Light rows keep the dark bars. */
+#clientSidebar nav > a.open .nav-toggle,
+#clientSidebar nav > a.active .nav-toggle {
+    color: #ffffff;
+}
+
+#clientSidebar nav > a.open .nav-toggle::after {
+    transform: translate(-50%, -50%) rotate(90deg) scaleX(0);
+}
+
+#clientSidebar nav > a:focus-visible .nav-toggle {
+    outline: 2px solid #78aef1;
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* ── Mobile drawer: glide instead of snap, and let it scroll ────────────── */
+@media (max-width: 900px) {
+    #clientSidebar {
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        transition: transform .32s cubic-bezier(.22, 1, .36, 1), box-shadow .32s ease;
+    }
+    #clientSidebar.mobile-open {
+        box-shadow: 0 24px 60px rgba(10, 30, 60, .28);
+    }
+    #clientSidebar + .sidebar-backdrop {
+        animation: sidebar-backdrop-in .24s ease both;
+    }
+    /* roomy rows are easier to tap than the compressed desktop rhythm */
+    #clientSidebar nav > .subnav > .subnav-inner {
+        gap: 4px;
+    }
+}
+
+/* Phones (≤520px): the old stylesheet hid the whole menu here, so the
+   hamburger opened a drawer with nothing in it. Keep the real navigation and
+   let the drawer do its job. */
+@media (max-width: 520px) {
+    #clientSidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(316px, 88vw);
+        min-height: 100vh;
+        padding: 20px 16px;
+        border-radius: 0 16px 16px 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        box-shadow: none;
+    }
+    #clientSidebar nav {
+        display: block;
+    }
+    #clientSidebar .domain-side-bottom {
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+    #clientSidebar .domain-brand {
+        padding-bottom: 14px;
+    }
+    #clientSidebar.mobile-open {
+        box-shadow: 0 24px 60px rgba(10, 30, 60, .28);
+    }
+}
+
+@keyframes sidebar-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #clientSidebar,
+    #clientSidebar nav > .subnav,
+    #clientSidebar nav > a .nav-toggle,
+    #clientSidebar nav > a .nav-toggle::before,
+    #clientSidebar nav > a .nav-toggle::after {
+        transition: none !important;
+    }
+    #clientSidebar + .sidebar-backdrop {
+        animation: none;
+    }
+}

@@ -117,7 +117,9 @@ class GuestAccessTest extends TestCase
         $this->get(route('domains.index'))
             ->assertOk()
             ->assertDontSee('domain-sidebar')
-            ->assertSee('class="selected" href="' . route('domains.index') . '">Domain Registration', false)
+            // The shared public navbar (same one as the landing page) marks
+            // the Domains item as the current page.
+            ->assertSee('class="selected" href="' . route('domains.index') . '">Domains', false)
             ->assertSee('site-account');
     }
 
