@@ -90,6 +90,73 @@ class ResellerClubClient
         return $this->priceOptions($this->pricing()[$classkey] ?? null, $fallback);
     }
 
+    /**
+     * Live registration price in the configured ResellerClub pricing currency.
+     * This is the customer price, so it is a conservative wallet pre-check.
+     */
+    public function liveRegistrationPrice($classkey, $years)
+    {
+        $live = $this->pricing()[$classkey] ?? null;
+        $firstYear = $live['addnewdomain']['1'] ?? null;
+
+        if ($firstYear === null || !is_numeric($firstYear)) {
+            return null;
+        }
+
+        $renewal = $live['renewdomain']['1'] ?? $firstYear;
+        $termPrice = $live['addnewdomain'][(string) $years] ?? null;
+
+        if ($years > 1 && $termPrice !== null && (float) $termPrice === (float) $firstYear) {
+            $termPrice = null;
+        }
+
+        if ($termPrice !== null && is_numeric($termPrice)) {
+            return (float) $termPrice;
+        }
+
+        return (float) $firstYear + ((float) $renewal * ($years - 1));
+    }
+
+    /**
+     * Current available reseller wallet balance and its currency.
+     */
+    public function walletBalance()
+    {
+        if (!$this->isConfigured()) {
+            return null;
+        }
+
+        $resellerId = $this->config['reseller_id'] ?: $this->config['auth_userid'];
+        $response = $this->request('/billing/reseller-balance.json', [
+            'reseller-id' => $resellerId,
+        ]);
+        $balanceData = is_array($response) && isset($response['data']) && is_array($response['data'])
+            ? $response['data']
+            : $response;
+
+        if (
+            !is_array($balanceData)
+            || isset($balanceData['error'])
+            || isset($balanceData['errorcode'])
+            || strtoupper((string) ($balanceData['status'] ?? '')) === 'ERROR'
+        ) {
+            return null;
+        }
+
+        $balance = $balanceData['availablebalance'] ?? $balanceData['sellingcurrencybalance'] ?? null;
+        $currency = $balanceData['sellingcurrency'] ?? $this->config['price_currency'] ?? null;
+        if (!is_numeric($balance) || !$currency) {
+            \Log::warning('ResellerClub wallet balance response was invalid', ['response' => $response]);
+
+            return null;
+        }
+
+        return [
+            'balance' => (float) $balance,
+            'currency' => strtoupper((string) $currency),
+        ];
+    }
+
     public function checkAvailability($domain, $tld)
     {
         if (!$this->isConfigured()) {

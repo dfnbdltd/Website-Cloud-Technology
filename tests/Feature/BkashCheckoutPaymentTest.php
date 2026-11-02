@@ -32,6 +32,9 @@ class BkashCheckoutPaymentTest extends TestCase
             'services.bkash.username' => 'test-username',
             'services.bkash.password' => 'test-password',
         ]);
+        config(['services.test_domains' => array_merge(config('services.test_domains', []), [
+            'example.com' => ['price' => 1200, 'renewal' => 1200],
+        ])]);
     }
 
     private function placeBkashOrder()

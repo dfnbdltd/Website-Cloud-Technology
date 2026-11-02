@@ -276,6 +276,11 @@ class DomainController extends Controller
         }
         $data['customer_email'] = $data['email'];
 
+        $walletError = app(DomainRegistrationService::class)->walletPreflightError($cart);
+        if ($walletError) {
+            return back()->withInput()->withErrors(['payment_method' => $walletError]);
+        }
+
         $order = [
             'reference' => 'CT-' . date('Ymd') . '-' . strtoupper(substr(sha1(uniqid('', true)), 0, 6)),
             'items' => array_values($cart),
@@ -348,10 +353,15 @@ class DomainController extends Controller
 
         if ($isWalletPayment) {
             app(DomainRegistrationService::class)->registerPaidOrder($persisted->fresh());
+            $persisted = $persisted->fresh();
             $request->session()->put('customer.balance', (float) $user->fresh()->balance);
             Notifier::send($persisted->customer_email, new InvoiceMail($persisted->fresh()));
 
-            return view('domains.confirmation', ['order' => $order, 'paid' => true]);
+            return view('domains.confirmation', [
+                'order' => $order,
+                'paid' => true,
+                'registrationPending' => $persisted->status === 'registration_pending',
+            ]);
         }
 
         if ($data['payment_method'] === 'bkash') {
@@ -384,6 +394,7 @@ class DomainController extends Controller
         return view('domains.confirmation', [
             'order' => $order,
             'paid' => $databaseOrder ? $databaseOrder->payment_status === 'paid' : (($order['payment']['status'] ?? null) === 'paid'),
+            'registrationPending' => $databaseOrder && $databaseOrder->status === 'registration_pending',
         ]);
     }
 
