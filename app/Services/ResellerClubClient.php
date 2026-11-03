@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Support\ResellerClubDomainContacts;
+
 class ResellerClubClient
 {
     private $config;
@@ -184,14 +186,27 @@ class ResellerClubClient
             return null;
         }
 
-        return $this->request('/domains/register.json', [
+        $contacts = ResellerClubDomainContacts::forDomain($domain, [
+            'reg' => $this->config['reg_contact_id'] ?? null,
+            'admin' => $this->config['admin_contact_id'] ?? null,
+            'tech' => $this->config['tech_contact_id'] ?? null,
+            'billing' => $this->config['billing_contact_id'] ?? null,
+        ]);
+        if ($contacts === null) {
+            return null;
+        }
+
+        $parameters = [
             'domain-name' => $domain,
             'years' => $years,
             'customer-id' => $this->config['customer_id'],
-            'ns' => implode(',', $nameservers),
-            'invoice-option' => 'NoInvoice',
+            'ns' => $nameservers,
+        ];
+
+        return $this->request('/domains/register.json', array_merge($parameters, $contacts, [
+            'invoice-option' => 'PayInvoice',
             'protect-privacy' => 'false',
-        ], 'POST');
+        ]), 'POST');
     }
 
     private function priceOptions($live, array $fallback = [])

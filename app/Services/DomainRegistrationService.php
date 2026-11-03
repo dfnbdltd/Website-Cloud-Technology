@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DomainOrder;
+use App\Support\ResellerClubDomainContacts;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -118,6 +119,18 @@ class DomainRegistrationService
         $nameservers = config('services.resellerclub.nameservers', []);
         if (!is_array($nameservers) || !array_filter(array_map('trim', $nameservers))) {
             return 'Domain nameservers are not configured. Please contact support before placing this order.';
+        }
+
+        foreach ($registrableItems as $item) {
+            $contacts = ResellerClubDomainContacts::forDomain($item['domain'], [
+                'reg' => config('services.resellerclub.reg_contact_id'),
+                'admin' => config('services.resellerclub.admin_contact_id'),
+                'tech' => config('services.resellerclub.tech_contact_id'),
+                'billing' => config('services.resellerclub.billing_contact_id'),
+            ]);
+            if ($contacts === null) {
+                return 'ResellerClub domain contact IDs are not fully configured. Please contact support before placing this order.';
+            }
         }
 
         $wallet = $this->resellerClub->walletBalance();

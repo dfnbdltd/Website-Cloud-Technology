@@ -6,6 +6,7 @@ use App\Models\DomainOrder;
 use App\Models\DomainOrderItem;
 use App\Services\DomainRegistrationService;
 use App\Services\ResellerClubClient;
+use App\Support\ResellerClubDomainContacts;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -18,7 +19,13 @@ class DomainRegistrationServiceTest extends TestCase
     {
         parent::setUp();
 
-        config(['services.resellerclub.nameservers' => ['ns1.example.test', 'ns2.example.test']]);
+        config([
+            'services.resellerclub.nameservers' => ['ns1.example.test', 'ns2.example.test'],
+            'services.resellerclub.reg_contact_id' => 'registration-contact',
+            'services.resellerclub.admin_contact_id' => 'admin-contact',
+            'services.resellerclub.tech_contact_id' => 'tech-contact',
+            'services.resellerclub.billing_contact_id' => 'billing-contact',
+        ]);
     }
 
     private function paidOrder()
@@ -225,6 +232,79 @@ class DomainRegistrationServiceTest extends TestCase
         ]);
 
         $this->assertStringContainsString('Domain nameservers are not configured', $message);
+    }
+
+    public function testCheckoutPreflightRejectsMissingDomainContactIds()
+    {
+        config([
+            'services.resellerclub.enabled' => true,
+            'services.resellerclub.auth_userid' => 'test-reseller',
+            'services.resellerclub.api_key' => 'test-key',
+            'services.resellerclub.customer_id' => 'fixed-registrant',
+            'services.resellerclub.reg_contact_id' => null,
+            'services.resellerclub.admin_contact_id' => null,
+            'services.resellerclub.tech_contact_id' => null,
+            'services.resellerclub.billing_contact_id' => null,
+            'services.test_domains' => [],
+        ]);
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
+        $resellerClub->shouldNotReceive('walletBalance');
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $message = $this->app->make(DomainRegistrationService::class)->walletPreflightError([
+            ['domain' => 'example.com', 'years' => 1],
+        ]);
+
+        $this->assertStringContainsString('domain contact IDs are not fully configured', $message);
+    }
+
+    public function testDomainRegistrationUsesTldSpecificContactOverrides()
+    {
+        $contacts = [
+            'reg' => 'registrant-1',
+            'admin' => 'admin-1',
+            'tech' => 'tech-1',
+            'billing' => 'billing-1',
+        ];
+
+        $euContacts = ResellerClubDomainContacts::forDomain('example.EU', $contacts);
+        $this->assertSame('-1', $euContacts['admin-contact-id']);
+        $this->assertSame('-1', $euContacts['tech-contact-id']);
+        $this->assertSame('-1', $euContacts['billing-contact-id']);
+        $this->assertSame('registrant-1', $euContacts['reg-contact-id']);
+
+        $frContacts = ResellerClubDomainContacts::forDomain('example.fr', $contacts);
+        $this->assertSame('admin-1', $frContacts['admin-contact-id']);
+        $this->assertSame('-1', $frContacts['tech-contact-id']);
+        $this->assertSame('-1', $frContacts['billing-contact-id']);
+
+        $ukContacts = ResellerClubDomainContacts::forDomain('example.uk', $contacts);
+        $this->assertSame('-1', $ukContacts['admin-contact-id']);
+        $this->assertSame('-1', $ukContacts['tech-contact-id']);
+        $this->assertSame('-1', $ukContacts['billing-contact-id']);
+
+        $comContacts = ResellerClubDomainContacts::forDomain('example.com', $contacts);
+        $this->assertSame('admin-1', $comContacts['admin-contact-id']);
+        $this->assertSame('tech-1', $comContacts['tech-contact-id']);
+        $this->assertSame('billing-1', $comContacts['billing-contact-id']);
+    }
+
+    public function testTldContactOverridesAllowUnavailableRoleIds()
+    {
+        $this->assertNotNull(ResellerClubDomainContacts::forDomain('example.eu', [
+            'reg' => 'registrant-1',
+            'admin' => null,
+            'tech' => null,
+            'billing' => null,
+        ]));
+        $this->assertNull(ResellerClubDomainContacts::forDomain('example.com', [
+            'reg' => 'registrant-1',
+            'admin' => null,
+            'tech' => null,
+            'billing' => null,
+        ]));
     }
 
     public function testCheckoutWalletPreflightAllowsSufficientResellerFunds()

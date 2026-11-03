@@ -73,6 +73,17 @@ class AdminController extends Controller
             && !empty(config('services.resellerclub.auth_userid'))
             && $resellerClubApiKeyConfigured
             && !empty(config('services.resellerclub.customer_id'));
+        $resellerClubContactsConfigured = true;
+        foreach (['reg', 'admin', 'tech', 'billing'] as $role) {
+            if (empty(config('services.resellerclub.' . $role . '_contact_id'))) {
+                $resellerClubContactsConfigured = false;
+                break;
+            }
+        }
+        $resellerClubNameserversConfigured = count(array_filter((array) config('services.resellerclub.nameservers', []))) > 0;
+        $resellerClubConfigured = $resellerClubConfigured
+            && $resellerClubContactsConfigured
+            && $resellerClubNameserversConfigured;
 
         return view('admin.apis', [
             'integrations' => [
@@ -84,7 +95,7 @@ class AdminController extends Controller
                         ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/domains/available.json', 'usage' => 'Check domain availability.'],
-                        ['method' => 'POST', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain from the configured ResellerClub account.'],
+                        ['method' => 'POST', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain under the configured default ResellerClub customer.'],
                     ],
                     'credentials' => [
                         $credential('services.resellerclub.auth_userid', 'RESELLERCLUB_AUTH_USERID'),
@@ -107,7 +118,11 @@ class AdminController extends Controller
                         ],
                         [
                             'name' => 'Domain nameservers (RESELLERCLUB_NAMESERVERS)',
-                            'status' => count(array_filter((array) config('services.resellerclub.nameservers', []))) ? 'Configured' : 'Missing',
+                            'status' => $resellerClubNameserversConfigured ? 'Configured' : 'Missing',
+                        ],
+                        [
+                            'name' => 'Domain contact IDs (Registrant/Admin/Tech/Billing)',
+                            'status' => $resellerClubContactsConfigured ? 'Configured' : 'Missing',
                         ],
                     ],
                 ],
