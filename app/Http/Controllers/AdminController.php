@@ -105,6 +105,10 @@ class AdminController extends Controller
                             'name' => 'Domain registration',
                             'status' => 'Automatically attempted after successful payment',
                         ],
+                        [
+                            'name' => 'Domain nameservers (RESELLERCLUB_NAMESERVERS)',
+                            'status' => count(array_filter((array) config('services.resellerclub.nameservers', []))) ? 'Configured' : 'Missing',
+                        ],
                     ],
                 ],
                 [

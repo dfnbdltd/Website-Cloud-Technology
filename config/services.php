@@ -42,6 +42,7 @@ return [
         'legacy_api_key' => env('RESELLERCLUB_API_KEY'),
         'reseller_id' => env('RESELLERCLUB_RESELLER_ID'),
         'customer_id' => env('RESELLERCLUB_CUSTOMER_ID'),
+        'nameservers' => array_values(array_filter(array_map('trim', explode(',', (string) env('RESELLERCLUB_NAMESERVERS', ''))))),
         'demo_mode' => env('RESELLERCLUB_DEMO_MODE', false),
         'sandbox' => env('RESELLERCLUB_SANDBOX', false),
         'country' => env('RESELLERCLUB_COUNTRY', 'BD'),

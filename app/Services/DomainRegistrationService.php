@@ -115,6 +115,11 @@ class DomainRegistrationService
             return 'Domain registration account is not fully configured. Please contact support.';
         }
 
+        $nameservers = config('services.resellerclub.nameservers', []);
+        if (!is_array($nameservers) || !array_filter(array_map('trim', $nameservers))) {
+            return 'Domain nameservers are not configured. Please contact support before placing this order.';
+        }
+
         $wallet = $this->resellerClub->walletBalance();
         if (!$wallet) {
             return 'We could not verify the ResellerClub wallet balance. No payment has been taken; please try again shortly.';

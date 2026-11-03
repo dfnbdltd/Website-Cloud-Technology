@@ -14,6 +14,13 @@ class DomainRegistrationServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['services.resellerclub.nameservers' => ['ns1.example.test', 'ns2.example.test']]);
+    }
+
     private function paidOrder()
     {
         $order = DomainOrder::create([
@@ -195,6 +202,29 @@ class DomainRegistrationServiceTest extends TestCase
         ]);
 
         $this->assertStringContainsString('does not have enough available funds', $message);
+    }
+
+    public function testCheckoutPreflightRejectsMissingDomainNameservers()
+    {
+        config([
+            'services.resellerclub.enabled' => true,
+            'services.resellerclub.auth_userid' => 'test-reseller',
+            'services.resellerclub.api_key' => 'test-key',
+            'services.resellerclub.customer_id' => 'fixed-registrant',
+            'services.resellerclub.nameservers' => [],
+            'services.test_domains' => [],
+        ]);
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
+        $resellerClub->shouldNotReceive('walletBalance');
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $message = $this->app->make(DomainRegistrationService::class)->walletPreflightError([
+            ['domain' => 'example.com', 'years' => 1],
+        ]);
+
+        $this->assertStringContainsString('Domain nameservers are not configured', $message);
     }
 
     public function testCheckoutWalletPreflightAllowsSufficientResellerFunds()

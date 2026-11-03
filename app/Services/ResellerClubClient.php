@@ -179,10 +179,16 @@ class ResellerClubClient
             return null;
         }
 
+        $nameservers = array_values(array_filter(array_map('trim', $this->config['nameservers'] ?? [])));
+        if (!$nameservers) {
+            return null;
+        }
+
         return $this->request('/domains/register.json', [
             'domain-name' => $domain,
             'years' => $years,
             'customer-id' => $this->config['customer_id'],
+            'ns' => implode(',', $nameservers),
             'invoice-option' => 'NoInvoice',
             'protect-privacy' => 'false',
         ], 'POST');
