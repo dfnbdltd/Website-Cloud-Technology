@@ -2492,17 +2492,44 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     color:#315d87;
 }
 
-/* Keep the rail clean without allowing menu content to create a horizontal
-   scrollbar. Vertical scrolling remains available when the viewport is short. */
+/* The rail must never create a HORIZONTAL scrollbar, but the VERTICAL one has
+   to stay visible. Hiding it (scrollbar-width:none) meant a short viewport
+   silently clipped the menu: expanded submenu links were unreachable and gave
+   no hint that more content existed below. A thin scrollbar plus a faded
+   bottom edge makes the overflow obvious and the content reachable. */
 .domain-sidebar nav{
     overflow-x:hidden;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
+    overflow-y:auto;
+    scrollbar-width:thin;
+    scrollbar-color:#c2d4e8 transparent;
+    -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - 14px),transparent 100%);
+    mask-image:linear-gradient(to bottom,#000 0,#000 calc(100% - 14px),transparent 100%);
 }
 .domain-sidebar nav::-webkit-scrollbar{
-    display:none;
-    width:0;
-    height:0;
+    display:block;
+    width:8px;
+}
+.domain-sidebar nav::-webkit-scrollbar-track{
+    background:transparent;
+}
+.domain-sidebar nav::-webkit-scrollbar-thumb{
+    border:2px solid transparent;
+    border-radius:8px;
+    background:#c2d4e8;
+    background-clip:padding-box;
+}
+.domain-sidebar nav::-webkit-scrollbar-thumb:hover{
+    background:#9fb8d4;
+    background-clip:padding-box;
+}
+/* The scroll fade is purely decorative, so switch it off wherever it could
+   clip something: keyboard focus rings, and the collapsed rail's hover
+   tooltips (they paint outside the nav box). */
+.domain-sidebar nav:has(> a:focus-visible),
+.domain-sidebar.collapsed nav,
+.domain-sidebar.collapsed nav:has(> a:focus-visible){
+    -webkit-mask-image:none;
+    mask-image:none;
 }
 .domain-sidebar nav>a{min-height:40px;padding-top:7px;padding-bottom:7px}
 .domain-sidebar nav .subnav a{min-height:32px;padding-top:5px;padding-bottom:5px}
@@ -2522,9 +2549,13 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     }
 }
 
-/* Keep the complete My Store submenu available after it expands. */
+/* The expanded submenu used to be clamped to a fixed 420px, which cut the
+   last links off ("content not visible") whenever the viewport was short.
+   Now it grows with its content and the nav scrolls instead — nothing is
+   ever hidden, and long lists stay reachable via the scrollbar. */
 .domain-sidebar nav .subnav.open{
-    max-height:420px;
+    max-height:none;
+    overflow:visible;
 }
 .domain-sidebar nav .subnav a{
     min-height:32px;

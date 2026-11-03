@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Dedicated hosting with powerful resources and dependable performance.">
-    <title>Dedicated Hosting | dfnhosting</title>
+    <title>Cloud Technology | Dedicated Hosting</title>
+    @include('partials.favicon')
     <style>
 :root{--navy:#101d43;--navy-deep:#0b1533;--blue:#2f73e8;--blue-soft:#eaf2ff;--ink:#18243d;--muted:#6f7b91;--paper:#f7f9fc;--line:#e2e8f2;--lime:#b8e36b}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 Arial,Helvetica,sans-serif}a{color:inherit;text-decoration:none}button{font:inherit}.page-width{width:min(1180px,calc(100% - 40px));margin-inline:auto}

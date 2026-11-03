@@ -8,7 +8,8 @@
       name="description"
       content="Affordable shared hosting with reliable performance for growing websites."
     />
-    <title>Shared Hosting | dfnhosting</title>
+    <title>Cloud Technology | Shared Hosting</title>
+    @include('partials.favicon')
     <style>
       :root {
         --navy: #101d43;

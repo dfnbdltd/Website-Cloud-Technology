@@ -13,6 +13,16 @@ use App\Http\Controllers\HostingController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyStoreController;
 
+// TEMP-PROBE: local-only session seed for coming-soon verification.
+Route::get('/__probe-login', function () {
+    session(['customer' => [
+        'id' => 1, 'name' => 'Aziz Muntasir', 'email' => 'aziz@example.test',
+        'initials' => 'AM', 'customer_code' => 'CT-1', 'status' => 'active', 'balance' => 0,
+    ]]);
+    session(['domain_cart' => []]);
+    return redirect('/mystore');
+});
+
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     $trustItems = array_values(array_filter(array_map('trim', explode(',', (string) \App\Models\Setting::get('trust_items')))));
 
@@ -46,6 +56,26 @@ Route::get('/coming-soon/{section?}', function ($section = 'This section') {
     return view('under-construction', ['section' => str_replace('-', ' ', ucfirst($section))]);
 })->name('under.construction');
 
+// Public "coming soon" landing pages for services that are not live yet.
+// The slug is validated against config/coming_soon.php, so anything else
+// 404s instead of rendering an empty page. `back` carries where the visitor
+// came from so the primary button can return them exactly there.
+Route::get('/services/{service}', function (string $service) {
+    $services = config('coming_soon');
+
+    abort_unless(is_array($services) && isset($services[$service]), 404);
+
+    $back = (string) request()->query('back', '');
+    // Only ever accept a local path: never redirect off-site.
+    $back = str_starts_with($back, '/') && ! str_starts_with($back, '//') ? $back : null;
+
+    return view('coming-soon', [
+        'slug' => $service,
+        'service' => $services[$service],
+        'backUrl' => $back,
+    ]);
+})->name('services.coming-soon');
+
 Route::get('/hosting/shared', [HostingController::class, 'shared'])->name('hosting.shared');
 Route::get('/hosting/vps', [HostingController::class, 'vps'])->name('hosting.vps');
 Route::get('/hosting/dedicated', [HostingController::class, 'dedicated'])->name('hosting.dedicated');
@@ -78,6 +108,23 @@ Route::prefix('domains')->group(function () {
 // Client area: signed-in customers only.
 Route::middleware(['web', 'customer'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('dashboard');
+    // Client-area "coming soon" page: sidebar service rows navigate here
+    // (the public navbar/footer keep using /services/{service} instead).
+    Route::get('/client/coming-soon/{service}', function (string $service) {
+        $services = config('coming_soon');
+        abort_unless(is_array($services) && isset($services[$service]), 404);
+
+        $back = (string) request()->query('back', '');
+        $back = str_starts_with($back, '/') && ! str_starts_with($back, '//') ? $back : null;
+
+        return view('store.coming-soon', [
+            'slug' => $service,
+            'service' => $services[$service],
+            'backUrl' => $back,
+            'navActive' => $service,
+        ]);
+    })->name('client.coming-soon');
+
     // My Store: the All Items overview + one page per section (always
     // reachable, whether the customer owns anything in it or not).
     Route::get('/mystore', [MyStoreController::class, 'index'])->name('mystore');

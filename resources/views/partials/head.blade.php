@@ -1,7 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>{{ $title ?? 'CloudTech' }} | Premium hosting &amp; domains in Bangladesh</title>
+<title>Cloud Technology | {{ $title ?? 'Premium hosting & domains in Bangladesh' }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
     $passwordStrengthVersion = $assetVersion('js/password-strength.js');
 @endphp
 <link rel="stylesheet" href="{{ asset('css/app.css') }}@if($appCssVersion)?v={{ $appCssVersion }}@endif">
-<link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+@include('partials.favicon')
 <link rel="stylesheet" href="{{ asset('css/workspace.css') }}@if($workspaceCssVersion)?v={{ $workspaceCssVersion }}@endif">
 <link rel="stylesheet" href="{{ asset('css/coming-soon.css') }}@if($comingSoonCssVersion)?v={{ $comingSoonCssVersion }}@endif">
 <script src="{{ asset('js/password-strength.js') }}@if($passwordStrengthVersion)?v={{ $passwordStrengthVersion }}@endif" defer></script>

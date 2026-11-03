@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Scalable VPS hosting with dedicated resources, full root access, and simple, transparent pricing. Launch your server in minutes.">
-    <title>VPS Hosting | dfnhosting</title>
+    <title>Cloud Technology | VPS Hosting</title>
+    @include('partials.favicon')
     <style>
 :root {
     --ink: #13233f;

@@ -31,6 +31,10 @@
         document.addEventListener('click',function(event){
             var trigger=event.target.closest('.coming-soon-trigger');
             if(!trigger){return;}
+            // .coming-soon-trigger is reserved for the client dashboard
+            // (sidebar rows and empty store sections). The public navbar
+            // uses .coming-soon-link for its real /services pages, so it
+            // never matches this selector and keeps navigating normally.
             event.preventDefault();
             lastTrigger=trigger;
             var service=trigger.getAttribute('data-service')||'This service';

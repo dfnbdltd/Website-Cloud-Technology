@@ -93,22 +93,59 @@
 #site-navbar .site-user>span:not(.site-avatar){max-width:104px}
 }
 
-/* responsive — same breakpoints as the home page */
+/* Hamburger button — hidden on desktop, shown at <=960px. */
+#site-navbar .site-nav-toggle{display:none;flex:none;flex-direction:column;justify-content:center;gap:5px;width:44px;height:44px;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#site-navbar .site-nav-toggle:hover{background:var(--soft)}
+#site-navbar .site-nav-toggle:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+#site-navbar .site-nav-toggle-bar{display:block;width:100%;height:2px;border-radius:2px;background:var(--ink);transition:transform .22s ease,opacity .16s ease}
+#site-navbar.nav-open .site-nav-toggle-bar:nth-child(1){transform:translateY(7px) rotate(45deg)}
+#site-navbar.nav-open .site-nav-toggle-bar:nth-child(2){opacity:0}
+#site-navbar.nav-open .site-nav-toggle-bar:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* responsive — same breakpoints as the home page.
+   <=960px the links collapse into a hamburger-driven panel; nothing is
+   rendered inline, so the header stays a single compact row. */
 @media(max-width:960px){
-#site-navbar .site-header-inner{height:auto;min-height:72px;flex-wrap:wrap;gap:8px 16px;padding-top:10px;padding-bottom:10px}
-#site-navbar .site-nav{display:flex;order:3;width:100%;margin:0;flex-wrap:wrap}
-#site-navbar .site-nav a,#site-navbar .site-nav-dropdown>a{padding:8px 10px}
-#site-navbar .site-nav-dropdown{flex-basis:100%}
-#site-navbar .site-submenu{position:static;display:grid;min-width:0;padding:0 0 0 12px;border:0;border-radius:0;box-shadow:none;background:transparent}
-#site-navbar .site-nav-dropdown>a:after{display:none}
-#site-navbar .site-nav .site-submenu a{padding:8px;color:var(--text)}
+#site-navbar .site-wrap{padding-left:20px;padding-right:20px}
+/* One clean row: logo left · phone + account + hamburger right.
+   Only .site-account gets margin-left:auto so there is exactly ONE gap,
+   not two competing ones (which used to strand the hamburger mid-bar). */
+#site-navbar .site-header-inner{display:flex;flex-wrap:nowrap;align-items:center;gap:12px;height:auto;min-height:68px;padding-top:10px;padding-bottom:10px}
+#site-navbar .site-logo{flex:0 0 auto}
+#site-navbar .site-logo .ct-logo-img{height:42px}
+#site-navbar .site-account{order:2;margin-left:auto;gap:12px;min-width:0}
+#site-navbar .site-nav-toggle{order:3;display:flex;margin-left:0}
+#site-navbar .site-phone span{display:none}
+#site-navbar .site-phone{padding:8px;font-size:17px}
+
+/* The panel: slides down under the header, scrolls if it is tall. */
+#site-navbar .site-nav{position:absolute;top:100%;left:0;right:0;z-index:40;display:none;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:0;width:100%;margin:0;padding:8px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 18px 34px #0f172a1f;max-height:calc(100vh - 68px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+#site-navbar.nav-open .site-nav{display:flex}
+#site-navbar .site-nav a,#site-navbar .site-nav-dropdown>a{display:block;padding:13px 14px;border-radius:9px;font-size:15.5px;font-weight:600;white-space:normal}
+#site-navbar .site-nav-dropdown{flex-basis:auto;width:100%}
+/* Collapsed by default; .open is toggled by the panel script. */
+#site-navbar .site-submenu{position:static;display:none;min-width:0;padding:2px 0 6px 12px;margin:0 0 2px 6px;border:0;border-left:2px solid var(--line);border-radius:0;box-shadow:none;background:transparent}
+#site-navbar .site-nav-dropdown.open>.site-submenu{display:grid}
+#site-navbar .site-nav .site-submenu a{padding:10px 12px;color:var(--text);font-size:14px;font-weight:500;white-space:normal}
+/* Chevron on the two expandable rows. */
+#site-navbar .site-nav-dropdown>a{display:flex;align-items:center;justify-content:space-between}
+#site-navbar .site-nav-dropdown>a:after{content:'⌄';display:block;margin-left:auto;color:var(--muted);font-size:14px;transition:transform .2s ease}
+#site-navbar .site-nav-dropdown.open>a:after{transform:rotate(180deg)}
+/* Account controls sit inside the same flow on small screens. */
+#site-navbar .site-account{gap:10px}
+#site-navbar .site-client-area-menu{width:min(240px,calc(100vw - 40px))}
 }
 @media(max-width:560px){
-#site-navbar .site-wrap{padding-left:20px;padding-right:20px}
-#site-navbar .site-header-inner{height:auto;min-height:64px;gap:8px 12px;padding-top:8px;padding-bottom:8px}
-#site-navbar .site-logo .ct-logo-img{height:40px}
+#site-navbar .site-header-inner{min-height:64px;gap:8px}
+#site-navbar .site-logo .ct-logo-img{height:38px}
+#site-navbar .site-nav-toggle{width:42px;height:42px;padding:0 10px}
 #site-navbar .site-btn,#site-navbar .site-btn-ghost{height:36px;padding:0 12px;font-size:13px}
-#site-navbar .site-phone span{display:none}
+#site-navbar .site-user{padding:4px 10px 4px 4px}
 #site-navbar .site-user>span:not(.site-avatar){display:none}
+#site-navbar .site-nav{max-height:calc(100vh - 64px)}
 }
+/* Keep the page from scrolling behind the open panel on touch devices. */
+body.nav-menu-open{overflow:hidden}
+@media(min-width:961px){body.nav-menu-open{overflow:auto}}
+
 @media print{#site-navbar{display:none !important}}

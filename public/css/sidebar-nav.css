@@ -392,3 +392,52 @@
    an .active child row inside the list) so nothing is lost for assistive tech
    or for the deep-link pass. domains.css's `.service-group-start:not(.open)`
    reset now agrees with this instead of fighting it. */
+
+/* ── Scroll affordance: short viewports must never silently clip ──────────
+   The nav is the single scroll container in both the fixed rail and the
+   drawer. The scrollbar stays invisible at rest and fades in only while the
+   pointer is over the sidebar, so the rail keeps a clean look but a scroll
+   is still discoverable. A faded bottom edge remains as the always-on cue
+   that more rows exist below. */
+#clientSidebar nav {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;                        /* Firefox + modern Chromium */
+    scrollbar-color: transparent transparent;      /* hidden until hover */
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 12px), transparent 100%);
+}
+
+/* Reserve a thin gutter so revealing the thumb never shifts the list. */
+#clientSidebar nav::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+}
+#clientSidebar nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+#clientSidebar nav::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: transparent;                      /* hidden at rest */
+}
+
+/* Reveal only while the pointer is over the sidebar. */
+#clientSidebar:hover nav {
+    scrollbar-color: #8aa0b8 transparent;
+}
+#clientSidebar:hover nav::-webkit-scrollbar-thumb {
+    background: #8aa0b8;
+}
+#clientSidebar:hover nav::-webkit-scrollbar-thumb:hover {
+    background: #6b87a3;
+}
+
+/* The fade is decorative only — never clip the collapsed rail's hover
+   tooltips (they paint outside the nav) or a keyboard focus ring. */
+#clientSidebar.collapsed nav,
+#clientSidebar nav:has(> a:focus-visible) {
+    -webkit-mask-image: none;
+    mask-image: none;
+}
+
+
