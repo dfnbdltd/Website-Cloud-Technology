@@ -177,12 +177,28 @@ class ResellerClubClient
 
     public function registerDomain($domain, $years = 1)
     {
-        if (!$this->isConfigured() || !$this->config['customer_id']) {
+        if (!$this->isConfigured()) {
+            \Log::warning('ResellerClub registration API call skipped because client is not configured', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        if (!$this->config['customer_id']) {
+            \Log::warning('ResellerClub registration API call skipped because customer ID is missing', [
+                'domain' => $domain,
+            ]);
+
             return null;
         }
 
         $nameservers = array_values(array_filter(array_map('trim', $this->config['nameservers'] ?? [])));
         if (!$nameservers) {
+            \Log::warning('ResellerClub registration API call skipped because nameservers are missing', [
+                'domain' => $domain,
+            ]);
+
             return null;
         }
 
@@ -193,6 +209,10 @@ class ResellerClubClient
             'billing' => $this->config['billing_contact_id'] ?? null,
         ]);
         if ($contacts === null) {
+            \Log::warning('ResellerClub registration API call skipped because contact IDs are incomplete', [
+                'domain' => $domain,
+            ]);
+
             return null;
         }
 
@@ -284,17 +304,33 @@ class ResellerClubClient
             $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/x-www-form-urlencoded';
         }
         curl_setopt_array($curl, $options);
+        \Log::info('Sending ResellerClub API request', [
+            'method' => $method,
+            'path' => $path,
+        ]);
         $body = curl_exec($curl);
         $error = curl_error($curl);
+        $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
         if ($body === false || $error) {
-            \Log::warning('ResellerClub request failed', ['path' => $path, 'error' => $error]);
+            \Log::warning('ResellerClub request failed', [
+                'method' => $method,
+                'path' => $path,
+                'http_status' => $httpStatus,
+                'error' => $error,
+            ]);
 
             return null;
         }
 
         $decoded = json_decode($body, true);
+        \Log::info('ResellerClub API response received', [
+            'method' => $method,
+            'path' => $path,
+            'http_status' => $httpStatus,
+            'api_status' => is_array($decoded) ? ($decoded['status'] ?? null) : null,
+        ]);
 
         if (!is_array($decoded) || (isset($decoded['status']) && strtoupper($decoded['status']) === 'ERROR')) {
             \Log::warning('ResellerClub API error', ['path' => $path, 'response' => substr($body, 0, 500)]);

@@ -18,6 +18,7 @@ use App\Services\DomainRegistrationService;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
@@ -214,12 +215,21 @@ class AdminController extends Controller
     public function retryOrderRegistration(Request $request, DomainOrder $order)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        Log::info('Admin requested domain registration retry', [
+            'order_id' => $order->id,
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
+        ]);
         if ($order->payment_status !== 'paid') {
             return redirect()->route('admin.orders')->withErrors(['registration' => 'Only paid orders can be retried.']);
         }
 
         app(DomainRegistrationService::class)->registerPaidOrder($order);
         $order = $order->fresh();
+        Log::info('Domain registration retry finished', [
+            'order_id' => $order->id,
+            'status' => $order->status,
+        ]);
 
         if ($order->status === 'active') {
             return redirect()->route('admin.orders')->with('success', 'Domain registration completed for ' . $order->reference . '.');

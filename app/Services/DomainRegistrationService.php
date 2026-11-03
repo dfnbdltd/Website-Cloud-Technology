@@ -19,6 +19,11 @@ class DomainRegistrationService
     public function registerPaidOrder(DomainOrder $order)
     {
         if ($order->payment_status !== 'paid') {
+            Log::info('Domain registration retry skipped because order is not paid', [
+                'order_id' => $order->id,
+                'payment_status' => $order->payment_status,
+            ]);
+
             return;
         }
 
@@ -28,18 +33,34 @@ class DomainRegistrationService
             return !isset($testDomains[$item->domain]);
         });
         if ($registrableItems->isEmpty()) {
+            Log::warning('Domain registration retry skipped because order has no registrable items', [
+                'order_id' => $order->id,
+                'item_count' => $order->items->count(),
+            ]);
+
             return;
         }
 
         $order = DB::transaction(function () use ($order) {
             $lockedOrder = DomainOrder::whereKey($order->id)->lockForUpdate()->first();
             if (!$lockedOrder || $lockedOrder->payment_status !== 'paid') {
+                Log::info('Domain registration retry skipped after order lock check', [
+                    'order_id' => $order->id,
+                    'found' => (bool) $lockedOrder,
+                    'payment_status' => $lockedOrder ? $lockedOrder->payment_status : null,
+                ]);
+
                 return null;
             }
 
             $staleRegistration = $lockedOrder->status === 'registration_processing'
                 && $lockedOrder->updated_at->lte(now()->subMinutes(5));
             if (!in_array($lockedOrder->status, ['paid', 'registration_pending'], true) && !$staleRegistration) {
+                Log::info('Domain registration retry skipped because order status is not retryable', [
+                    'order_id' => $lockedOrder->id,
+                    'status' => $lockedOrder->status,
+                ]);
+
                 return null;
             }
 
@@ -77,9 +98,18 @@ class DomainRegistrationService
         $registrationComplete = true;
 
         foreach ($registrableItems as $item) {
+            Log::info('Attempting ResellerClub domain registration', [
+                'order' => $order->reference,
+                'domain' => $item->domain,
+                'years' => $item->years,
+            ]);
             $registration = $this->resellerClub->registerDomain($item->domain, $item->years);
             if ($this->registrationSucceeded($registration)) {
                 $item->update(['registration_status' => 'registered']);
+                Log::info('ResellerClub domain registration succeeded', [
+                    'order' => $order->reference,
+                    'domain' => $item->domain,
+                ]);
             } else {
                 $registrationComplete = false;
                 Log::warning('ResellerClub domain registration failed', [
