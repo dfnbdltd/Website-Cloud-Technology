@@ -32,11 +32,17 @@ class DomainRegistrationService
 
         $order = DB::transaction(function () use ($order) {
             $lockedOrder = DomainOrder::whereKey($order->id)->lockForUpdate()->first();
-            if (!$lockedOrder || $lockedOrder->payment_status !== 'paid' || $lockedOrder->status !== 'paid') {
+            if (!$lockedOrder || $lockedOrder->payment_status !== 'paid') {
                 return null;
             }
 
-            $lockedOrder->update(['status' => 'registration_pending']);
+            $staleRegistration = $lockedOrder->status === 'registration_processing'
+                && $lockedOrder->updated_at->lte(now()->subMinutes(5));
+            if (!in_array($lockedOrder->status, ['paid', 'registration_pending'], true) && !$staleRegistration) {
+                return null;
+            }
+
+            $lockedOrder->update(['status' => 'registration_processing']);
 
             return $lockedOrder->load('items');
         });
@@ -45,26 +51,35 @@ class DomainRegistrationService
             return;
         }
 
-        $walletError = $this->walletPreflightError($order->items->toArray());
+        $testDomains = config('services.test_domains', []);
+        $registrableItems = $order->items->filter(function ($item) use ($testDomains) {
+            return !isset($testDomains[$item->domain]) && $item->registration_status !== 'registered';
+        });
+
+        if ($registrableItems->isEmpty()) {
+            $order->update(['status' => 'active']);
+
+            return;
+        }
+
+        $walletError = $this->walletPreflightError($registrableItems->toArray());
         if ($walletError) {
             Log::warning('ResellerClub registration held because wallet pre-check failed', [
                 'order' => $order->reference,
                 'reason' => $walletError,
             ]);
+            $order->update(['status' => 'registration_pending']);
 
             return;
         }
 
         $registrationComplete = true;
-        $testDomains = config('services.test_domains', []);
 
-        foreach ($order->items as $item) {
-            if (isset($testDomains[$item->domain])) {
-                continue;
-            }
-
+        foreach ($registrableItems as $item) {
             $registration = $this->resellerClub->registerDomain($item->domain, $item->years);
-            if (!$this->registrationSucceeded($registration)) {
+            if ($this->registrationSucceeded($registration)) {
+                $item->update(['registration_status' => 'registered']);
+            } else {
                 $registrationComplete = false;
                 Log::warning('ResellerClub domain registration failed', [
                     'order' => $order->reference,

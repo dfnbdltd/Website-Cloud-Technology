@@ -84,7 +84,7 @@ class AdminController extends Controller
                         ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/domains/available.json', 'usage' => 'Check domain availability.'],
-                        ['method' => 'GET', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain from the configured ResellerClub account.'],
+                        ['method' => 'POST', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain from the configured ResellerClub account.'],
                     ],
                     'credentials' => [
                         $credential('services.resellerclub.auth_userid', 'RESELLERCLUB_AUTH_USERID'),
@@ -186,6 +186,27 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.dashboard')->with('success', 'Order status updated.');
+    }
+
+    public function retryOrderRegistration(Request $request, DomainOrder $order)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if ($order->payment_status !== 'paid') {
+            return redirect()->route('admin.orders')->withErrors(['registration' => 'Only paid orders can be retried.']);
+        }
+
+        app(DomainRegistrationService::class)->registerPaidOrder($order);
+        $order = $order->fresh();
+
+        if ($order->status === 'active') {
+            return redirect()->route('admin.orders')->with('success', 'Domain registration completed for ' . $order->reference . '.');
+        }
+
+        if ($order->status === 'registration_processing') {
+            return redirect()->route('admin.orders')->withErrors(['registration' => 'Registration is already in progress for this order.']);
+        }
+
+        return redirect()->route('admin.orders')->withErrors(['registration' => 'Registration is still pending. Check the ResellerClub account and server log, then retry again.']);
     }
 
     /**

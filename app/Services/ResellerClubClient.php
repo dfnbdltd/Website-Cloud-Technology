@@ -185,7 +185,7 @@ class ResellerClubClient
             'customer-id' => $this->config['customer_id'],
             'invoice-option' => 'NoInvoice',
             'protect-privacy' => 'false',
-        ]);
+        ], 'POST');
     }
 
     private function priceOptions($live, array $fallback = [])
@@ -241,19 +241,28 @@ class ResellerClubClient
         return (float) round($amount * $rate);
     }
 
-    private function request($path, array $parameters = [])
+    private function request($path, array $parameters = [], $method = 'GET')
     {
         $parameters['auth-userid'] = $this->config['auth_userid'];
         $parameters['api-key'] = $this->config['api_key'];
-        $url = rtrim($this->config['base_url'], '/') . $path . '?' . http_build_query($parameters);
+        $url = rtrim($this->config['base_url'], '/') . $path;
+        if ($method === 'GET') {
+            $url .= '?' . http_build_query($parameters);
+        }
 
         $curl = curl_init($url);
-        curl_setopt_array($curl, [
+        $options = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT => 12,
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
-        ]);
+        ];
+        if ($method === 'POST') {
+            $options[CURLOPT_POST] = true;
+            $options[CURLOPT_POSTFIELDS] = http_build_query($parameters);
+            $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/x-www-form-urlencoded';
+        }
+        curl_setopt_array($curl, $options);
         $body = curl_exec($curl);
         $error = curl_error($curl);
         curl_close($curl);

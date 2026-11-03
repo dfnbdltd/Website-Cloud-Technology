@@ -7,6 +7,7 @@ use App\Models\DomainOrderItem;
 use App\Services\DomainRegistrationService;
 use App\Services\ResellerClubClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class DomainRegistrationServiceTest extends TestCase
@@ -106,6 +107,59 @@ class DomainRegistrationServiceTest extends TestCase
             'id' => $order->id,
             'payment_status' => 'paid',
             'status' => 'registration_pending',
+        ]);
+    }
+
+    public function testAdminCanRetryRegistrationForPaidPendingOrder()
+    {
+        config([
+            'services.resellerclub.customer_id' => 'fixed-registrant',
+            'services.test_domains' => [],
+        ]);
+        Cache::put('exchange_rate_usd_bdt', [
+            'rate' => 120,
+            'source' => 'test',
+            'updated_at' => now()->toIso8601String(),
+        ], 600);
+        $order = $this->paidOrder();
+        $order->update(['status' => 'registration_pending']);
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
+        $resellerClub->shouldReceive('walletBalance')->once()->andReturn([
+            'balance' => 20.00,
+            'currency' => 'USD',
+        ]);
+        $resellerClub->shouldReceive('catalog')->once()->andReturn([
+            'com' => ['classkey' => 'domcno'],
+        ]);
+        $resellerClub->shouldReceive('liveRegistrationPrice')->once()->andReturn(13.09);
+        $resellerClub->shouldReceive('registerDomain')
+            ->once()
+            ->with('example.com', 1)
+            ->andReturn(['status' => 'Success']);
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get(route('admin.orders'))
+            ->assertOk()
+            ->assertSee('Retry registration');
+
+        $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->post(route('admin.orders.retry-registration', $order))
+            ->assertRedirect(route('admin.orders'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('domain_orders', [
+            'id' => $order->id,
+            'payment_status' => 'paid',
+            'status' => 'active',
+            'total' => 1800,
+        ]);
+        $this->assertDatabaseHas('domain_order_items', [
+            'domain_order_id' => $order->id,
+            'domain' => 'example.com',
+            'registration_status' => 'registered',
         ]);
     }
 

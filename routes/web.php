@@ -121,6 +121,7 @@ Route::get('/admin/orders', [AdminController::class, 'dashboard'])->name('admin.
 Route::get('/admin/apis', [AdminController::class, 'apis'])->name('admin.apis');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 Route::post('/admin/orders/{order}/status', [AdminController::class, 'updateOrder'])->name('admin.orders.status');
+Route::post('/admin/orders/{order}/retry-registration', [AdminController::class, 'retryOrderRegistration'])->name('admin.orders.retry-registration');
 Route::get('/admin/customers', [AdminController::class, 'customers'])->name('admin.customers');
 Route::get('/admin/customers/{customer}/edit', [AdminController::class, 'editCustomer'])->name('admin.customers.edit');
 Route::post('/admin/customers/{customer}', [AdminController::class, 'updateCustomer'])->name('admin.customers.update');
