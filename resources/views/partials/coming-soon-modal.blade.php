@@ -1,4 +1,4 @@
-@php($comingSoonCssVersion = @filemtime(public_path('css/coming-soon.css')))
+@php($comingSoonCssVersion = @md5_file(public_path('css/coming-soon.css')))
 <link rel="stylesheet" href="{{ asset('css/coming-soon.css') }}@if($comingSoonCssVersion)?v={{ $comingSoonCssVersion }}@endif">
 <div class="coming-soon-modal" id="comingSoonModal" role="dialog" aria-modal="true" aria-labelledby="comingSoonTitle" aria-describedby="comingSoonMessage" hidden>
     <div class="coming-soon-dialog" role="document">

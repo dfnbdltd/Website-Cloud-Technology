@@ -8,7 +8,7 @@
 --}}
 @php($navActive = $navActive ?? null)
 @php($navCartCount = count(session('domain_cart', [])))
-@php($navCssVersion = @filemtime(public_path('css/site-navbar.css')))
+@php($navCssVersion = @md5_file(public_path('css/site-navbar.css')))
 @php($navSelected = function ($item) use ($navActive) { return $navActive === $item ? ' class="selected"' : ''; })
 <link rel="stylesheet" href="{{ asset('css/site-navbar.css') }}@if($navCssVersion)?v={{ $navCssVersion }}@endif">
 <div class="site-navbar" id="site-navbar">
