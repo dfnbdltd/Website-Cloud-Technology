@@ -229,20 +229,50 @@ class ResellerClubClient
         ]), 'POST');
     }
 
-    public function modifyNameservers($domain, array $nameservers)
+    public function domainOrderId($domain)
     {
         if (!$this->isConfigured()) {
-            \Log::warning('ResellerClub nameserver update skipped because client is not configured', [
+            \Log::warning('ResellerClub domain order lookup skipped because client is not configured', [
                 'domain' => $domain,
             ]);
 
             return null;
         }
 
-        $nameservers = array_values(array_filter(array_map('trim', $nameservers)));
-        if (!$domain || count($nameservers) < 2) {
-            \Log::warning('ResellerClub nameserver update skipped because its input is incomplete', [
+        $response = $this->request('/domains/orderid.json', [
+            'domain-name' => strtolower(trim($domain)),
+        ], 'GET', true);
+
+        if (is_array($response)) {
+            $response = $response[0] ?? $response['orderid'] ?? $response['order-id'] ?? null;
+        }
+
+        if (!is_scalar($response) || !ctype_digit((string) $response) || (int) $response < 1) {
+            \Log::warning('ResellerClub returned an invalid domain order ID', [
                 'domain' => $domain,
+                'response' => $response,
+            ]);
+
+            return null;
+        }
+
+        return (string) $response;
+    }
+
+    public function modifyNameservers($orderId, array $nameservers)
+    {
+        if (!$this->isConfigured()) {
+            \Log::warning('ResellerClub nameserver update skipped because client is not configured', [
+                'order_id' => $orderId,
+            ]);
+
+            return null;
+        }
+
+        $nameservers = array_values(array_filter(array_map('trim', $nameservers)));
+        if (!is_scalar($orderId) || !ctype_digit((string) $orderId) || (int) $orderId < 1 || count($nameservers) < 2) {
+            \Log::warning('ResellerClub nameserver update skipped because its input is incomplete', [
+                'order_id' => $orderId,
                 'nameserver_count' => count($nameservers),
             ]);
 
@@ -250,7 +280,7 @@ class ResellerClubClient
         }
 
         return $this->request('/domains/modify-ns.json', [
-            'domain-name' => strtolower(trim($domain)),
+            'order-id' => (string) $orderId,
             'ns' => $nameservers,
         ], 'POST');
     }
@@ -308,7 +338,7 @@ class ResellerClubClient
         return (float) round($amount * $rate);
     }
 
-    private function request($path, array $parameters = [], $method = 'GET')
+    private function request($path, array $parameters = [], $method = 'GET', $allowScalar = false)
     {
         $parameters['auth-userid'] = $this->config['auth_userid'];
         $parameters['api-key'] = $this->config['api_key'];
@@ -358,10 +388,17 @@ class ResellerClubClient
             'api_status' => is_array($decoded) ? ($decoded['status'] ?? null) : null,
         ]);
 
-        if (!is_array($decoded) || (isset($decoded['status']) && strtoupper($decoded['status']) === 'ERROR')) {
+        if (
+            (!is_array($decoded) && !($allowScalar && is_scalar($decoded)))
+            || (is_array($decoded) && isset($decoded['status']) && strtoupper($decoded['status']) === 'ERROR')
+        ) {
             \Log::warning('ResellerClub API error', ['path' => $path, 'response' => substr($body, 0, 500)]);
         }
 
-        return is_array($decoded) ? $decoded : null;
+        if (is_array($decoded) || ($allowScalar && is_scalar($decoded))) {
+            return $decoded;
+        }
+
+        return $allowScalar ? trim($body) : null;
     }
 }

@@ -81,6 +81,7 @@ class MyStoreController extends Controller
 
         $rawNameservers = $request->input('nameservers');
         $rawNameservers = is_string($rawNameservers) ? trim($rawNameservers) : '';
+        $nameserverInput = $rawNameservers;
         $nameservers = array_values(array_filter(array_map(function ($nameserver) {
             return strtolower(trim($nameserver));
         }, preg_split('/\r\n|\r|\n/', $rawNameservers)), function ($nameserver) {
@@ -107,11 +108,24 @@ class MyStoreController extends Controller
         if ($validator->fails()) {
             return redirect()->route('mystore.domains')
                 ->withErrors($validator)
-                ->withInput()
+                ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
         }
 
-        $response = $this->resellerClub->modifyNameservers($item->domain, $nameservers);
+        $resellerClubOrderId = $this->resellerClub->domainOrderId($item->domain);
+        if ($resellerClubOrderId === null) {
+            \Log::warning('ResellerClub nameserver update skipped because the domain order ID could not be resolved', [
+                'domain' => $item->domain,
+                'user_id' => $userId,
+            ]);
+
+            return redirect()->route('mystore.domains')
+                ->withErrors(['nameservers' => 'ResellerClub could not find this domain order. Please contact support.'])
+                ->withInput(['nameservers' => $nameserverInput])
+                ->with('manage_domain_item', $item->id);
+        }
+
+        $response = $this->resellerClub->modifyNameservers($resellerClubOrderId, $nameservers);
         if (!is_array($response) || strtoupper((string) ($response['status'] ?? '')) !== 'SUCCESS') {
             \Log::warning('ResellerClub nameserver update did not succeed', [
                 'domain' => $item->domain,
@@ -121,7 +135,7 @@ class MyStoreController extends Controller
 
             return redirect()->route('mystore.domains')
                 ->withErrors(['nameservers' => 'ResellerClub could not update these nameservers. Please check the values and try again.'])
-                ->withInput()
+                ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
         }
 

@@ -60,7 +60,7 @@
                             @csrf
                             <label for="nameservers-{{ $domain['item_id'] }}">Nameservers</label>
                             <p>Enter all nameservers, one per line. This replaces the domain's current nameservers at ResellerClub.</p>
-                            <textarea id="nameservers-{{ $domain['item_id'] }}" name="nameservers" rows="4" required placeholder="ns1.example.com&#10;ns2.example.com">{{ session('manage_domain_item') === $domain['item_id'] ? old('nameservers') : '' }}</textarea>
+                            <textarea id="nameservers-{{ $domain['item_id'] }}" name="nameservers" rows="4" required placeholder="ns1.example.com&#10;ns2.example.com">{{ session('manage_domain_item') === $domain['item_id'] ? (is_array(old('nameservers')) ? implode("\n", array_filter(old('nameservers'), 'is_string')) : old('nameservers', '')) : '' }}</textarea>
                             <button type="submit">Update nameservers</button>
                         </form>
                     </details>
