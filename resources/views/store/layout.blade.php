@@ -4,6 +4,7 @@
     @include('partials.head', ['title' => $pageTitle])
     <link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/store.css') }}?v={{ @md5_file(public_path('css/store.css')) }}">
+    @stack('head')
 </head>
 <body class="domain-app">
 @include('partials.sidebar', ['active' => $navActive, 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
@@ -16,5 +17,6 @@
     </div>
 </main>
 @include('partials.chat')
+@stack('scripts')
 </body>
 </html>
