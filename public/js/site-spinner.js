@@ -21,6 +21,10 @@
     var els = null;
     var rafId = null;
     var finishTimer = null;
+    var hideTimer = null;
+    // Identifies the run of the finish animation so a newer show() can cancel
+    // the older ramp instead of letting it paint over the fresh counter.
+    var finishToken = 0;
     var value = 0;
     var auto = true;
     var lastTick = 0;
@@ -120,6 +124,10 @@
         opts = opts || {};
         ensureOverlay();
         window.clearTimeout(finishTimer);
+        // Cancel a pending hide so a quick re-open is never pulled back down,
+        // and invalidate any in-flight finish ramp.
+        window.clearTimeout(hideTimer);
+        finishToken++;
         value = typeof opts.startAt === 'number' ? opts.startAt : 0;
         auto = opts.progress !== false;
         paint(value);
@@ -177,7 +185,13 @@
         var from = value;
         var t0 = performance.now();
         var dur = 450;
+        var thisToken = ++finishToken;
         function stepFin(now) {
+            // A new show() during the finish animation must win: stop painting
+            // this ramp so the fresh 0% counter is not yanked back to 100%.
+            if (finishToken !== thisToken) {
+                return;
+            }
             var t = Math.min(1, (now - t0) / dur);
             var eased = 1 - Math.pow(1 - t, 3);
             paint(from + (100 - from) * eased);
@@ -199,8 +213,11 @@
         overlay.classList.remove('is-active');
         document.body.classList.remove('sspin-lock');
         overlay.setAttribute('aria-busy', 'false');
+        // Track this timer: an untracked one used to fire *after* a new show()
+        // and hid the freshly opened overlay, which read as a second popup.
+        window.clearTimeout(hideTimer);
         var node = overlay;
-        window.setTimeout(function () {
+        hideTimer = window.setTimeout(function () {
             node.hidden = true;
         }, 240);
     }
@@ -241,7 +258,17 @@
         }
     }
 
+    var booted = false;
+
     function boot() {
+        // boot() can be reachable from both DOMContentLoaded and the
+        // readyState !== 'loading' branch on cached/slow loads. Wiring the
+        // forms twice made one submit show the overlay twice.
+        if (booted) {
+            return;
+        }
+        booted = true;
+
         // 1) Resume after a navigation handoff.
         var handoff = consumeHandoff();
         if (handoff) {
