@@ -344,7 +344,7 @@ class ResellerClubClient
         $parameters['api-key'] = $this->config['api_key'];
         $url = rtrim($this->config['base_url'], '/') . $path;
         if ($method === 'GET') {
-            $url .= '?' . http_build_query($parameters);
+            $url .= '?' . $this->encodeParameters($parameters);
         }
 
         $curl = curl_init($url);
@@ -356,7 +356,7 @@ class ResellerClubClient
         ];
         if ($method === 'POST') {
             $options[CURLOPT_POST] = true;
-            $options[CURLOPT_POSTFIELDS] = http_build_query($parameters);
+            $options[CURLOPT_POSTFIELDS] = $this->encodeParameters($parameters);
             $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/x-www-form-urlencoded';
         }
         curl_setopt_array($curl, $options);
@@ -400,5 +400,29 @@ class ResellerClubClient
         }
 
         return $allowScalar ? trim($body) : null;
+    }
+
+    private function encodeParameters(array $parameters)
+    {
+        $parts = [];
+
+        foreach ($parameters as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $item) {
+                    if (is_scalar($item)) {
+                        $parts[] = http_build_query([$key => $item]);
+                    }
+                }
+
+                continue;
+            }
+
+            $part = http_build_query([$key => $value]);
+            if ($part !== '') {
+                $parts[] = $part;
+            }
+        }
+
+        return implode('&', $parts);
     }
 }
