@@ -229,6 +229,32 @@ class ResellerClubClient
         ]), 'POST');
     }
 
+    public function modifyNameservers($domain, array $nameservers)
+    {
+        if (!$this->isConfigured()) {
+            \Log::warning('ResellerClub nameserver update skipped because client is not configured', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        $nameservers = array_values(array_filter(array_map('trim', $nameservers)));
+        if (!$domain || count($nameservers) < 2) {
+            \Log::warning('ResellerClub nameserver update skipped because its input is incomplete', [
+                'domain' => $domain,
+                'nameserver_count' => count($nameservers),
+            ]);
+
+            return null;
+        }
+
+        return $this->request('/domains/modify-ns.json', [
+            'domain-name' => strtolower(trim($domain)),
+            'ns' => $nameservers,
+        ], 'POST');
+    }
+
     private function priceOptions($live, array $fallback = [])
     {
         $liveFirstYearPrice = $live['addnewdomain']['1'] ?? null;

@@ -53,6 +53,19 @@
                     <a href="{{ route('domains.confirmation', $domain['order']->reference) }}">Order details</a>
                 </div>
 
+                @if($domain['registration_status'] === 'registered' && $domain['order']->status === 'active' && !isset(config('services.test_domains')[$domain['domain']]))
+                    <details class="store-domain-manage" @if(session('manage_domain_item') === $domain['item_id']) open @endif>
+                        <summary>Manage</summary>
+                        <form method="POST" action="{{ route('mystore.domains.nameservers', $domain['item_id']) }}">
+                            @csrf
+                            <label for="nameservers-{{ $domain['item_id'] }}">Nameservers</label>
+                            <p>Enter all nameservers, one per line. This replaces the domain's current nameservers at ResellerClub.</p>
+                            <textarea id="nameservers-{{ $domain['item_id'] }}" name="nameservers" rows="4" required placeholder="ns1.example.com&#10;ns2.example.com">{{ session('manage_domain_item') === $domain['item_id'] ? old('nameservers') : '' }}</textarea>
+                            <button type="submit">Update nameservers</button>
+                        </form>
+                    </details>
+                @endif
+
                 @if($domain['payments']->isNotEmpty())
                     <div class="store-mini-payments">
                         <small>PAYMENTS ON THIS ORDER</small>

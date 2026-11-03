@@ -239,8 +239,10 @@ class StoreInventory
                 $expires = $registered ? $registered->copy()->addYears($years) : null;
 
                 return [
+                    'item_id' => $item->id,
                     'domain' => $item->domain,
                     'tld' => $item->tld,
+                    'registration_status' => $item->registration_status,
                     'years' => $years,
                     'price' => (float) $item->price,
                     'renewal_price' => (float) $item->renewal_price,

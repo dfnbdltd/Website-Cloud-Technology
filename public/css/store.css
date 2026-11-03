@@ -149,6 +149,14 @@
 .store-fact strong i{font-style:normal;color:#9aabbd;font-size:10px;font-weight:700}
 .store-fact em{font-style:normal;color:#93a5b8;font-size:10.5px}
 .store-item-foot{padding:16px 24px 18px;border-top:1px solid #eef3fa}
+.store-domain-manage{margin-top:16px}
+.store-domain-manage summary{width:max-content;padding:9px 14px;border:1px solid #3c7ff0;border-radius:5px;color:#2f6fc4;font:800 11px 'DM Sans';cursor:pointer;list-style:none}
+.store-domain-manage summary::-webkit-details-marker{display:none}
+.store-domain-manage form{max-width:520px;margin-top:14px;padding:16px;background:#f8fbff;border:1px solid #e2eaf5;border-radius:10px}
+.store-domain-manage label{display:block;color:var(--ink);font:800 12px 'DM Sans'}
+.store-domain-manage p{margin:5px 0 10px;color:#8295aa;font-size:11px}
+.store-domain-manage textarea{display:block;width:100%;box-sizing:border-box;padding:10px;border:1px solid #d5e0ed;border-radius:6px;color:var(--ink);font:12px 'DM Sans';resize:vertical}
+.store-domain-manage button{margin-top:10px;padding:10px 14px;border:0;border-radius:5px;background:#3c7ff0;color:#fff;font:700 11px 'DM Sans';cursor:pointer}
 .store-item-links{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
 .store-item-links a{color:#2f6fc4;font:800 11px 'DM Sans';text-decoration:none}
 .store-item-links a:hover{text-decoration:underline}

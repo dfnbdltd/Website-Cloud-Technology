@@ -129,6 +129,10 @@ Route::middleware(['web', 'customer'])->group(function () {
     // reachable, whether the customer owns anything in it or not).
     Route::get('/mystore', [MyStoreController::class, 'index'])->name('mystore');
     Route::get('/mystore/domains', [MyStoreController::class, 'domains'])->name('mystore.domains');
+    Route::post('/mystore/domains/{item}/nameservers', [MyStoreController::class, 'updateNameservers'])
+        ->where('item', '[0-9]+')
+        ->middleware('throttle:5,1')
+        ->name('mystore.domains.nameservers');
     Route::get('/mystore/hosting', [MyStoreController::class, 'hosting'])->name('mystore.hosting');
     Route::get('/mystore/{service}', [MyStoreController::class, 'service'])
         ->where('service', 'ssl|email|sms')

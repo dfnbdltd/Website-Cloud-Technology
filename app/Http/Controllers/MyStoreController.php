@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DomainOrderItem;
+use App\Services\ResellerClubClient;
 use App\Support\StoreInventory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * My Store: the All Items overview plus one page per section.
@@ -13,6 +16,13 @@ use Illuminate\Http\Request;
  */
 class MyStoreController extends Controller
 {
+    private $resellerClub;
+
+    public function __construct(ResellerClubClient $resellerClub)
+    {
+        $this->resellerClub = $resellerClub;
+    }
+
     /**
      * All Items: the balance row and the seven section cards, in serial order.
      */
@@ -51,6 +61,73 @@ class MyStoreController extends Controller
             'section' => StoreInventory::section('domains'),
             'domains' => $inventory->domains(),
         ]);
+    }
+
+    public function updateNameservers(Request $request, $itemId)
+    {
+        $userId = (int) ($request->user()
+            ? $request->user()->id
+            : $request->session()->get('customer.id'));
+        $item = DomainOrderItem::whereKey($itemId)
+            ->where('registration_status', 'registered')
+            ->whereHas('order', function ($query) use ($userId) {
+                $query->where('user_id', $userId)
+                    ->where('payment_status', 'paid')
+                    ->where('status', 'active');
+            })
+            ->firstOrFail();
+
+        abort_if(isset(config('services.test_domains')[$item->domain]), 404);
+
+        $rawNameservers = $request->input('nameservers');
+        $rawNameservers = is_string($rawNameservers) ? trim($rawNameservers) : '';
+        $nameservers = array_values(array_filter(array_map(function ($nameserver) {
+            return strtolower(trim($nameserver));
+        }, preg_split('/\r\n|\r|\n/', $rawNameservers)), function ($nameserver) {
+            return $nameserver !== '';
+        }));
+
+        $request->merge(['nameservers' => $nameservers]);
+        $validator = Validator::make($request->only('nameservers'), [
+            'nameservers' => ['required', 'array', 'min:2', 'max:13'],
+            'nameservers.*' => [
+                'required',
+                'string',
+                'max:253',
+                'regex:/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i',
+                'distinct',
+            ],
+        ], [
+            'nameservers.min' => 'Enter at least two nameservers, one per line.',
+            'nameservers.max' => 'Enter no more than 13 nameservers.',
+            'nameservers.*.regex' => 'Enter valid hostnames such as ns1.example.com.',
+            'nameservers.*.distinct' => 'Each nameserver must be unique.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('mystore.domains')
+                ->withErrors($validator)
+                ->withInput()
+                ->with('manage_domain_item', $item->id);
+        }
+
+        $response = $this->resellerClub->modifyNameservers($item->domain, $nameservers);
+        if (!is_array($response) || strtoupper((string) ($response['status'] ?? '')) !== 'SUCCESS') {
+            \Log::warning('ResellerClub nameserver update did not succeed', [
+                'domain' => $item->domain,
+                'user_id' => $userId,
+                'response' => $response,
+            ]);
+
+            return redirect()->route('mystore.domains')
+                ->withErrors(['nameservers' => 'ResellerClub could not update these nameservers. Please check the values and try again.'])
+                ->withInput()
+                ->with('manage_domain_item', $item->id);
+        }
+
+        return redirect()->route('mystore.domains')
+            ->with('success', 'Nameservers for ' . $item->domain . ' were updated successfully.')
+            ->with('manage_domain_item', $item->id);
     }
 
     public function hosting(Request $request)
