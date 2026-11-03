@@ -26,7 +26,8 @@
             </div>
         </div>
         <a data-sidebar-label="SSL Certificate" {!! $active === 'ssl-certificate' ? 'class="active service-nav-item"' : 'class="service-nav-item"' !!} href="{{ route('client.coming-soon', 'ssl-certificate') }}?back={{ urlencode(request()->getRequestUri()) }}"><b>◇</b><span>SSL Certificate</span></a>
-        <a data-sidebar-label="Business Email" {!! $active === 'business-email' ? 'class="active service-group-end service-nav-item"' : 'class="service-group-end service-nav-item"' !!} href="{{ route('client.coming-soon', 'business-email') }}?back={{ urlencode(request()->getRequestUri()) }}"><b>✉</b><span>Business Email</span></a>
+        <a data-sidebar-label="Business Email" {!! $active === 'business-email' ? 'class="active service-nav-item"' : 'class="service-nav-item"' !!} href="{{ route('client.coming-soon', 'business-email') }}?back={{ urlencode(request()->getRequestUri()) }}"><b>✉</b><span>Business Email</span></a>
+        <a data-sidebar-label="SMS Service" {!! $active === 'sms-service' ? 'class="active service-group-end service-nav-item"' : 'class="service-group-end service-nav-item"' !!} href="{{ route('client.coming-soon', 'sms-service') }}?back={{ urlencode(request()->getRequestUri()) }}"><b>✆</b><span>SMS Service</span></a>
         <span class="sidebar-nav-label sidebar-nav-label-store">Account</span>
         <a data-sidebar-label="My Store" href="#" data-current="{{ $myStoreMenuActive ? 'true' : 'false' }}" {!! $myStoreMenuActive ? 'class="active open service-nav-item"' : 'class="service-nav-item"' !!} aria-expanded="{{ $myStoreMenuActive ? 'true' : 'false' }}" aria-controls="myStoreSubnav"><b>▦</b><span>My Store</span><i class="nav-caret nav-toggle" aria-hidden="true"></i></a>
         <div class="subnav{{ $myStoreMenuActive ? ' open' : '' }}" id="myStoreSubnav">
@@ -56,6 +57,53 @@
     if (!sidebar) { return; }
 
     /**
+     * Keep the newly opened list visible while it grows.
+     *
+     * The old version waited 340ms for the open animation, then smooth-scrolled
+     * — which read as "lag, then jump". Instead this follows the growing list on
+     * every frame, so the scroll and the reveal finish together: no pause and
+     * no second movement after the list already looks open.
+     */
+    var revealFrame = null;
+
+    function cancelReveal() {
+        if (revealFrame) {
+            cancelAnimationFrame(revealFrame);
+            revealFrame = null;
+        }
+    }
+
+    function revealList(submenu) {
+        var nav = sidebar.querySelector('nav');
+        if (!nav) { return; }
+
+        cancelReveal();
+
+        // A little longer than the 240ms open animation, so the follow loop
+        // cannot outlive the reveal even if a row is slow to lay out.
+        var stopAt = performance.now() + 500;
+
+        function follow(now) {
+            var navRect = nav.getBoundingClientRect();
+            var listRect = submenu.getBoundingClientRect();
+            var hidden = listRect.bottom - navRect.bottom + 12;
+
+            // Move in step with the row the animation just revealed.
+            if (hidden > 0) { nav.scrollTop += hidden; }
+
+            if (now < stopAt) {
+                revealFrame = requestAnimationFrame(follow);
+            } else {
+                // Land exactly on the final row, then stop.
+                if (hidden > 0) { nav.scrollTop += hidden; }
+                revealFrame = null;
+            }
+        }
+
+        revealFrame = requestAnimationFrame(follow);
+    }
+
+    /**
      * Open or close one group.
      *
      * The navy pill means exactly one thing: THIS GROUP IS OPEN. So `active`
@@ -69,29 +117,15 @@
         var submenu = document.getElementById(trigger.getAttribute('aria-controls'));
         if (!submenu) { return; }
 
+        if (!open) { cancelReveal(); }
+
         submenu.classList.toggle('open', open);
         trigger.classList.toggle('open', open);
         trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
         trigger.classList.toggle('active', open);
         markCurrent(trigger);
 
-        // A group animates open over ~0.3s (grid-template-rows). Scrolling
-        // before that finishes sees a nearly-zero-height list and does
-        // nothing, which left the newly revealed rows hidden below the fold.
-        // So wait for the animation, then bring the bottom of the expanded
-        // list back into view automatically.
-        if (open && reveal) {
-            var nav = sidebar.querySelector('nav');
-            if (nav) {
-                setTimeout(function () {
-                    var navRect = nav.getBoundingClientRect();
-                    var listRect = submenu.getBoundingClientRect();
-                    if (listRect.bottom > navRect.bottom) {
-                        nav.scrollBy({ top: listRect.bottom - navRect.bottom + 12, behavior: 'smooth' });
-                    }
-                }, 340);
-            }
-        }
+        if (open && reveal) { revealList(submenu); }
     }
 
     /** "You are here" for assistive tech; it paints nothing. */

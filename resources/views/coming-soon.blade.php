@@ -5,15 +5,11 @@
       /services/domain-transfer
       /services/ssl-certificate
 
-    Copy, icon and accent all come from config/coming_soon.php, so this view
-    stays presentational and adding a service needs no markup change.
-
-    "Go back" prefers the `back` query string (validated as a local path in the
-    route). When it is absent — a direct visit or a shared link — it steps back
-    through history, and only falls back to the home page if there is nowhere
-    to return to. That is why the anchor works even with JS disabled.
+    Deliberately minimal: one icon and one line of copy. Title, icon and
+    accent all come from config/coming_soon.php, so this view stays
+    presentational and adding a service needs no markup change.
 --}}
-@php($comingCssVersion = @filemtime(public_path('css/coming-soon.css')))
+@php($comingCssVersion = @md5_file(public_path('css/coming-soon.css')))
 <!doctype html>
 <html lang="en">
 <head>
@@ -24,77 +20,18 @@
 @include('partials.site-navbar', ['navActive' => null])
 
 <main class="cs-main" @if(!empty($service['accent'])) style="--cs-accent:{{ $service['accent'] }}" @endif>
-    <section class="cs-card" aria-labelledby="csTitle">
-        <span class="cs-glow" aria-hidden="true"></span>
-
-        <span class="cs-badge" aria-hidden="true">
-            @include('partials.logo', ['gid' => 'cs'])
+    <section class="cs-minimal" aria-labelledby="csTitle">
+        <span class="cs-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="{{ $service['icon'] }}"/>
+            </svg>
         </span>
 
-        <p class="cs-eyebrow">Coming soon</p>
-        <h1 class="cs-title" id="csTitle">{{ $service['heading'] }}</h1>
-        <p class="cs-message">{{ $service['message'] }}</p>
-
-        @if(!empty($service['highlights']))
-            <ul class="cs-points">
-                @foreach($service['highlights'] as $point)
-                    <li>{{ $point }}</li>
-                @endforeach
-            </ul>
-        @endif
-
-        <div class="cs-actions">
-            <a class="cs-btn cs-btn-primary" id="csBack" href="{{ $backUrl ?: '#' }}" data-back-to="{{ $backUrl ?: '' }}" data-home="{{ route('landing') }}">
-                <span aria-hidden="true">←</span> Go back
-            </a>
-            @isset($service['cta'])
-                <a class="cs-btn cs-btn-ghost" href="{{ route($service['cta']['route']) }}">{{ $service['cta']['label'] }}</a>
-            @endisset
-        </div>
-
-        <p class="cs-note">
-            Need it sooner? <a href="{{ route('support') }}">Talk to our team</a>.
-        </p>
+        <h1 class="cs-title" id="csTitle">{{ $service['title'] }} is coming soon</h1>
     </section>
 </main>
 
 @include('partials.site-footer')
-
-<script>
-(function () {
-    var back = document.getElementById('csBack');
-    if (!back) { return; }
-
-    var target = back.getAttribute('data-back-to');
-    var home = back.getAttribute('data-home');
-
-    // A real referring page wins over everything: it is exactly where the
-    // visitor was before they clicked the coming-soon link.
-    if (!target && document.referrer) {
-        try {
-            var ref = new URL(document.referrer);
-            if (ref.origin === window.location.origin && ref.pathname !== window.location.pathname) {
-                target = ref.pathname + ref.search + ref.hash;
-            }
-        } catch (e) { /* malformed referrer: ignore */ }
-    }
-
-    if (target) {
-        back.setAttribute('href', target);
-        return;
-    }
-
-    // No usable referrer (direct visit / shared link). If this tab has real
-    // history to step back through, do that and keep the link useful.
-    if (window.history.length > 1) {
-        back.setAttribute('href', home);
-        back.addEventListener('click', function (event) {
-            event.preventDefault();
-            window.history.back();
-        });
-    }
-}());
-</script>
 @include('partials.chat')
 </body>
 </html>

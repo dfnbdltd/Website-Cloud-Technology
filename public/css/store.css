@@ -224,9 +224,13 @@
   .store-table.cols-payments .table-head span:nth-child(4),.store-table.cols-payments .table-row>span:nth-child(4){display:none}
 }
 
-/* --- Coming-soon client page (sidebar service rows) --- */
-.store-coming-points{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;padding:0;margin:0 0 22px}
-.store-coming-points li{position:relative;color:#5c7695;font-size:11.5px}
-.store-coming-points li::before{content:"✓";color:var(--tone);margin-right:7px;font-weight:800}
-.store-empty-actions{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
-.store-empty-actions .store-ghost-link{display:inline-flex;align-items:center;text-decoration:none}
+/* --- Coming-soon client page (sidebar service rows) -----------------------
+   Minimal by design: one icon and one line, no message or buttons. */
+.store-coming{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(20px,3vw,26px);min-height:clamp(320px,52vh,520px);margin-top:8px;padding:clamp(44px,7vw,76px) 24px;border:1px solid #e6eef7;border-radius:18px;background:radial-gradient(560px 300px at 50% 0%,color-mix(in srgb,var(--tone) 8%,transparent),transparent 72%),linear-gradient(165deg,#ffffff,#f9fbfe);box-shadow:0 20px 46px -28px #102c4f33;text-align:center}
+.store-coming-icon{display:grid;place-items:center;width:clamp(68px,9vw,84px);height:clamp(68px,9vw,84px);border:1px solid var(--tone-line);border-radius:clamp(20px,2.6vw,24px);background:linear-gradient(155deg,#ffffff,var(--tone-bg));box-shadow:inset 0 1px 0 #fff,0 20px 34px -20px color-mix(in srgb,var(--tone) 60%,transparent);color:var(--tone)}
+.store-coming-icon svg{display:block;width:clamp(32px,4vw,38px);height:clamp(32px,4vw,38px)}
+.store-coming-title{margin:0;max-width:22ch;color:#0f2340;font:800 clamp(23px,2.6vw,32px)/1.2 'Manrope',sans-serif;letter-spacing:-.9px;text-wrap:balance}
+@media(max-width:760px){
+  .store-coming{min-height:0;padding:42px 20px;border-radius:15px}
+  .store-coming-title{max-width:18ch;letter-spacing:-.6px}
+}
