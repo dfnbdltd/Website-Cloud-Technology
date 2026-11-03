@@ -122,16 +122,14 @@ class DomainRegistrationService
         }
 
         foreach ($registrableItems as $item) {
-            $contactId = config('services.resellerclub.reg_contact_id')
-                ?: $this->resellerClub->registrationContactId();
             $contacts = ResellerClubDomainContacts::forDomain($item['domain'], [
-                'reg' => $contactId,
-                'admin' => $contactId,
-                'tech' => $contactId,
-                'billing' => $contactId,
+                'reg' => config('services.resellerclub.reg_contact_id'),
+                'admin' => config('services.resellerclub.admin_contact_id'),
+                'tech' => config('services.resellerclub.tech_contact_id'),
+                'billing' => config('services.resellerclub.billing_contact_id'),
             ]);
             if ($contacts === null) {
-                return 'Could not retrieve the default ResellerClub contact for domain registration. Please try again or contact support.';
+                return 'ResellerClub contact IDs are not fully configured. Please add the required contact IDs before registering this domain.';
             }
         }
 

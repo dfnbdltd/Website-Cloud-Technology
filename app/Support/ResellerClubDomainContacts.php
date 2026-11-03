@@ -4,26 +4,6 @@ namespace App\Support;
 
 class ResellerClubDomainContacts
 {
-    public static function extractDefaultContactId(array $response)
-    {
-        $data = isset($response['data']) && is_array($response['data'])
-            ? $response['data']
-            : $response;
-        $registrant = $data['Registrant'] ?? $data['registrant'] ?? $data['Registrant Contact ID'] ?? null;
-
-        if (is_array($registrant)) {
-            $registrant = $registrant['entity']['entityid'] ?? $registrant['entityid'] ?? $registrant['id'] ?? null;
-        }
-
-        $contactId = $registrant
-            ?? ($data['entity']['entityid'] ?? null)
-            ?? ($data['entityid'] ?? null);
-
-        return is_scalar($contactId) && (string) $contactId !== ''
-            ? (string) $contactId
-            : null;
-    }
-
     public static function forDomain($domain, array $contacts)
     {
         $parts = explode('.', strtolower(trim($domain)));
