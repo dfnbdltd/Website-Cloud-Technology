@@ -186,11 +186,12 @@ class ResellerClubClient
             return null;
         }
 
+        $contactId = $this->registrationContactId();
         $contacts = ResellerClubDomainContacts::forDomain($domain, [
-            'reg' => $this->config['reg_contact_id'] ?? null,
-            'admin' => $this->config['admin_contact_id'] ?? null,
-            'tech' => $this->config['tech_contact_id'] ?? null,
-            'billing' => $this->config['billing_contact_id'] ?? null,
+            'reg' => $contactId,
+            'admin' => $contactId,
+            'tech' => $contactId,
+            'billing' => $contactId,
         ]);
         if ($contacts === null) {
             return null;
@@ -207,6 +208,37 @@ class ResellerClubClient
             'invoice-option' => 'PayInvoice',
             'protect-privacy' => 'false',
         ]), 'POST');
+    }
+
+    public function registrationContactId()
+    {
+        if (!empty($this->config['reg_contact_id'])) {
+            return (string) $this->config['reg_contact_id'];
+        }
+
+        if (!$this->isConfigured() || empty($this->config['customer_id'])) {
+            return null;
+        }
+
+        $cacheKey = 'resellerclub.default_contact.' . $this->config['customer_id'];
+        $cachedContactId = cache()->get($cacheKey);
+        if ($cachedContactId) {
+            return (string) $cachedContactId;
+        }
+
+        $response = $this->request('/contacts/default.json', [
+            'customer-id' => $this->config['customer_id'],
+            'type' => 'Contact',
+        ], 'POST');
+        $contactId = is_array($response)
+            ? ResellerClubDomainContacts::extractDefaultContactId($response)
+            : null;
+
+        if ($contactId !== null) {
+            cache()->put($cacheKey, $contactId, now()->addHours(6));
+        }
+
+        return $contactId;
     }
 
     private function priceOptions($live, array $fallback = [])

@@ -73,13 +73,8 @@ class AdminController extends Controller
             && !empty(config('services.resellerclub.auth_userid'))
             && $resellerClubApiKeyConfigured
             && !empty(config('services.resellerclub.customer_id'));
-        $resellerClubContactsConfigured = true;
-        foreach (['reg', 'admin', 'tech', 'billing'] as $role) {
-            if (empty(config('services.resellerclub.' . $role . '_contact_id'))) {
-                $resellerClubContactsConfigured = false;
-                break;
-            }
-        }
+        $resellerClubContactsConfigured = !empty(config('services.resellerclub.reg_contact_id'))
+            || ($resellerClubConfigured && !empty(config('services.resellerclub.customer_id')));
         $resellerClubNameserversConfigured = count(array_filter((array) config('services.resellerclub.nameservers', []))) > 0;
         $resellerClubConfigured = $resellerClubConfigured
             && $resellerClubContactsConfigured
@@ -95,6 +90,7 @@ class AdminController extends Controller
                         ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/domains/available.json', 'usage' => 'Check domain availability.'],
+                        ['method' => 'POST', 'url' => $resellerClubBase . '/contacts/default.json', 'usage' => 'Look up the default contact for domain registration.'],
                         ['method' => 'POST', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain under the configured default ResellerClub customer.'],
                     ],
                     'credentials' => [
@@ -121,8 +117,8 @@ class AdminController extends Controller
                             'status' => $resellerClubNameserversConfigured ? 'Configured' : 'Missing',
                         ],
                         [
-                            'name' => 'Domain contact IDs (Registrant/Admin/Tech/Billing)',
-                            'status' => $resellerClubContactsConfigured ? 'Configured' : 'Missing',
+                            'name' => 'Default registration contact',
+                            'status' => $resellerClubContactsConfigured ? 'Configured or fetched automatically' : 'Missing',
                         ],
                     ],
                 ],

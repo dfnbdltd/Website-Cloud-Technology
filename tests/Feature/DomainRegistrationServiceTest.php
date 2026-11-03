@@ -22,9 +22,6 @@ class DomainRegistrationServiceTest extends TestCase
         config([
             'services.resellerclub.nameservers' => ['ns1.example.test', 'ns2.example.test'],
             'services.resellerclub.reg_contact_id' => 'registration-contact',
-            'services.resellerclub.admin_contact_id' => 'admin-contact',
-            'services.resellerclub.tech_contact_id' => 'tech-contact',
-            'services.resellerclub.billing_contact_id' => 'billing-contact',
         ]);
     }
 
@@ -234,7 +231,7 @@ class DomainRegistrationServiceTest extends TestCase
         $this->assertStringContainsString('Domain nameservers are not configured', $message);
     }
 
-    public function testCheckoutPreflightRejectsMissingDomainContactIds()
+    public function testCheckoutPreflightResolvesDefaultContactWhenNoOverrideIsConfigured()
     {
         config([
             'services.resellerclub.enabled' => true,
@@ -242,22 +239,28 @@ class DomainRegistrationServiceTest extends TestCase
             'services.resellerclub.api_key' => 'test-key',
             'services.resellerclub.customer_id' => 'fixed-registrant',
             'services.resellerclub.reg_contact_id' => null,
-            'services.resellerclub.admin_contact_id' => null,
-            'services.resellerclub.tech_contact_id' => null,
-            'services.resellerclub.billing_contact_id' => null,
+            'services.resellerclub.price_currency' => 'USD',
             'services.test_domains' => [],
         ]);
 
         $resellerClub = \Mockery::mock(ResellerClubClient::class);
         $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
-        $resellerClub->shouldNotReceive('walletBalance');
+        $resellerClub->shouldReceive('registrationContactId')->once()->andReturn('default-contact-14569999');
+        $resellerClub->shouldReceive('walletBalance')->once()->andReturn([
+            'balance' => 20.00,
+            'currency' => 'USD',
+        ]);
+        $resellerClub->shouldReceive('catalog')->once()->andReturn([
+            'com' => ['classkey' => 'domcno'],
+        ]);
+        $resellerClub->shouldReceive('liveRegistrationPrice')->once()->andReturn(13.09);
         $this->app->instance(ResellerClubClient::class, $resellerClub);
 
         $message = $this->app->make(DomainRegistrationService::class)->walletPreflightError([
             ['domain' => 'example.com', 'years' => 1],
         ]);
 
-        $this->assertStringContainsString('domain contact IDs are not fully configured', $message);
+        $this->assertNull($message);
     }
 
     public function testDomainRegistrationUsesTldSpecificContactOverrides()
@@ -291,19 +294,41 @@ class DomainRegistrationServiceTest extends TestCase
         $this->assertSame('billing-1', $comContacts['billing-contact-id']);
     }
 
-    public function testTldContactOverridesAllowUnavailableRoleIds()
+    public function testDefaultContactIdCanBeReadFromSupportedApiResponseShapes()
+    {
+        $this->assertSame('14569999', ResellerClubDomainContacts::extractDefaultContactId([
+            'Registrant' => '14569999',
+        ]));
+        $this->assertSame('14569999', ResellerClubDomainContacts::extractDefaultContactId([
+            'entity' => ['entityid' => 14569999],
+        ]));
+        $this->assertSame('14569999', ResellerClubDomainContacts::extractDefaultContactId([
+            'data' => ['Registrant' => ['entity' => ['entityid' => 14569999]]],
+        ]));
+        $this->assertNull(ResellerClubDomainContacts::extractDefaultContactId([
+            'status' => 'ERROR',
+            'message' => 'No default contact',
+        ]));
+    }
+
+    public function testRegistrantContactCanBeReusedForOtherRolesWithTldOverrides()
     {
         $this->assertNotNull(ResellerClubDomainContacts::forDomain('example.eu', [
             'reg' => 'registrant-1',
-            'admin' => null,
-            'tech' => null,
-            'billing' => null,
+            'admin' => 'registrant-1',
+            'tech' => 'registrant-1',
+            'billing' => 'registrant-1',
         ]));
-        $this->assertNull(ResellerClubDomainContacts::forDomain('example.com', [
+        $this->assertSame([
+            'reg-contact-id' => 'registrant-1',
+            'admin-contact-id' => 'registrant-1',
+            'tech-contact-id' => 'registrant-1',
+            'billing-contact-id' => 'registrant-1',
+        ], ResellerClubDomainContacts::forDomain('example.com', [
             'reg' => 'registrant-1',
-            'admin' => null,
-            'tech' => null,
-            'billing' => null,
+            'admin' => 'registrant-1',
+            'tech' => 'registrant-1',
+            'billing' => 'registrant-1',
         ]));
     }
 

@@ -28,9 +28,6 @@ class AdminApiConnectionsTest extends TestCase
             'services.resellerclub.reseller_id' => 'reseller-account-id',
             'services.resellerclub.customer_id' => 'registrant-customer-id',
             'services.resellerclub.reg_contact_id' => 'registrant-contact-id',
-            'services.resellerclub.admin_contact_id' => 'admin-contact-id',
-            'services.resellerclub.tech_contact_id' => 'tech-contact-id',
-            'services.resellerclub.billing_contact_id' => 'billing-contact-id',
             'services.resellerclub.nameservers' => ['ns1.example.test', 'ns2.example.test'],
             'services.bkash.app_key' => 'bkash-app-key-secret',
             'services.bkash.app_secret' => 'bkash-app-secret-value',
@@ -50,20 +47,18 @@ class AdminApiConnectionsTest extends TestCase
             ->assertSee('/products/customer-price.json')
             ->assertSee('/billing/reseller-balance.json')
             ->assertSee('/domains/available.json')
+            ->assertSee('/contacts/default.json')
             ->assertSee('/domains/register.json')
             ->assertSee('/checkout/payment/create')
             ->assertSee('RESELLERCLUB_HTTP_API_KEY (or RESELLERCLUB_API_KEY)')
             ->assertSee('Automatically attempted after successful payment')
-            ->assertSee('Domain contact IDs (Registrant/Admin/Tech/Billing)')
+            ->assertSee('Default registration contact')
             ->assertSee('Configured')
             ->assertDontSee('reseller-user-id')
             ->assertDontSee('reseller-secret-value')
             ->assertDontSee('reseller-account-id')
             ->assertDontSee('registrant-customer-id')
             ->assertDontSee('registrant-contact-id')
-            ->assertDontSee('admin-contact-id')
-            ->assertDontSee('tech-contact-id')
-            ->assertDontSee('billing-contact-id')
             ->assertDontSee('bkash-app-key-secret')
             ->assertDontSee('bkash-app-secret-value')
             ->assertDontSee('bkash-username')
