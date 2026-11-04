@@ -60,6 +60,7 @@ class MyStoreController extends Controller
         return view('store.domains', [
             'section' => StoreInventory::section('domains'),
             'domains' => $inventory->domains(),
+            'transfers' => $inventory->transfers(),
         ]);
     }
 

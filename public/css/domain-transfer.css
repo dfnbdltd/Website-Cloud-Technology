@@ -524,3 +524,18 @@ body.dt-modal-open{overflow:hidden}
     .dt-page *::before,
     .dt-page *::after{animation:none!important;transition:none!important}
 }
+
+.dt-guide{
+    padding:48px 22px 60px;
+    background:#f6f9fd;
+}
+.dt-guide-inner{max-width:980px;margin:0 auto}
+.dt-guide .dt-kicker{display:block;margin-bottom:8px;color:#5279b9;font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase}
+.dt-guide h2{margin:28px 0 12px;color:var(--dt-ink);font:800 clamp(21px,3vw,27px)/1.2 'Manrope',sans-serif;letter-spacing:-.6px}
+.dt-guide h2:first-of-type{margin-top:0}
+.dt-checklist,.dt-transfer-steps{margin:0;padding-left:23px;color:var(--dt-body);font-size:14px;line-height:1.75}
+.dt-checklist li,.dt-transfer-steps li{padding:5px 0 5px 4px}
+.dt-checklist li::marker,.dt-transfer-steps li::marker{color:var(--dt-blue);font-weight:800}
+.dt-guide li strong{color:var(--dt-ink)}
+.dt-guide code{padding:2px 5px;border-radius:4px;background:#e8eef7;color:#344a69;font-size:.9em}
+.dt-guide-note{margin:24px 0 0;padding:16px 18px;border:1px solid #dce8f7;border-radius:11px;background:#fff;color:var(--dt-body);font-size:14px}

@@ -1,7 +1,7 @@
 {{--
     Public service page.
 
-    `domain-transfer` is a real, interactive landing page (front-end only).
+    `domain-transfer` is the domain transfer and checkout page.
     Every other slug stays the deliberately minimal "coming soon" screen:
     one icon and one line of copy.
 

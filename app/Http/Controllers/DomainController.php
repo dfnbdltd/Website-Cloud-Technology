@@ -8,12 +8,15 @@ use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\Services\ResellerClubClient;
 use App\Services\DomainRegistrationService;
+use App\Services\DomainTransferService;
 use App\Models\DomainOrder;
 use App\Models\DomainOrderItem;
 use App\Models\Payment;
 use App\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class DomainController extends Controller
 {
@@ -33,7 +36,6 @@ class DomainController extends Controller
             'results' => $request->session()->get('domain_results', []),
             'cart' => $request->session()->get('domain_cart', []),
             'plans' => $this->resellerClub->catalog(),
-            'testDomains' => config('services.test_domains', []),
             'liveSource' => $this->resellerClub->isConfigured() && !empty($this->resellerClub->pricing()),
         ]);
     }
@@ -143,13 +145,64 @@ class DomainController extends Controller
         }
 
         $cart = $request->session()->get('domain_cart', []);
+        if (collect($cart)->contains(function ($item) {
+            return ($item['order_type'] ?? 'registration') === 'transfer';
+        })) {
+            return back()->withErrors(['domain' => 'Domain transfers must be checked out separately from domain registrations.']);
+        }
         $cart[$domain] = [
             'domain' => $domain,
+            'order_type' => 'registration',
             'price' => $yearPrice,
             'purchase_price' => $yearPrice,
             'first_year_price' => $firstYearPrice,
             'renewal_price' => $renewalPrice,
             'years' => $years,
+        ];
+        $request->session()->put('domain_cart', $cart);
+
+        return redirect()->route('domains.checkout')->with('cart_added', $domain);
+    }
+
+    public function startTransfer(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'domain' => ['required', 'string', 'max:253', 'regex:/^[a-z0-9][a-z0-9.-]*[a-z0-9]$/i'],
+            'auth_code' => ['required', 'string', 'max:255'],
+        ]);
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput($request->except('auth_code'));
+        }
+        $data = $validator->validated();
+
+        $domain = strtolower(trim($data['domain']));
+        if (!preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})$/i', $domain)) {
+            return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'Enter a valid domain name, including its extension.']);
+        }
+
+        $cart = $request->session()->get('domain_cart', []);
+        if (collect($cart)->contains(function ($item) {
+            return ($item['order_type'] ?? 'registration') !== 'transfer';
+        })) {
+            return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'Domain transfers must be checked out separately from domain registrations.']);
+        }
+
+        $parts = explode('.', $domain);
+        $tld = end($parts);
+        $price = $this->resellerClub->liveTransferPrice($tld);
+        if ($price === null) {
+            return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'A live transfer price is not available for this domain extension. Please contact support.']);
+        }
+
+        $cart[$domain] = [
+            'domain' => $domain,
+            'order_type' => 'transfer',
+            'price' => $price,
+            'purchase_price' => $price,
+            'first_year_price' => $price,
+            'renewal_price' => $price,
+            'years' => 1,
+            'transfer_auth_code' => Crypt::encryptString(trim($data['auth_code'])),
         ];
         $request->session()->put('domain_cart', $cart);
 
@@ -235,6 +288,21 @@ class DomainController extends Controller
         if (!$cart) {
             return redirect()->route('domains.index')->withErrors(['domain' => 'Your cart is empty.']);
         }
+        $hasTransfers = collect($cart)->contains(function ($item) {
+            return ($item['order_type'] ?? 'registration') === 'transfer';
+        });
+        if ($hasTransfers && collect($cart)->contains(function ($item) {
+            return ($item['order_type'] ?? 'registration') !== 'transfer';
+        })) {
+            return redirect()->route('cart.index')->withErrors(['domain' => 'Domain transfers must be checked out separately from domain registrations.']);
+        }
+
+        if ($hasTransfers) {
+            $transferError = app(DomainTransferService::class)->preflightError($cart);
+            if ($transferError) {
+                return back()->withErrors(['payment_method' => $transferError]);
+            }
+        }
         $allowedMethods = array_keys($this->payments->methods());
         if ($user) {
             array_unshift($allowedMethods, 'wallet');
@@ -281,9 +349,15 @@ class DomainController extends Controller
             return back()->withInput()->withErrors(['payment_method' => $walletError]);
         }
 
+        $safeItems = array_values($cart);
+        foreach ($safeItems as &$safeItem) {
+            unset($safeItem['transfer_auth_code']);
+        }
+        unset($safeItem);
+
         $order = [
             'reference' => 'CT-' . date('Ymd') . '-' . strtoupper(substr(sha1(uniqid('', true)), 0, 6)),
-            'items' => array_values($cart),
+            'items' => $safeItems,
             'total' => $this->total($cart),
             'customer' => $data,
             'created_at' => date('c'),
@@ -327,6 +401,8 @@ class DomainController extends Controller
                     'price' => $item['price'],
                     'renewal_price' => $item['renewal_price'] ?? $item['price'],
                     'purchase_price' => $item['purchase_price'] ?? $item['price'],
+                    'order_type' => $item['order_type'] ?? 'registration',
+                    'transfer_auth_code' => $item['transfer_auth_code'] ?? null,
                 ]);
             }
             Payment::create([
@@ -361,6 +437,9 @@ class DomainController extends Controller
                 'order' => $order,
                 'paid' => true,
                 'registrationPending' => $persisted->status === 'registration_pending',
+                'isTransfer' => $hasTransfers,
+                'transferPending' => $persisted->status === 'transfer_pending',
+                'transferFailed' => $persisted->status === 'transfer_failed',
             ]);
         }
 
@@ -385,16 +464,55 @@ class DomainController extends Controller
     public function confirmation(Request $request, $reference)
     {
         $order = $request->session()->get('last_domain_order');
-        if (!$order || ($order['reference'] ?? null) !== $reference) {
-            return redirect()->route('domains.index')->withErrors(['payment' => 'Order not found in this session.']);
+        $user = $request->user() ?: User::find(session('customer.id'));
+        $query = DomainOrder::with(['items', 'payments'])->where('reference', $reference);
+        if ($user) {
+            $query->where('user_id', $user->id);
         }
+        $databaseOrder = $query->first();
 
-        $databaseOrder = isset($order['database_id']) ? DomainOrder::find($order['database_id']) : null;
+        if (!$order || ($order['reference'] ?? null) !== $reference) {
+            if (!$user || !$databaseOrder) {
+                return redirect()->route('domains.index')->withErrors(['payment' => 'Order not found in this session.']);
+            }
+
+            $order = [
+                'reference' => $databaseOrder->reference,
+                'items' => $databaseOrder->items->map(function ($item) {
+                    return [
+                        'domain' => $item->domain,
+                        'years' => (int) $item->years,
+                        'price' => (float) $item->price,
+                    ];
+                })->all(),
+                'total' => (float) $databaseOrder->total,
+                'customer' => ['payment_method' => $databaseOrder->payment_method],
+                'payment' => [
+                    'method' => $databaseOrder->payment_method,
+                    'status' => $databaseOrder->payment_status,
+                    'transaction_id' => $databaseOrder->provider_payment_id,
+                ],
+                'database_id' => $databaseOrder->id,
+            ];
+        } elseif ($user && (!$databaseOrder || (int) $databaseOrder->user_id !== (int) $user->id)) {
+            return redirect()->route('domains.index')->withErrors(['payment' => 'Order not found in this account.']);
+        }
 
         return view('domains.confirmation', [
             'order' => $order,
             'paid' => $databaseOrder ? $databaseOrder->payment_status === 'paid' : (($order['payment']['status'] ?? null) === 'paid'),
             'registrationPending' => $databaseOrder && $databaseOrder->status === 'registration_pending',
+            'isTransfer' => $databaseOrder && $databaseOrder->items->contains(function ($item) {
+                return $item->order_type === 'transfer';
+            }),
+            'transferPending' => $databaseOrder && $databaseOrder->status === 'transfer_pending',
+            'transferFailed' => $databaseOrder && $databaseOrder->items->contains(function ($item) {
+                return $item->order_type === 'transfer' && $item->registration_status === 'transfer_failed';
+            }),
+            'transferComplete' => $databaseOrder && $databaseOrder->status === 'active'
+                && $databaseOrder->items->contains(function ($item) {
+                    return $item->order_type === 'transfer';
+                }),
         ]);
     }
 

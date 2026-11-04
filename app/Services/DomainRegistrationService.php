@@ -28,6 +28,14 @@ class DomainRegistrationService
         }
 
         $order->loadMissing('items');
+        if ($order->items->contains(function ($item) {
+            return $item->order_type === 'transfer';
+        })) {
+            app(DomainTransferService::class)->transferPaidOrder($order);
+
+            return;
+        }
+
         $testDomains = config('services.test_domains', []);
         $registrableItems = $order->items->filter(function ($item) use ($testDomains) {
             return !isset($testDomains[$item->domain]);
@@ -131,7 +139,8 @@ class DomainRegistrationService
     {
         $testDomains = config('services.test_domains', []);
         $registrableItems = array_filter($items, function ($item) use ($testDomains) {
-            return !isset($testDomains[$item['domain']]);
+            return ($item['order_type'] ?? 'registration') === 'registration'
+                && !isset($testDomains[$item['domain']]);
         });
 
         if (!$registrableItems) {

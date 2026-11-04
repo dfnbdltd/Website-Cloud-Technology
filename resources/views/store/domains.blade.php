@@ -1,9 +1,43 @@
 @extends('store.layout', ['pageTitle' => 'My Domains', 'navActive' => 'my-domains', 'topbarTitle' => 'My Store'])
 
 @section('store')
-    @include('store.partials.page-head', ['section' => $section, 'count' => $domains->count(), 'countLabel' => 'domain'])
+    @include('store.partials.page-head', ['section' => $section, 'count' => $domains->count() + $transfers->count(), 'countLabel' => 'domain'])
 
-    @forelse($domains as $domain)
+    @foreach($transfers as $transfer)
+        <article class="store-item">
+            <header class="store-item-head">
+                <span class="store-item-icon tone-{{ $section['tone'] }}" aria-hidden="true">{{ $section['icon'] }}</span>
+                <div class="store-item-title">
+                    <h2>{{ $transfer['domain'] }}</h2>
+                    <p>Domain transfer · order <b>{{ $transfer['order']->reference }}</b></p>
+                </div>
+                <span class="table-status {{ $transfer['status'] }}">{{ ucfirst(str_replace('_', ' ', $transfer['status'])) }}</span>
+            </header>
+            <div class="store-facts">
+                <div class="store-fact">
+                    <small>TRANSFER</small>
+                    <strong>{{ $transfer['status'] === 'transfer_submitted' ? 'Submitted to registrar' : ($transfer['status'] === 'transferred' ? 'Transfer complete' : ucfirst(str_replace('_', ' ', $transfer['status']))) }}</strong>
+                    <em>{{ $transfer['status'] === 'transfer_submitted' ? 'Registrar approval may take 5–7 days' : ($transfer['status'] === 'transfer_failed' ? 'Contact support with your order reference' : ($transfer['status'] === 'transferred' ? 'The domain is now in your account' : 'Transfer request status')) }}</em>
+                </div>
+                <div class="store-fact">
+                    <small>PAID</small>
+                    <strong>৳ {{ number_format($transfer['price'], 2) }}</strong>
+                    <em>{{ ucfirst(str_replace('_', ' ', (string) $transfer['order']->payment_method ?: 'n/a')) }}</em>
+                </div>
+            </div>
+            <footer class="store-item-foot">
+                <div class="store-item-links">
+                    @if($transfer['invoice'])
+                        <a href="{{ route('invoices.view', $transfer['invoice']) }}">Invoice {{ $transfer['invoice']->invoice_number }}</a>
+                        <a href="{{ route('invoices.pdf', $transfer['invoice']) }}?download=1">Download PDF</a>
+                    @endif
+                    <a href="{{ route('domains.confirmation', $transfer['order']->reference) }}">Order details</a>
+                </div>
+            </footer>
+        </article>
+    @endforeach
+
+    @foreach($domains as $domain)
         <article class="store-item">
             <header class="store-item-head">
                 <span class="store-item-icon tone-{{ $section['tone'] }}" aria-hidden="true">{{ $section['icon'] }}</span>
@@ -81,7 +115,9 @@
                 @endif
             </footer>
         </article>
-    @empty
+    @endforeach
+
+    @if($domains->isEmpty() && $transfers->isEmpty())
         @include('store.partials.empty', ['section' => $section])
-    @endforelse
+    @endif
 @endsection

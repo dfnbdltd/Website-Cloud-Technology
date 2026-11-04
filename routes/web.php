@@ -95,6 +95,9 @@ Route::post('/chat/messages', [ChatController::class, 'send'])->name('chat.send'
 Route::prefix('domains')->group(function () {
     Route::get('/', [DomainController::class, 'index'])->name('domains.index');
     Route::post('/search', [DomainController::class, 'search'])->name('domains.search');
+    Route::post('/transfer', [DomainController::class, 'startTransfer'])
+        ->middleware('throttle:10,1')
+        ->name('domains.transfer');
     Route::post('/cart', [DomainController::class, 'addToCart'])->name('domains.cart');
     Route::get('/cart', [DomainController::class, 'cart'])->name('cart.index');
     Route::post('/cart/remove', [DomainController::class, 'removeFromCart'])->name('cart.remove');

@@ -130,22 +130,6 @@
             @endif
 
             <section class="catalog-section">
-                <div class="results-heading"><div><span class="domain-kicker">TRY THE FLOW</span><h2>Test checkout · ৳1 each</h2><p class="results-heading-note">Use a reserved test domain to preview the checkout experience.</p></div><span class="result-source">Test orders only — not real domain registrations</span></div>
-                @foreach($testDomains as $domain => $plan)
-                    <div class="domain-result">
-                        <div class="result-status is-available"><span>✓</span></div>
-                        <div class="result-name"><strong>{{ $domain }}</strong><small>Reserved test domain · not registered externally</small></div>
-                        <div class="result-price"><strong>৳ {{ number_format($plan['price']) }}</strong><small>one-year test order</small></div>
-                        @if(isset($cart[$domain]))
-                            <a class="add-domain in-cart" href="{{ route('cart.index') }}">In cart ✓</a>
-                        @else
-                            <form method="POST" action="{{ route('domains.cart') }}">@csrf<input type="hidden" name="domain" value="{{ $domain }}"><input type="hidden" name="years" value="1"><button class="add-domain" type="submit">{{ session('customer') ? 'Add to cart' : 'Purchase now' }} <b>+</b></button></form>
-                        @endif
-                    </div>
-                @endforeach
-            </section>
-
-            <section class="catalog-section">
                 <div class="results-heading"><div><span class="domain-kicker">POPULAR EXTENSIONS</span><h2>All domain pricing</h2></div><span class="result-source">Prices in BDT / year</span></div>
                 <div class="catalog-table-wrap">
                     <table class="catalog-table">

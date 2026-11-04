@@ -55,8 +55,8 @@ class InvoiceService
             foreach ($order->items as $item) {
                 $invoice->items()->create([
                     'sl_no' => $invoice->items()->count() + 1,
-                    'description' => 'Domain registration — ' . $item->domain,
-                    'item_type' => 'domain-registration',
+                    'description' => ($item->order_type === 'transfer' ? 'Domain transfer — ' : 'Domain registration — ') . $item->domain,
+                    'item_type' => $item->order_type === 'transfer' ? 'domain-transfer' : 'domain-registration',
                     'years' => (int) $item->years,
                     'quantity' => 1,
                     'unit_price' => (float) $item->price,
@@ -165,6 +165,8 @@ class InvoiceService
             Payment::where('domain_order_id', $order->id)
                 ->where('status', '!=', 'paid')
                 ->delete();
+
+            $order->items()->whereNotNull('transfer_auth_code')->update(['transfer_auth_code' => null]);
 
             $order->forceFill([
                 'status' => 'cancelled',

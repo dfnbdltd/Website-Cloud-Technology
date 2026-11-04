@@ -30,10 +30,6 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'test_domains' => [
-        'wallet-test.ctbd.test' => ['price' => 1.00, 'renewal' => 1.00],
-        'bkash-test.ctbd.test' => ['price' => 1.00, 'renewal' => 1.00],
-    ],
 
     'resellerclub' => [
         'enabled' => env('RESELLERCLUB_ENABLED', false),

@@ -36,10 +36,14 @@
                         <div class="cart-line-name">
                             <strong>{{ $item['domain'] }}</strong>
                             <small>
+                                @if(($item['order_type'] ?? 'registration') === 'transfer')
+                                Domain transfer · includes a one-year extension
+                                @else
                                 Domain registration · {{ $item['years'] }} year{{ $item['years'] > 1 ? 's' : '' }}
                                 @if(isset($item['first_year_price']))
                                 <br>First year ৳ {{ number_format($item['first_year_price']) }} · renews ৳
                                 {{ number_format($item['renewal_price']) }}/year
+                                @endif
                                 @endif
                             </small>
                         </div>

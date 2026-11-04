@@ -102,6 +102,45 @@ class MyStorePagesTest extends TestCase
             ->assertSee('DETAIL-ORDER-PAY');
     }
 
+    public function testDomainPageListsPaidTransferRequestsSeparatelyFromOwnedDomains()
+    {
+        $user = $this->user();
+        $order = DomainOrder::create([
+            'reference' => 'TRANSFER-STORE-ORDER',
+            'user_id' => $user->id,
+            'total' => 1600,
+            'status' => 'transfer_pending',
+            'payment_method' => 'bkash',
+            'payment_status' => 'paid',
+            'provider' => 'bkash',
+            'customer_name' => $user->name,
+            'customer_phone' => '01700000000',
+            'customer_email' => $user->email,
+        ]);
+        $order->items()->create([
+            'domain' => 'transfer-domain.com',
+            'tld' => 'com',
+            'years' => 1,
+            'price' => 1600,
+            'renewal_price' => 1600,
+            'order_type' => 'transfer',
+            'registration_status' => 'transfer_submitted',
+        ]);
+        app(InvoiceService::class)->createForOrder($order->fresh());
+
+        $session = $this->customerSession($user);
+        $this->withSession($session)->get('/mystore/domains')
+            ->assertOk()
+            ->assertSee('transfer-domain.com')
+            ->assertSee('Submitted to registrar')
+            ->assertSee($order->reference)
+            ->assertDontSee('No domains yet.');
+
+        $this->withSession($session)->get(route('domains.confirmation', $order->reference))
+            ->assertOk()
+            ->assertSee('Your payment is confirmed and the transfer request has been submitted');
+    }
+
     public function testUnbuiltSectionsShowTheirEmptyStateAndFirstPurchasePrompt()
     {
         $session = $this->customerSession($this->user());

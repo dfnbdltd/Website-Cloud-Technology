@@ -187,7 +187,7 @@ class StoreInventory
 
     public function domainCount()
     {
-        return $this->paidOrders()->count();
+        return $this->domains()->count() + $this->transfers()->where('status', 'transferred')->count();
     }
 
     public function paidToDate()
@@ -233,7 +233,7 @@ class StoreInventory
     public function domains()
     {
         return $this->paidOrders()->flatMap(function (DomainOrder $order) {
-            return $order->items->map(function ($item) use ($order) {
+            return $order->items->where('order_type', 'registration')->map(function ($item) use ($order) {
                 $years = max(1, (int) $item->years);
                 $registered = $order->created_at;
                 $expires = $registered ? $registered->copy()->addYears($years) : null;
@@ -253,6 +253,24 @@ class StoreInventory
                     'days_left' => $expires
                         ? (int) now()->startOfDay()->diffInDays($expires->copy()->startOfDay(), false)
                         : null,
+                    'payments' => $this->orderPayments($order->id),
+                ];
+            });
+        })->values();
+    }
+
+    public function transfers()
+    {
+        return $this->paidOrders()->flatMap(function (DomainOrder $order) {
+            return $order->items->where('order_type', 'transfer')->map(function ($item) use ($order) {
+                return [
+                    'item_id' => $item->id,
+                    'domain' => $item->domain,
+                    'tld' => $item->tld,
+                    'status' => $order->status === 'active' ? 'transferred' : $item->registration_status,
+                    'price' => (float) $item->price,
+                    'order' => $order,
+                    'invoice' => $this->invoiceMap()->get($order->id),
                     'payments' => $this->orderPayments($order->id),
                 ];
             });

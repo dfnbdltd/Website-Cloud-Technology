@@ -1,9 +1,5 @@
 /* ==========================================================================
- * CloudTech — domain transfer (front-end simulation)
- *
- * Everything here is local: the domain is validated in the browser and the
- * Authorization Code dialog mimics the registrar hand-off. No request is sent,
- * so the exact same file can be demoed locally and on the live site.
+ * CloudTech — domain transfer form.
  *
  * Markup: resources/views/partials/domain-transfer.blade.php
  * Styles: public/css/domain-transfer.css
@@ -20,27 +16,20 @@
     var domainInput = page.querySelector('[data-dt-domain]');
     var errorBox = page.querySelector('[data-dt-error]');
     var errorText = page.querySelector('[data-dt-error-text]');
-    var notFoundBox = page.querySelector('[data-dt-not-found]');
-    var notFoundDomain = page.querySelector('[data-dt-not-found-domain]');
-    var retryButton = page.querySelector('[data-dt-retry]');
     var modal = page.querySelector('[data-dt-modal]');
-    var formPane = page.querySelector('[data-dt-form-state]');
-    var successPane = page.querySelector('[data-dt-success]');
     var modalDomain = page.querySelector('[data-dt-modal-domain]');
-    var successDomain = page.querySelector('[data-dt-success-domain]');
+    var transferForm = page.querySelector('[data-dt-transfer-form]');
+    var transferDomain = page.querySelector('[data-dt-transfer-domain]');
     var authInput = page.querySelector('[data-dt-auth]');
     var authError = page.querySelector('[data-dt-auth-error]');
-    var confirmBtn = page.querySelector('[data-dt-confirm]');
-    var doneBtn = page.querySelector('[data-dt-done]');
 
-    if (!form || !domainInput || !modal) {
+    if (!form || !domainInput || !modal || !transferForm || !transferDomain) {
         return;
     }
 
     var lastFocused = null;
     var shakeAnimation = null;
     var INVALID_MESSAGE = 'The domain you entered is not valid';
-    var DEMO_DOMAIN = 'test.com';
 
     /* ---------------------------------------------------------------------
      * Domain validation
@@ -106,25 +95,6 @@
 
     }
 
-    function hideNotFound() {
-        if (notFoundBox) {
-            notFoundBox.hidden = true;
-        }
-    }
-
-    function showNotFound(domain) {
-        if (!notFoundBox) {
-            return;
-        }
-
-        notFoundDomain.textContent = domain;
-        notFoundBox.hidden = false;
-        notFoundBox.classList.remove('is-visible');
-        window.requestAnimationFrame(function () {
-            notFoundBox.classList.add('is-visible');
-        });
-    }
-
     /* Shake the bar with the Web Animations API rather than a CSS class:
        toggling `animation` on the form would restart its entrance animation
        and briefly fade it out. */
@@ -166,14 +136,7 @@
         }
 
         clearDomainError();
-        hideNotFound();
-
-        if (domain === DEMO_DOMAIN) {
-            openModal(domain);
-            return;
-        }
-
-        showNotFound(domain);
+        openModal(domain);
     });
 
     /* ---------------------------------------------------------------------
@@ -184,12 +147,11 @@
         lastFocused = document.activeElement;
 
         modalDomain.textContent = domain;
+        transferDomain.value = domain;
         authInput.value = '';
         authError.hidden = true;
         authInput.classList.remove('is-invalid');
 
-        formPane.hidden = false;
-        successPane.hidden = true;
         modal.hidden = false;
         document.body.classList.add('dt-modal-open');
 
@@ -216,20 +178,15 @@
     function confirmTransfer() {
         var code = String(authInput.value || '').trim();
 
-        if (code.length < 4) {
+        if (!code) {
             authInput.classList.add('is-invalid');
             authError.hidden = false;
             authInput.focus();
             return;
         }
 
-        successDomain.textContent = modalDomain.textContent;
-        formPane.hidden = true;
-        successPane.hidden = false;
-
-        window.setTimeout(function () {
-            doneBtn.focus();
-        }, 60);
+        authInput.value = code;
+        transferForm.submit();
     }
 
     authInput.addEventListener('input', function () {
@@ -244,19 +201,10 @@
         }
     });
 
-    confirmBtn.addEventListener('click', confirmTransfer);
-    doneBtn.addEventListener('click', function () {
-        closeModal();
-        domainInput.focus();
+    transferForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        confirmTransfer();
     });
-
-    if (retryButton) {
-        retryButton.addEventListener('click', function () {
-            hideNotFound();
-            domainInput.value = '';
-            domainInput.focus();
-        });
-    }
 
     page.querySelectorAll('[data-dt-close]').forEach(function (button) {
         button.addEventListener('click', closeModal);

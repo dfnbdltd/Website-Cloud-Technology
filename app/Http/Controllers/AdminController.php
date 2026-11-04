@@ -180,7 +180,7 @@ class AdminController extends Controller
     public function updateOrder(Request $request, DomainOrder $order)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
-        $data = $request->validate(['status' => ['required', 'in:payment_pending,paid,registration_pending,active,failed,refunded,cancelled']]);
+        $data = $request->validate(['status' => ['required', 'in:payment_pending,paid,registration_pending,registration_processing,transfer_pending,transfer_processing,transfer_failed,active,failed,refunded,cancelled']]);
         $wasPaid = $order->payment_status === 'paid';
         if ($data['status'] === 'cancelled') {
             if ($wasPaid) {
@@ -188,6 +188,13 @@ class AdminController extends Controller
             }
             app(InvoiceService::class)->cancelOrder($order);
             return redirect()->route('admin.dashboard')->with('success', 'Order cancelled and its unpaid invoice removed.');
+        }
+
+        $hasTransferItems = $order->items()->where('order_type', 'transfer')->exists();
+        if ($data['status'] === 'active' && $hasTransferItems) {
+            if ($order->payment_status !== 'paid') {
+                return redirect()->route('admin.dashboard')->withErrors(['status' => 'A transfer cannot be marked complete before payment is confirmed.']);
+            }
         }
         $order->update(['status' => $data['status']]);
 

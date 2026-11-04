@@ -122,6 +122,52 @@ class ResellerClubClient
         return (float) $firstYear + ((float) $renewal * ($years - 1));
     }
 
+    public function liveTransferPrice($tld)
+    {
+        $tld = strtolower(trim($tld, ". \t\n\r\0\x0B"));
+        $classkey = $tld === 'com' ? 'domcno' : 'dot' . $tld;
+        $price = $this->pricing()[$classkey]['addtransferdomain']['1'] ?? null;
+
+        if (!is_numeric($price)) {
+            return null;
+        }
+
+        return (float) $this->convertLivePriceToBdt($price);
+    }
+
+    public function transferDomain($domain, $authCode)
+    {
+        if (!$this->isConfigured() || !$this->config['customer_id']) {
+            \Log::warning('ResellerClub domain transfer skipped because client or customer is not configured', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        $contacts = ResellerClubDomainContacts::forDomain($domain, [
+            'reg' => $this->config['reg_contact_id'] ?? null,
+            'admin' => $this->config['admin_contact_id'] ?? null,
+            'tech' => $this->config['tech_contact_id'] ?? null,
+            'billing' => $this->config['billing_contact_id'] ?? null,
+        ]);
+        if ($contacts === null) {
+            \Log::warning('ResellerClub domain transfer skipped because contact IDs are incomplete', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        return $this->request('/domains/transfer.json', array_merge([
+            'domain-name' => strtolower(trim($domain)),
+            'customer-id' => $this->config['customer_id'],
+            'auth-code' => $authCode,
+            'invoice-option' => 'PayInvoice',
+            'auto-renew' => 'false',
+        ], $contacts), 'POST');
+    }
+
     /**
      * Current available reseller wallet balance and its currency.
      */
@@ -388,11 +434,14 @@ class ResellerClubClient
             'api_status' => is_array($decoded) ? ($decoded['status'] ?? null) : null,
         ]);
 
+        $sensitiveRequest = $path === '/domains/transfer.json';
         if (
             (!is_array($decoded) && !($allowScalar && is_scalar($decoded)))
             || (is_array($decoded) && isset($decoded['status']) && strtoupper($decoded['status']) === 'ERROR')
         ) {
-            \Log::warning('ResellerClub API error', ['path' => $path, 'response' => substr($body, 0, 500)]);
+            \Log::warning('ResellerClub API error', $sensitiveRequest
+                ? ['path' => $path]
+                : ['path' => $path, 'response' => substr($body, 0, 500)]);
         }
 
         if (is_array($decoded) || ($allowScalar && is_scalar($decoded))) {

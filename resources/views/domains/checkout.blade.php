@@ -159,7 +159,7 @@
             <div class="checkout-breadcrumb"><a href="{{ route('cart.index') }}">← Back to cart</a><span>Checkout</span></div>
             <span class="domain-kicker">SECURE CHECKOUT</span>
             <h1>Complete your domain order.</h1>
-            <p>Your domain will be prepared after payment verification.</p>
+            <p>Your order is processed after payment is confirmed.</p>
         </div>
         <div class="checkout-trust"><span>✓</span><div><strong>Safe &amp; secure</strong><small>Protected checkout</small></div></div>
     </div>
@@ -251,8 +251,12 @@
                     <span>
                         {{ $item['domain'] }}
                         <small>
-                            × {{ $item['years'] }} year{{ $item['years'] > 1 ? 's' : '' }}
-                            <br>renews ৳ {{ number_format($item['renewal_price'] ?? $item['price']) }}/year
+                            @if(($item['order_type'] ?? 'registration') === 'transfer')
+                                Transfer + one-year extension
+                            @else
+                                × {{ $item['years'] }} year{{ $item['years'] > 1 ? 's' : '' }}
+                                <br>renews ৳ {{ number_format($item['renewal_price'] ?? $item['price']) }}/year
+                            @endif
                         </small>
                     </span>
                     <b>৳ {{ number_format($item['price'] * $item['years']) }}</b>

@@ -8,9 +8,7 @@
     $dtVariant = 'public' | 'client' changes only the layout shape (full-bleed
     hero vs. a rounded card inside the workspace).
 
-    The flow is deliberately front-end only: nothing is posted anywhere. The
-    domain is validated locally and the Authorization Code dialog simulates the
-    registrar hand-off, so the page can be demoed before the backend exists.
+    Transfer requests use the shared domain checkout and ResellerClub integration.
 --}}
 @php($dtVariant = $dtVariant ?? 'public')
 
@@ -24,7 +22,7 @@
         </span>
         <span class="dt-chip dt-chip--code">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-            EPP code ready
+            EPP code required
         </span>
     </div>
 
@@ -39,7 +37,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16.2 16.2 4.3 4.3"/></svg>
                 </span>
                 <label class="dt-sr-only" for="dtDomain">Domain name you want to transfer</label>
-                <input class="dt-input" id="dtDomain" name="domain" type="text" placeholder="example.com" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="dtError" data-dt-domain>
+                <input class="dt-input" id="dtDomain" name="domain" type="text" value="{{ old('domain') }}" placeholder="example.com" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="dtError" data-dt-domain>
             </div>
             <button class="dt-submit" type="submit">
                 Transfer now
@@ -47,25 +45,11 @@
             </button>
         </form>
 
-        <div class="dt-error" id="dtError" role="alert" hidden data-dt-error>
+        <div class="dt-error" id="dtError" role="alert" @if(!$errors->any()) hidden @endif data-dt-error>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 8v5"/><circle cx="12" cy="16.6" r=".9" fill="currentColor" stroke="none"/><path d="M10.3 3.8 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg>
-            <span data-dt-error-text>The domain you entered is not valid</span>
+            <span data-dt-error-text>{{ $errors->first() ?: 'The domain you entered is not valid' }}</span>
         </div>
 
-        <div class="dt-result dt-result--not-found" role="status" hidden data-dt-not-found>
-            <span class="dt-result-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="6.5"/>
-                    <path d="m16 16 4.5 4.5M8.5 8.5l5 5m0-5-5 5"/>
-                </svg>
-            </span>
-            <div class="dt-result-copy">
-                <span class="dt-result-label">Domain not available</span>
-                <h2>We couldn&rsquo;t find <strong data-dt-not-found-domain>that domain</strong></h2>
-                <p>Check the spelling or try another domain. If you already own it, make sure your current registrar has not placed it on hold.</p>
-            </div>
-            <button class="dt-result-retry" type="button" data-dt-retry>Try another domain</button>
-        </div>
     </div>
 </section>
 
@@ -74,7 +58,7 @@
         <div>
             <span class="dt-kicker">Ready when you are</span>
             <h2 id="dtFooterCtaTitle">Move your domain to a better home.</h2>
-            <p>Enter your domain above and we&rsquo;ll guide you through the next step. It only takes a moment to get started.</p>
+            <p>Check the transfer requirements below, then enter your domain and authorization code to see the live transfer price.</p>
         </div>
         <span class="dt-footer-cta-mark" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -93,30 +77,55 @@
                 <h2 id="dtModalTitle">Authorization Code</h2>
             </header>
 
-            <div class="dt-dialog-body">
-                <p class="dt-dialog-copy">To initiate a transfer you will need to obtain the authorization code from your current registrar. These can often be referred to as either the epp code or auth code. They act as a password and are unique to the domain name.</p>
+            <form class="dt-dialog-body" method="POST" action="{{ route('domains.transfer') }}" data-dt-transfer-form>
+                @csrf
+                <p class="dt-dialog-copy">Get the authorization code from your current registrar. It may also be called an EPP or Auth code; treat it like a password.</p>
 
                 <p class="dt-dialog-domain">Transferring <strong data-dt-modal-domain>example.com</strong></p>
+                <input type="hidden" name="domain" value="" data-dt-transfer-domain>
 
                 <label class="dt-label" for="dtAuthCode">Authorization Code</label>
-                <input class="dt-auth-input" id="dtAuthCode" type="text" placeholder="Epp Code / Auth Code" autocomplete="off" autocapitalize="none" spellcheck="false" data-dt-auth>
+                <input class="dt-auth-input" id="dtAuthCode" name="auth_code" type="password" placeholder="EPP / Auth code" autocomplete="off" autocapitalize="none" spellcheck="false" required data-dt-auth>
 
                 <p class="dt-auth-error" role="alert" hidden data-dt-auth-error>Enter the authorization code from your current registrar.</p>
 
                 <div class="dt-dialog-actions">
-                    <button class="dt-btn dt-btn--primary" type="button" data-dt-confirm>Confirm</button>
+                    <button class="dt-btn dt-btn--primary" type="submit" data-dt-confirm>Continue to checkout</button>
                     <button class="dt-btn dt-btn--ghost" type="button" data-dt-close>Cancel</button>
                 </div>
-            </div>
-        </div>
-
-        <div class="dt-dialog-pane dt-success" data-dt-success hidden>
-            <span class="dt-success-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
-            </span>
-            <h2 class="dt-success-title">Transfer request received</h2>
-            <p class="dt-success-copy">We&rsquo;ve started the transfer for <strong data-dt-success-domain>example.com</strong>. Your current registrar will email you to approve it &mdash; most transfers finish within 5&ndash;7 days.</p>
-            <button class="dt-btn dt-btn--primary" type="button" data-dt-done>Done</button>
+            </form>
         </div>
     </div>
 </div>
+
+<section class="dt-guide" aria-labelledby="dtGuideTitle">
+    <div class="dt-guide-inner">
+        <span class="dt-kicker">Before you begin</span>
+        <h2 id="dtGuideTitle">Prepare your domain for transfer</h2>
+        <ul class="dt-checklist">
+            <li><strong>Unlock the domain.</strong> Turn off the transfer lock at your current registrar. A WHOIS lookup should not show <code>clientTransferProhibited</code>.</li>
+            <li><strong>Check the 60-day rule.</strong> A domain generally cannot be transferred within 60 days of registration, a previous transfer, or a change to registrant details.</li>
+            <li><strong>Get your EPP/Auth code.</strong> Request the transfer authorization code from your current registrar. Keep it private; it works like a password.</li>
+            <li><strong>Check your admin email.</strong> Make sure you can receive and approve the transfer confirmation email sent to the registrant or administrative contact.</li>
+        </ul>
+
+        <h2>Transfer steps</h2>
+        <ol class="dt-transfer-steps">
+            <li>Sign in to your Cloud Technology account. Guest checkout is also available.</li>
+            <li>Unlock the domain at your current registrar and obtain its EPP/Auth code.</li>
+            <li>Open <strong>Domain &rarr; Domain Transfer</strong>, enter the domain and code, and continue to checkout.</li>
+            <li>Review the live transfer price, place the order, and complete payment.</li>
+            <li>After payment, Cloud Technology submits the transfer request to the registrar.</li>
+            <li>Approve the confirmation email sent to your administrative contact.</li>
+            <li>When the transfer finishes, update DNS or nameservers if you are also moving your hosting.</li>
+        </ol>
+
+        <h2>After submitting</h2>
+        <ul class="dt-checklist">
+            <li>Keep the domain unlocked and do not change its EPP/Auth code while the transfer is in progress.</li>
+            <li>Transfers typically take 5&ndash;7 days; some extensions have different transfer and renewal rules.</li>
+            <li>If a transfer fails or remains pending beyond 7 days, keep the error details or a screenshot and contact support.</li>
+        </ul>
+        <p class="dt-guide-note">Questions or need help? Contact Cloud Technology support and include your order reference.</p>
+    </div>
+</section>

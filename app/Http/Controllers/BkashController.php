@@ -45,7 +45,20 @@ class BkashController extends Controller
 
         $databaseOrder = isset($order['database_id']) ? DomainOrder::find($order['database_id']) : null;
         if ($databaseOrder && $databaseOrder->payment_status === 'paid') {
-            return view('domains.confirmation', ['order' => $order, 'paid' => true]);
+            $databaseOrder->loadMissing('items');
+            $isTransfer = $databaseOrder->items->contains(function ($item) {
+                return $item->order_type === 'transfer';
+            });
+
+            return view('domains.confirmation', [
+                'order' => $order,
+                'paid' => true,
+                'isTransfer' => $isTransfer,
+                'transferPending' => $databaseOrder->status === 'transfer_pending',
+                'transferFailed' => $databaseOrder->status === 'transfer_failed',
+                'transferComplete' => $databaseOrder->status === 'active',
+                'registrationPending' => $databaseOrder->status === 'registration_pending',
+            ]);
         }
 
         return view('domains.bkash-payment', [

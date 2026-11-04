@@ -34,7 +34,7 @@
                 <div class="table-head"><span>REFERENCE</span><span>CUSTOMER</span><span>AMOUNT</span><span>STATUS</span></div>
                 @foreach($orders as $order)
                     <div class="table-row">
-                        <strong>{{ $order->reference }}<small class="admin-domain">{{ optional($order->items->first())->domain }}</small></strong>
+                        <strong>{{ $order->reference }}<small class="admin-domain">{{ optional($order->items->first())->domain }} · {{ optional($order->items->first())->order_type === 'transfer' ? 'transfer' : 'registration' }} ({{ $order->status === 'active' && optional($order->items->first())->order_type === 'transfer' ? 'transferred' : str_replace('_', ' ', optional($order->items->first())->registration_status) }})</small></strong>
                         <span>{{ $order->customer_email }}</span>
                         <span>৳ {{ number_format($order->total) }}</span>
                         <form method="POST" action="{{ route('admin.orders.status', $order) }}">
@@ -43,6 +43,8 @@
                                 <option value="{{ $order->status }}">{{ ucfirst(str_replace('_', ' ', $order->status)) }}</option>
                                 <option value="paid">Paid</option>
                                 <option value="registration_pending">Registration pending</option>
+                                <option value="transfer_pending">Transfer pending</option>
+                                <option value="transfer_failed">Transfer failed</option>
                                 <option value="active">Active</option>
                                 <option value="failed">Failed</option>
                                 <option value="cancelled">Cancelled</option>

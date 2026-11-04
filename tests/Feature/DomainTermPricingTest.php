@@ -92,6 +92,15 @@ class DomainTermPricingTest extends TestCase
             ->assertSee('renews ৳ 1,399/year');
     }
 
+    public function testReservedTestDomainsAreNotShownInDomainCatalog()
+    {
+        $this->get(route('domains.index'))
+            ->assertOk()
+            ->assertDontSee('TRY THE FLOW')
+            ->assertDontSee('wallet-test.ctbd.test')
+            ->assertDontSee('bkash-test.ctbd.test');
+    }
+
     public function testUnsupportedRegistrationTermIsRejected()
     {
         $resellerClub = \Mockery::mock(ResellerClubClient::class);
