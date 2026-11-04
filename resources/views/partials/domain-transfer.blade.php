@@ -16,14 +16,6 @@
     <div class="dt-art" aria-hidden="true">
         <span class="dt-ring dt-ring--one"></span>
         <span class="dt-ring dt-ring--two"></span>
-        <span class="dt-chip dt-chip--domain"><i class="dt-chip-dot"></i>example.com</span>
-        <span class="dt-chip dt-chip--globe">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.7 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.7-4-9s1.4-6.5 4-9Z"/></svg>
-        </span>
-        <span class="dt-chip dt-chip--code">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-            EPP code required
-        </span>
     </div>
 
     <div class="dt-hero-inner">
@@ -37,7 +29,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16.2 16.2 4.3 4.3"/></svg>
                 </span>
                 <label class="dt-sr-only" for="dtDomain">Domain name you want to transfer</label>
-                <input class="dt-input" id="dtDomain" name="domain" type="text" value="{{ old('domain') }}" placeholder="example.com" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="dtError" data-dt-domain>
+                <input class="dt-input" id="dtDomain" name="domain" type="text" value="{{ old('domain') }}" placeholder="Insert Your Domain Here" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="dtError" data-dt-domain>
             </div>
             <button class="dt-submit" type="submit">
                 Transfer now
@@ -50,21 +42,6 @@
             <span data-dt-error-text>{{ $errors->first() ?: 'The domain you entered is not valid' }}</span>
         </div>
 
-    </div>
-</section>
-
-<section class="dt-footer-cta" aria-labelledby="dtFooterCtaTitle">
-    <div class="dt-footer-cta-inner">
-        <div>
-            <span class="dt-kicker">Ready when you are</span>
-            <h2 id="dtFooterCtaTitle">Move your domain to a better home.</h2>
-            <p>Check the transfer requirements below, then enter your domain and authorization code to see the live transfer price.</p>
-        </div>
-        <span class="dt-footer-cta-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 12h15M13 6l6 6-6 6"/>
-            </svg>
-        </span>
     </div>
 </section>
 
@@ -81,7 +58,7 @@
                 @csrf
                 <p class="dt-dialog-copy">Get the authorization code from your current registrar. It may also be called an EPP or Auth code; treat it like a password.</p>
 
-                <p class="dt-dialog-domain">Transferring <strong data-dt-modal-domain>example.com</strong></p>
+                <p class="dt-dialog-domain">Transferring <strong data-dt-modal-domain>Insert Your Domain Here</strong></p>
                 <input type="hidden" name="domain" value="" data-dt-transfer-domain>
 
                 <label class="dt-label" for="dtAuthCode">Authorization Code</label>
@@ -100,32 +77,32 @@
 
 <section class="dt-guide" aria-labelledby="dtGuideTitle">
     <div class="dt-guide-inner">
-        <span class="dt-kicker">Before you begin</span>
-        <h2 id="dtGuideTitle">Prepare your domain for transfer</h2>
-        <ul class="dt-checklist">
-            <li><strong>Unlock the domain.</strong> Turn off the transfer lock at your current registrar. A WHOIS lookup should not show <code>clientTransferProhibited</code>.</li>
-            <li><strong>Check the 60-day rule.</strong> A domain generally cannot be transferred within 60 days of registration, a previous transfer, or a change to registrant details.</li>
-            <li><strong>Get your EPP/Auth code.</strong> Request the transfer authorization code from your current registrar. Keep it private; it works like a password.</li>
-            <li><strong>Check your admin email.</strong> Make sure you can receive and approve the transfer confirmation email sent to the registrant or administrative contact.</li>
+        <div class="dt-guide-heading">
+            <span class="dt-kicker">Before you begin</span>
+            <h2 id="dtGuideTitle">Prepare your domain for transfer</h2>
+            <p>Have these four details ready and your transfer will be quick and straightforward.</p>
+        </div>
+        <ul class="dt-checklist dt-prep-grid">
+            <li><span class="dt-guide-icon">01</span><div><strong>Unlock the domain.</strong><p>Turn off the transfer lock at your current registrar.</p></div></li>
+            <li><span class="dt-guide-icon">02</span><div><strong>Check the 60-day rule.</strong><p>A domain generally cannot move within 60 days of registration or a previous transfer.</p></div></li>
+            <li><span class="dt-guide-icon">03</span><div><strong>Get your EPP/Auth code.</strong><p>Request the code from your current registrar and keep it private.</p></div></li>
+            <li><span class="dt-guide-icon">04</span><div><strong>Check your admin email.</strong><p>Make sure you can approve the transfer confirmation email.</p></div></li>
         </ul>
 
-        <h2>Transfer steps</h2>
+        <div class="dt-steps-heading">
+            <span class="dt-kicker">Simple process</span>
+            <h2>Transfer steps</h2>
+        </div>
         <ol class="dt-transfer-steps">
-            <li>Sign in to your Cloud Technology account. Guest checkout is also available.</li>
-            <li>Unlock the domain at your current registrar and obtain its EPP/Auth code.</li>
-            <li>Open <strong>Domain &rarr; Domain Transfer</strong>, enter the domain and code, and continue to checkout.</li>
-            <li>Review the live transfer price, place the order, and complete payment.</li>
-            <li>After payment, Cloud Technology submits the transfer request to the registrar.</li>
-            <li>Approve the confirmation email sent to your administrative contact.</li>
-            <li>When the transfer finishes, update DNS or nameservers if you are also moving your hosting.</li>
+            <li><span>01</span><div><strong>Start your request</strong><p>Sign in to your Cloud Technology account or continue as a guest.</p></div></li>
+            <li><span>02</span><div><strong>Enter your details</strong><p>Provide the domain and EPP/Auth code, then continue to checkout.</p></div></li>
+            <li><span>03</span><div><strong>Review and pay</strong><p>Review the live transfer price and complete payment securely.</p></div></li>
+            <li><span>04</span><div><strong>Approve the transfer</strong><p>Confirm the email sent to your administrative contact.</p></div></li>
         </ol>
 
-        <h2>After submitting</h2>
-        <ul class="dt-checklist">
-            <li>Keep the domain unlocked and do not change its EPP/Auth code while the transfer is in progress.</li>
-            <li>Transfers typically take 5&ndash;7 days; some extensions have different transfer and renewal rules.</li>
-            <li>If a transfer fails or remains pending beyond 7 days, keep the error details or a screenshot and contact support.</li>
-        </ul>
-        <p class="dt-guide-note">Questions or need help? Contact Cloud Technology support and include your order reference.</p>
+        <div class="dt-after-card">
+            <div class="dt-after-card-icon" aria-hidden="true">✓</div>
+            <div><span class="dt-kicker">After submitting</span><strong>Keep the domain unlocked while the transfer is processing.</strong><p>Transfers typically take 5&ndash;7 days. If anything remains pending beyond that, contact support with your order reference.</p></div>
+        </div>
     </div>
 </section>

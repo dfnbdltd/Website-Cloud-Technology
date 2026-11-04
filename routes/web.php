@@ -179,6 +179,8 @@ Route::post('/admin/orders/{order}/retry-registration', [AdminController::class,
 Route::get('/admin/customers', [AdminController::class, 'customers'])->name('admin.customers');
 Route::get('/admin/customers/{customer}/edit', [AdminController::class, 'editCustomer'])->name('admin.customers.edit');
 Route::post('/admin/customers/{customer}', [AdminController::class, 'updateCustomer'])->name('admin.customers.update');
+Route::post('/admin/customers/{customer}/resend-verification', [AdminController::class, 'resendCustomerVerification'])->name('admin.customers.resend-verification');
+Route::post('/admin/customers/{customer}/delete', [AdminController::class, 'deleteCustomer'])->name('admin.customers.delete');
 Route::get('/admin/content', [AdminController::class, 'content'])->name('admin.content');
 Route::post('/admin/content', [AdminController::class, 'updateContent'])->name('admin.content.update');
 Route::get('/admin/chat/{session?}', [AdminController::class, 'chat'])->name('admin.chat');

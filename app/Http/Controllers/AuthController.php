@@ -376,14 +376,18 @@ class AuthController extends Controller
      * Guide section 5: store a one-time token, then queue the mail (section 7).
      * Never breaks registration if database/email_system.sql has not been run.
      */
-    private function sendVerificationEmail(User $user)
+    public function sendVerificationEmail(User $user)
     {
         try {
             if (!Schema::hasTable('email_verification_tokens') || !Schema::hasTable('email_templates')) {
                 Log::warning('Email system tables missing — run database/email_system.sql to send verification mail.');
 
-                return;
+                return false;
             }
+
+            EmailVerificationToken::where('user_id', $user->id)
+                ->whereNull('used_at')
+                ->delete();
 
             $token = Str::random(64);
 
@@ -402,8 +406,11 @@ class AuthController extends Controller
                 'support_phone' => \App\Models\Setting::get('support_phone'),
                 'footer_text' => \App\Models\Setting::get('footer_text'),
             ]);
+            return true;
         } catch (\Throwable $e) {
             Log::error('Could not queue verification email', ['error' => $e->getMessage()]);
+
+            return false;
         }
     }
 

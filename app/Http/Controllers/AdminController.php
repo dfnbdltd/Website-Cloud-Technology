@@ -19,6 +19,7 @@ use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
@@ -425,6 +426,54 @@ class AdminController extends Controller
         $customer->save();
 
         return redirect()->route('admin.customers')->with('success', 'Customer details updated.');
+    }
+
+    public function resendCustomerVerification(Request $request, User $customer)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        if ($customer->email_verified_at) {
+            return back()->withErrors(['customer' => 'This customer is already verified.']);
+        }
+
+        if (!app(AuthController::class)->sendVerificationEmail($customer)) {
+            return back()->withErrors(['customer' => 'The verification email could not be sent. Check the email system configuration and try again.']);
+        }
+
+        return back()->with('success', 'A new verification email was queued for ' . $customer->email . '.');
+    }
+
+    public function deleteCustomer(Request $request, User $customer)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        DB::transaction(function () use ($customer) {
+            // Preserve order and invoice history as anonymous business records,
+            // while removing personal records that require a customer owner.
+            if (Schema::hasTable('domain_orders')) {
+                DB::table('domain_orders')->where('user_id', $customer->id)->update(['user_id' => null]);
+            }
+            if (Schema::hasTable('invoices')) {
+                DB::table('invoices')->where('user_id', $customer->id)->update(['user_id' => null]);
+            }
+            if (Schema::hasTable('chat_messages')) {
+                DB::table('chat_messages')->where('user_id', $customer->id)->delete();
+            }
+            if (Schema::hasTable('support_tickets')) {
+                DB::table('support_tickets')->where('user_id', $customer->id)->delete();
+            }
+            if (Schema::hasTable('topups')) {
+                DB::table('topups')->where('user_id', $customer->id)->delete();
+            }
+
+            if (Schema::hasTable('email_verification_tokens')) {
+                DB::table('email_verification_tokens')->where('user_id', $customer->id)->delete();
+            }
+
+            $customer->delete();
+        });
+
+        return redirect()->route('admin.customers')->with('success', 'Customer account and personal records were deleted.');
     }
 
     /**
