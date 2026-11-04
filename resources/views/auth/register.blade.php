@@ -12,7 +12,7 @@
     .reg4-bg i:nth-child(2){width:360px;height:360px;background:rgba(88,169,255,.11);bottom:-150px;right:-120px}
     .reg4-bg i:nth-child(3){width:220px;height:220px;background:rgba(54,184,134,.08);top:54%;left:63%}
 
-    .reg4-wrap{position:relative;z-index:1;max-width:1060px;margin:auto;padding:48px 28px 64px}
+    .reg4-wrap{position:relative;z-index:1;max-width:940px;margin:auto;padding:44px 24px 60px}
     .reg4-brand{justify-content:center;margin-bottom:28px}
     .reg4-card{position:relative;background:#fff;border:1px solid rgba(226,234,242,.9);border-radius:22px;
         box-shadow:0 30px 80px -20px rgba(16,80,160,.18),0 10px 30px -12px rgba(16,44,79,.08);
@@ -22,7 +22,7 @@
     @keyframes reg4In{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
     /* Header */
-    .reg4-head{padding:42px 50px 28px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfdff)}
+    .reg4-head{padding:40px 46px 26px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfdff)}
     .reg4-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:999px;background:var(--sky);font-size:11.5px}
     .reg4-eyebrow i{width:8px;height:8px;border-radius:50%;background:#3ac18a;box-shadow:0 0 0 4px rgba(58,193,138,.18)}
     .reg4-head h1{font:800 42px/1.08 'Manrope',sans-serif;letter-spacing:-1.8px;margin:18px 0 8px;color:var(--ink)}
@@ -38,8 +38,8 @@
     .reg4-alert-success{background:#ecfdf5;border:1px solid #a7f3d0;color:#0b7a56}
 
     /* Form shell + sections */
-    .reg4-form{padding:30px 50px 40px}
-    .reg4-form fieldset{min-width:0;border:1px solid #e6edf5;border-radius:16px;padding:8px 26px 10px;margin:0 0 24px;background:#fff;transition:border-color .18s ease,box-shadow .18s ease}
+    .reg4-form{padding:28px 46px 36px}
+    .reg4-form fieldset{min-width:0;border:1px solid #e6edf5;border-radius:16px;padding:8px 26px 10px;margin:0 0 20px;background:#fff;transition:border-color .18s ease,box-shadow .18s ease}
     .reg4-form fieldset:focus-within{border-color:#c9def6;box-shadow:0 0 0 3px rgba(36,117,232,.06)}
     .reg4-form legend{display:flex;align-items:center;gap:10px;padding:0 9px;color:var(--ink);
         font:800 13.5px 'Manrope',sans-serif;letter-spacing:.8px;text-transform:uppercase}
@@ -86,12 +86,12 @@
     .reg4-pw .password-match-status{margin-top:7px}
 
     /* Currency (single supported option) */
-    .reg4-currency{display:flex;align-items:center;gap:10px;margin:0;padding:15px 16px;border:1px dashed #d4e1ef;
+    .reg4-currency{display:flex;align-items:center;gap:10px;margin:2px 0 0;padding:15px 16px;border:1px dashed #d4e1ef;
         border-radius:11px;background:#f6f9fd;color:#5f738a;font-size:13.5px;line-height:1.5;min-height:56px}
     .reg4-currency b{color:var(--ink);font-size:14px}
 
     /* Checkboxes — input first, label text after */
-    .reg4-checks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:4px 0 24px}
+    .reg4-checks{display:grid;grid-template-columns:1fr;gap:12px;margin:4px 0 18px}
     .reg4-check{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:11px;
         background:#fbfdff;cursor:pointer;color:#5f738a;font-size:14px;font-weight:500;line-height:1.55;
         transition:border-color .15s ease,background .15s ease}
@@ -100,6 +100,11 @@
     .reg4-check:has(input:checked){border-color:#bcd8fb;background:#f4f9ff}
     .reg4-check strong{color:var(--ink);font-weight:700}
     .reg4-check a{color:var(--blue);font-weight:700}
+
+    /* Trust note under the submit button */
+    .reg4-secure{display:flex;align-items:center;justify-content:center;gap:7px;margin:14px 0 0;
+        color:#8fa2b6;font-size:12.5px;line-height:1.5;text-align:center}
+    .reg4-secure svg{flex:none;width:15px;height:15px}
 
     /* Submit + footer */
     .reg4-submit{width:100%;padding:17px 22px;border:0;border-radius:13px;cursor:pointer;display:inline-flex;
@@ -231,17 +236,9 @@
                             <option value="Other" {{ old('country') === 'Other' ? 'selected' : '' }}>Other</option>
                         </select>
                     </label>
-                    <label class="reg4-field">
-                        <span>State <small class="reg4-opt">(Optional)</small></span>
-                        <input type="text" name="state" value="{{ old('state') }}" placeholder="State / Division" autocomplete="address-level1">
-                    </label>
                     <label class="reg4-field reg4-span">
                         <span>Street Address <em class="reg4-req">*</em></span>
                         <input type="text" name="address1" value="{{ old('address1') }}" placeholder="House, road, area" autocomplete="address-line1" required>
-                    </label>
-                    <label class="reg4-field reg4-span">
-                        <span>Street Address 2 <small class="reg4-opt">(Optional)</small></span>
-                        <input type="text" name="address2" value="{{ old('address2') }}" placeholder="Apartment, suite, unit etc." autocomplete="address-line2">
                     </label>
                     <label class="reg4-field">
                         <span>City <em class="reg4-req">*</em></span>
@@ -252,6 +249,11 @@
                         <input type="text" name="postcode" value="{{ old('postcode') }}" placeholder="Postcode" autocomplete="postal-code" required>
                     </label>
                 </div>
+                <div class="reg4-currency">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 10.5h6M12.5 7c2 0 2.5 1.2 2.5 3.5S14 14 12.5 14H9l5 4"/></svg>
+                    <span><b>BDT &#2547;</b> &mdash; invoices are issued in Bangladeshi Taka.</span>
+                </div>
+                <input type="hidden" name="currency" value="BDT">
             </fieldset>
 
             {{-- 3. Account security --}}
@@ -277,62 +279,22 @@
                                 <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 12s3.5-6.75 9.75-6.75S21.75 12 21.75 12s-3.5 6.75-9.75 6.75S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="3"/><line x1="4" y1="20" x2="20" y2="4"/></svg>
                             </button>
                         </div>
-                    </label>
-                    <label class="reg4-field">
-                        <span>Security Question <em class="reg4-req">*</em></span>
-                        <select name="security_question" required>
-                            <option value="">Please choose one</option>
-                            <option value="What is your mother's maiden name?" {{ old('security_question') === "What is your mother's maiden name?" ? 'selected' : '' }}>What is your mother's maiden name?</option>
-                            <option value="What was the name of your first school?" {{ old('security_question') === 'What was the name of your first school?' ? 'selected' : '' }}>What was the name of your first school?</option>
-                            <option value="What is your favourite sports team?" {{ old('security_question') === 'What is your favourite sports team?' ? 'selected' : '' }}>What is your favourite sports team?</option>
-                            <option value="What was your first pet's name?" {{ old('security_question') === "What was your first pet's name?" ? 'selected' : '' }}>What was your first pet's name?</option>
-                            <option value="What city were you born in?" {{ old('security_question') === 'What city were you born in?' ? 'selected' : '' }}>What city were you born in?</option>
-                        </select>
-                    </label>
-                    <label class="reg4-field">
-                        <span>Security Answer <em class="reg4-req">*</em></span>
-                        <input type="text" name="security_answer" value="{{ old('security_answer') }}" placeholder="Your answer" required>
-                        <small class="reg4-hint">Support may use this to verify your identity.</small>
+                        <small class="reg4-hint">Use at least 8 characters with a number and a symbol.</small>
                     </label>
                 </div>
-            </fieldset>
-
-            {{-- 4. Preferences --}}
-            <fieldset>
-                <legend><span class="reg4-step">4</span> Preferences</legend>
-                <div class="reg4-grid">
-                    <label class="reg4-field">
-                        <span>How did you find us? <small class="reg4-opt">(Optional)</small></span>
-                        <select name="found_us">
-                            <option value="">Choose one</option>
-                            <option value="Google Search" {{ old('found_us') === 'Google Search' ? 'selected' : '' }}>Google Search</option>
-                            <option value="Social Media" {{ old('found_us') === 'Social Media' ? 'selected' : '' }}>Social Media</option>
-                            <option value="Friend or Colleague" {{ old('found_us') === 'Friend or Colleague' ? 'selected' : '' }}>Friend or Colleague</option>
-                            <option value="Advertisement" {{ old('found_us') === 'Advertisement' ? 'selected' : '' }}>Advertisement</option>
-                            <option value="Other" {{ old('found_us') === 'Other' ? 'selected' : '' }}>Other</option>
-                        </select>
-                    </label>
-                    <div class="reg4-field">
-                        <span>Billing Currency</span>
-                        <div class="reg4-currency">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 10.5h6M12.5 7c2 0 2.5 1.2 2.5 3.5S14 14 12.5 14H9l5 4"/></svg>
-                            <span><b>BDT &#2547;</b> &mdash; Bangladeshi Taka, the only supported currency.</span>
-                        </div>
-                    </div>
-                </div>
-                <input type="hidden" name="currency" value="BDT">
             </fieldset>
 
             <div class="reg4-checks">
-                <label class="reg4-check">
-                    <input type="checkbox" name="newsletter" value="1" {{ old('newsletter') ? 'checked' : '' }}>
-                    <span><strong>Join our mailing list</strong> &mdash; occasional news and offers by email. Unsubscribe any time.</span>
-                </label>
                 <label class="reg4-check">
                     <input type="checkbox" name="terms" value="1" {{ old('terms') ? 'checked' : '' }} required>
                     <span>I have read and agree to the <a href="{{ route('under.construction', 'terms') }}">Terms of Service</a>.</span>
                 </label>
             </div>
+
+            <p class="reg4-secure">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                <span>Your details are encrypted and used only for billing and support.</span>
+            </p>
 
             <button class="reg4-submit" type="submit">Create account <span aria-hidden="true">&rarr;</span></button>
 

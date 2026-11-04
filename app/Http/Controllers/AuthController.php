@@ -221,9 +221,8 @@ class AuthController extends Controller
             'country' => ['required', 'string', 'max:120'],
             'postcode' => ['required', 'string', 'max:30'],
             'currency' => ['required', 'string', 'max:10'],
-            'found_us' => ['nullable', 'string', 'max:190'],
-            'security_question' => ['required', 'string', 'max:255'],
-            'security_answer' => ['required', 'string', 'max:255'],
+            // found_us and newsletter are optional and no longer collected on
+            // the sign-up form; new accounts simply keep the default values.
             'newsletter' => ['nullable', 'boolean'],
             'password' => ['required', 'string', 'confirmed', new StrongPassword],
         ]);
@@ -243,9 +242,7 @@ class AuthController extends Controller
             'country' => $data['country'],
             'postcode' => $data['postcode'],
             'currency' => $data['currency'],
-            'found_us' => $data['found_us'] ?? null,
-            'security_question' => $data['security_question'],
-            'security_answer' => $data['security_answer'],
+            'found_us' => null,
             'newsletter' => $request->boolean('newsletter'),
         ]);
         $user->forceFill(['customer_uid' => User::generateUid()])->save();

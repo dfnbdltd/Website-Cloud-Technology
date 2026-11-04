@@ -63,6 +63,15 @@ class EmailVerificationFlowTest extends TestCase
         $this->assertNotNull($user, 'user should be created');
         $this->assertNull($user->email_verified_at);
 
+        // The sign-up form no longer collects these fields, so they must fall
+        // back to their nullable/default values instead of erroring out.
+        $this->assertNull($user->state);
+        $this->assertNull($user->address2);
+        $this->assertNull($user->found_us);
+        $this->assertNull($user->security_question);
+        $this->assertNull($user->security_answer);
+        $this->assertFalse((bool) $user->newsletter);
+
         $token = EmailVerificationToken::where('user_id', $user->id)->first();
         $this->assertNotNull($token, 'verification token should be stored');
         $this->assertSame(64, strlen($token->token));
@@ -77,6 +86,44 @@ class EmailVerificationFlowTest extends TestCase
         $this->assertSame('sent', $log->status);
         // {{name}} placeholder replaced from the registration data.
         $this->assertSame('Verify your email, Test', $log->subject);
+    }
+
+    public function testRegistrationWorksWithoutHiddenOptionalProfileFields()
+    {
+        $response = $this->post('/register', $this->validRegistration());
+
+        $response->assertRedirect(route('verification.notice'));
+
+        $user = User::where('email', 'token-flow@example.test')->first();
+        $this->assertNotNull($user);
+        $this->assertNull($user->address2);
+        $this->assertNull($user->state);
+        $this->assertNull($user->found_us);
+        $this->assertNull($user->security_question);
+        $this->assertNull($user->security_answer);
+        $this->assertFalse((bool) $user->newsletter);
+    }
+
+    public function testRegistrationPageOmitsRetiredProfileFields()
+    {
+        $response = $this->get('/register');
+
+        $response->assertOk();
+        $response->assertSee('name="first_name"', false);
+        $response->assertSee('name="email"', false);
+        $response->assertSee('name="address1"', false);
+        $response->assertSee('name="currency"', false);
+
+        foreach ([
+            'name="state"',
+            'name="address2"',
+            'name="security_question"',
+            'name="security_answer"',
+            'name="found_us"',
+            'name="newsletter"',
+        ] as $field) {
+            $response->assertDontSee($field, false);
+        }
     }
 
     public function testSmtpVerificationMailUsesPhpMailerWithConfiguredStartTls()
@@ -397,8 +444,6 @@ class EmailVerificationFlowTest extends TestCase
             'country' => 'Bangladesh',
             'postcode' => '1200',
             'currency' => 'BDT',
-            'security_question' => 'What is your mother\'s maiden name?',
-            'security_answer' => 'answer',
             'password' => 'StrongPass1!',
             'password_confirmation' => 'StrongPass1!',
         ];
