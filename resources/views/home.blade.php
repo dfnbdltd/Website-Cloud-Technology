@@ -49,7 +49,7 @@
                 <span>Find your perfect domain</span>
                 <p>Search live availability and secure your name today.</p>
             </div>
-            <form class="site-search" method="POST" action="{{ route('domains.search') }}" data-spinner="search">@csrf<input name="domain" placeholder="Find your perfect domain — e.g. yourbrand.com" required><button type="submit"><span class="search-button-icon" aria-hidden="true"></span> Search domain</button></form>
+            <form class="site-search" method="POST" action="{{ route('domains.search') }}" data-spinner="search">@csrf<input name="domain" placeholder="Search domain names" required><button type="submit"><span class="search-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M10 2a8 8 0 105.29 14.29l4.71 4.7 1.41-1.41-4.7-4.71A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z"/></svg></span>Search domain names</button></form>
             <div class="site-tlds">@forelse($catalog as $tld => $plan)<a href="{{ route('domains.index', ['domain' => 'yourbrand.' . $tld]) }}"><b>.{{ $tld }}</b><span>৳{{ number_format($plan['price']) }}</span></a>@empty<a href="{{ route('domains.index') }}"><b>.com</b><span>Search</span></a>@endforelse</div>
         </div>
     </section>

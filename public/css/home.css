@@ -210,3 +210,53 @@ body.domain-registration-guest .site-account{justify-content:flex-end;margin-lef
 /* soft brand glow riding the white wave that closes the carousel */
 .site-hero-wave svg{filter:drop-shadow(0 -5px 14px #2563eb1a)}
 @media(prefers-reduced-motion:reduce){.site-hero-slide--text::before{animation:none}}
+
+/* ---------------------------------------------------------------------------
+   Domain search bar — reference look: one big rounded pill, large font,
+   "Search domain names." button on the right (site blue + magnifier icon).
+   ------------------------------------------------------------------------- */
+.site-search{
+    max-width:680px;
+    padding:8px;
+    border-radius:999px;
+    border-color:#dbe3ee;
+    box-shadow:0 18px 44px rgba(15,23,42,.10);
+}
+.site-search input{
+    padding:14px 10px 14px 22px;
+    font-size:18px;
+}
+.site-search input::placeholder{
+    color:#9aa7b8;
+}
+.site-search button{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    padding:15px 28px;
+    border-radius:999px;
+    background:var(--blue);
+    font-size:16px;
+    box-shadow:0 8px 20px rgba(37,99,235,.28);
+}
+.site-search button:hover{
+    background:var(--blue-2);
+}
+.site-search .search-button-icon{
+    display:inline-flex;
+    width:18px;
+    height:18px;
+    margin:0;
+    font-size:0;
+    line-height:0;
+}
+.site-search .search-button-icon svg{
+    width:18px;
+    height:18px;
+    fill:#fff;
+}
+@media(max-width:560px){
+    .site-search{padding:7px}
+    .site-search input{padding:12px 8px 12px 16px;font-size:16px}
+    .site-search button{padding:13px 18px;font-size:15px}
+}

@@ -2738,6 +2738,11 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 .domain-registration-guest .domain-search-primary small{
     text-align:center;
 }
+.domain-registration-guest .domain-page-intro-copy .domain-kicker{
+    display:block;
+    width:100%;
+    text-align:center;
+}
 
 .dashboard-service-cards{
     display:grid;
@@ -2863,7 +2868,7 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     position:relative;
     display:flex;
     align-items:flex-end;
-    justify-content:space-between;
+    justify-content:center;
     gap:28px;
     min-height:178px;
     margin-bottom:18px;
@@ -2885,15 +2890,17 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     content:"";
     transform:rotate(-18deg);
 }
-.domain-page-intro-copy{position:relative;z-index:1}
+.domain-page-intro-copy{position:relative;z-index:1;width:100%;text-align:center}
+.domain-page-intro-copy .domain-kicker{display:block;text-align:center}
 .domain-page-intro h1{
     margin:9px 0 8px;
     color:#17365e;
-    font:800 clamp(26px,3vw,38px)/1.08 'Manrope';
+    font:800 clamp(24px,3vw,38px)/1.08 'Manrope';
     letter-spacing:-1.5px;
+    white-space:nowrap;
 }
 .domain-page-intro h1 em{color:#3c7ff0;font-style:normal}
-.domain-page-intro p{max-width:510px;margin:0;color:#7188a2;font-size:13px}
+.domain-page-intro p{max-width:510px;margin:0 auto;color:#7188a2;font-size:13px}
 .domain-page-intro-points{
     position:relative;
     z-index:1;
@@ -3057,8 +3064,7 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 }
 @media(max-width:760px){
     .domain-page-intro{align-items:flex-start;flex-direction:column;min-height:0;padding:25px 22px;border-radius:17px}
-    .domain-page-intro-points{grid-template-columns:repeat(3,1fr);width:100%;min-width:0;padding:11px 10px;font-size:10px}
-    .domain-page-intro-points b{width:16px;height:16px;margin-right:3px}
+    .domain-page-intro h1{white-space:normal}
     .domain-search-primary{padding:21px 17px 18px}
     .domain-search-primary .domain-search-row{min-height:52px}
     .domain-search-primary .domain-search-row button{min-width:116px;padding:0 12px}
@@ -3406,4 +3412,93 @@ img.top-avatar,img.side-avatar{object-fit:cover}
         margin-left:43px;
         padding:7px 13px;
     }
+}
+/* ---------------------------------------------------------------------------
+   Domain search bar — reference look (client-area page): a big rounded pill
+   with a large input and a "Search domain names." button on the right,
+   coloured with the site blue and carrying the magnifier icon.
+   Comes after every earlier rule, so the new shape + sizes win by order.
+   ------------------------------------------------------------------------- */
+.domain-search-primary{padding:22px 24px 18px;border-radius:20px}
+.domain-search-primary label{color:#17365e;font-size:17px}
+.domain-search-primary .domain-search-row{
+    max-width:100%;
+    min-height:64px;
+    margin-top:12px;
+    border-radius:999px;
+    background:#fff;
+    box-shadow:0 14px 34px rgba(30,73,117,.10);
+}
+.domain-search-primary .domain-search-row>span{padding-left:22px;font-size:22px}
+.domain-search-primary .domain-search-row input{
+    padding:16px 14px;
+    color:#17365e;
+    font-size:18px;
+}
+.domain-search-primary .domain-search-row input::placeholder{
+    color:#9fb0c2;
+}
+.domain-search-primary .domain-search-row button{
+    align-self:center;
+    gap:10px;
+    min-width:200px;
+    min-height:52px;
+    margin:6px 6px 6px 10px;
+    padding:0 26px;
+    border-radius:999px;
+    background:var(--blue);
+    font-size:15px;
+    font-weight:800;
+    box-shadow:0 10px 22px rgba(60,127,240,.24);
+}
+.domain-search-primary .domain-search-row button:hover{
+    background:#286edc;
+    box-shadow:0 12px 26px rgba(60,127,240,.3);
+}
+.domain-search-primary .domain-search-row button b{margin-left:0;font-size:18px}
+.domain-search-primary .domain-search-row button .search-button-icon{
+    position:relative;
+    display:inline-block;
+    flex:none;
+    width:18px;
+    height:18px;
+    margin:0 7px 0 0;
+    color:#fff!important;
+    font-size:0!important;
+    line-height:0;
+}
+.domain-search-primary .domain-search-row button .search-button-icon svg{
+    width:18px;
+    height:18px;
+    fill:#fff;
+}
+.domain-search-primary small{margin-top:14px;font-size:13px}
+.domain-registration-guest .domain-search-primary .domain-search-row{
+    max-width:760px;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+/* Mobile: keep the pill readable; stack input above the full-width button */
+@media(max-width:760px){
+    .domain-search-primary{padding:19px 16px 16px}
+    .domain-search-primary label{font-size:16px}
+    .domain-search-primary .domain-search-row{min-height:0;border-radius:18px}
+    .domain-search-primary .domain-search-row input{flex-basis:100%;min-height:52px;font-size:16px}
+    .domain-search-primary .domain-search-row button{
+        width:100%;
+        min-width:0;
+        min-height:48px;
+        margin:6px;
+        border-radius:999px;
+        font-size:14px;
+    }
+}
+
+/* The primary bar's button icon is an inline SVG now: retire the old
+   CSS pseudo-element magnifier in this scope only (other .search-button-icon
+   usages, e.g. the admin invoice search, keep the pseudo-element version). */
+.domain-search-primary .domain-search-row button .search-button-icon::before,
+.domain-search-primary .domain-search-row button .search-button-icon::after{
+    display:none;
 }
