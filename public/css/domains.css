@@ -1490,12 +1490,18 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 .checkout-summary .checkout-grand-total{border-top:1px solid var(--line);margin-top:18px;padding-top:16px;font-size:17px}
 .checkout-form .checkout-submit:disabled{background:#d1d5db;box-shadow:none;color:#6b7280;cursor:not-allowed}
 .domain-registration-guest .domain-main{margin-left:0;min-height:60vh;padding-bottom:24px}
-.domain-registration-guest .domain-content.no-cart{max-width:1180px;padding:38px 28px 48px}
+.domain-registration-guest .domain-content.no-cart{max-width:none;padding:0 0 48px}
 .domain-registration-guest .domain-search{margin-top:0}
-.domain-registration-guest .domain-results,.domain-registration-guest .catalog-section{margin-top:32px}
+.domain-registration-guest .domain-results,.domain-registration-guest .catalog-section{
+    width:calc(100% - 112px);
+    margin:32px auto 0;
+}
 @media(max-width:640px){
     .buyer-options{grid-template-columns:1fr}
-    .domain-registration-guest .domain-content.no-cart{padding:24px 16px 36px}
+    .domain-registration-guest .domain-content.no-cart{padding:0 16px 36px}
+    .domain-registration-guest .domain-results,.domain-registration-guest .catalog-section{
+        width:100%;
+    }
 }
 
 /* Premium client navigation */
@@ -2717,7 +2723,7 @@ img.top-avatar,img.side-avatar{object-fit:cover}
    result carry one calm, scannable action. */
 .domain-registration-guest .domain-content.no-cart,
 .domain-app .domain-content.no-cart{
-    max-width:1240px;
+    max-width:none;
 }
 .domain-registration-guest .domain-content.no-cart{
     width:100%;
@@ -2866,11 +2872,9 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 }
 .domain-page-intro{
     position:relative;
-    display:flex;
-    align-items:flex-end;
-    justify-content:center;
-    gap:28px;
-    min-height:178px;
+    display:block;
+    text-align:center;
+    min-height:0;
     margin-bottom:18px;
     padding:30px 34px 28px;
     overflow:hidden;
@@ -2901,6 +2905,20 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 }
 .domain-page-intro h1 em{color:#3c7ff0;font-style:normal}
 .domain-page-intro p{max-width:510px;margin:0 auto;color:#7188a2;font-size:13px}
+.domain-page-intro .domain-search-banner{
+    position:relative;
+    z-index:1;
+    width:min(940px,100%);
+    margin:22px auto 0;
+    padding:0;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+}
+.domain-page-intro .domain-search-banner label{display:block;margin-bottom:8px;color:#17365e;font-size:17px;font-weight:800}
+.domain-page-intro .domain-search-banner .domain-search-row{min-height:68px;border-color:#cfe0f3;border-radius:36px;background:#fff;box-shadow:0 12px 30px rgba(40,91,145,.1)}
+.domain-page-intro .domain-search-banner .domain-search-row button{min-width:240px;border-radius:32px}
+.domain-page-intro .domain-search-banner small{display:block;margin-top:10px;color:#7890aa}
 .domain-page-intro-points{
     position:relative;
     z-index:1;
@@ -3063,11 +3081,16 @@ img.top-avatar,img.side-avatar{object-fit:cover}
     color:#8ca0b3!important;
 }
 @media(max-width:760px){
-    .domain-page-intro{align-items:flex-start;flex-direction:column;min-height:0;padding:25px 22px;border-radius:17px}
+    .domain-page-intro{padding:25px 22px;border-radius:17px}
+    .domain-registration-guest .domain-page-intro{width:100%;min-height:0;margin:0 0 24px;padding:48px 16px 42px;border-radius:0}
     .domain-page-intro h1{white-space:normal}
     .domain-search-primary{padding:21px 17px 18px}
     .domain-search-primary .domain-search-row{min-height:52px}
     .domain-search-primary .domain-search-row button{min-width:116px;padding:0 12px}
+    .domain-registration-guest .domain-search-banner .domain-search-row{padding:6px;border-radius:18px}
+    .domain-registration-guest .domain-search-banner .domain-search-row input{height:auto;padding:16px 14px;font-size:16px}
+    .domain-registration-guest .domain-search-banner .domain-search-row .domain-search-icon{margin-left:8px;margin-right:2px}
+    .domain-registration-guest .domain-search-banner .domain-search-row button{height:48px;min-height:48px;min-width:0;margin:6px;border-radius:999px;font-size:15px}
     .domain-result{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;padding:16px}
     .result-name{min-width:0}
     .result-name strong{font-size:16px;overflow-wrap:anywhere}
@@ -3474,10 +3497,13 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 }
 .domain-search-primary small{margin-top:14px;font-size:13px}
 .domain-registration-guest .domain-search-primary .domain-search-row{
-    max-width:760px;
+    max-width:980px;
     margin-left:auto;
     margin-right:auto;
 }
+
+/* The /domains hero is shared by guests and customers; see the block at the
+   end of this file. */
 
 /* Mobile: keep the pill readable; stack input above the full-width button */
 @media(max-width:760px){
@@ -3501,4 +3527,178 @@ img.top-avatar,img.side-avatar{object-fit:cover}
 .domain-search-primary .domain-search-row button .search-button-icon::before,
 .domain-search-primary .domain-search-row button .search-button-icon::after{
     display:none;
+}
+
+/* ---------------------------------------------------------------------------
+   /domains registration hero — one light card for guests and signed-in
+   customers. It mirrors the client-area design: a rounded pale-blue panel,
+   centred copy and the large search pill with the magnifier in the field and
+   the button. Guests get the same card, inset from the page edges.
+   ------------------------------------------------------------------------- */
+.domain-main .domain-page-intro{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    width:auto;
+    min-height:440px;
+    padding:52px 34px 46px;
+    border-radius:22px;
+}
+/* Guests get the same light panel, but full-bleed under the site navbar like
+   the public transfer page: no side gutters and no rounded card edges. */
+.domain-registration-guest .domain-page-intro{
+    width:auto;
+    min-height:460px;
+    margin:0 0 38px;
+    border-right:0;
+    border-left:0;
+    border-radius:0;
+}
+.domain-main .domain-page-intro .domain-kicker{
+    font-size:12px;
+    letter-spacing:2px;
+}
+.domain-main .domain-page-intro h1{
+    margin:10px 0;
+    font:800 clamp(28px,3.4vw,46px)/1.06 'Manrope';
+    letter-spacing:-1.6px;
+}
+.domain-main .domain-page-intro .domain-search-banner{
+    margin-top:26px;
+}
+.domain-main .domain-page-intro .domain-search-banner label{
+    display:block;
+    margin-bottom:10px;
+    color:#17365e;
+    font-size:18px;
+    font-weight:800;
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row{
+    min-height:80px;
+    padding-left:8px;
+    border-color:#cfe0f3;
+    border-radius:36px;
+    background:#fff;
+    box-shadow:0 12px 30px rgba(40,91,145,.1);
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row .domain-search-icon{
+    position:relative;
+    display:block;
+    flex:none;
+    width:30px;
+    height:30px;
+    margin:0 4px 0 18px;
+    padding:0;
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row .domain-search-icon::before{
+    position:absolute;
+    top:3px;
+    left:3px;
+    width:16px;
+    height:16px;
+    border:3px solid #7895bd;
+    border-radius:50%;
+    content:"";
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row .domain-search-icon::after{
+    position:absolute;
+    top:20px;
+    left:20px;
+    width:11px;
+    height:3px;
+    border-radius:3px;
+    background:#7895bd;
+    content:"";
+    transform:rotate(45deg);
+    transform-origin:left center;
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row input{
+    min-height:64px;
+    padding:0 8px;
+    color:#17365e;
+    font-size:20px;
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row input::placeholder{
+    color:#9fb0c2;
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row button{
+    min-width:230px;
+    min-height:64px;
+    margin:8px 8px 8px 10px;
+    padding:0 28px;
+    border-radius:32px;
+    font-size:16px;
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row button .search-button-icon{
+    width:20px;
+    height:20px;
+    margin:0 0 0 10px;
+}
+.domain-main .domain-page-intro .domain-search-banner .domain-search-row button .search-button-icon svg{
+    width:20px;
+    height:20px;
+    fill:#fff;
+}
+.domain-main .domain-page-intro .domain-search-banner small{
+    color:#7890aa;
+    font-size:12.5px;
+}
+
+/* Keep the tall card comfortable on phones without wasting a screen. */
+@media(max-width:760px){
+    .domain-main .domain-page-intro{
+        display:block;
+        min-height:0;
+        padding:38px 20px 34px;
+        border-radius:17px;
+    }
+    .domain-main .domain-page-intro .domain-search-banner{margin-top:20px}
+    .domain-main .domain-page-intro .domain-search-banner label{font-size:16px}
+    .domain-main .domain-page-intro .domain-search-banner .domain-search-row{
+        min-height:0;
+        padding-left:0;
+        border-radius:18px;
+    }
+    .domain-main .domain-page-intro .domain-search-banner .domain-search-row .domain-search-icon{
+        display:none;
+    }
+    .domain-main .domain-page-intro .domain-search-banner .domain-search-row input{
+        min-height:52px;
+        padding:14px 16px;
+        font-size:17px;
+    }
+    .domain-main .domain-page-intro .domain-search-banner .domain-search-row button{
+        width:100%;
+        min-width:0;
+        min-height:50px;
+        margin:6px;
+        border-radius:999px;
+        font-size:15px;
+    }
+    .domain-main .domain-page-intro .domain-search-banner .domain-search-row button .search-button-icon{
+        width:18px;
+        height:18px;
+        margin-left:8px;
+    }
+    .domain-main .domain-page-intro .domain-search-banner .domain-search-row button .search-button-icon svg{
+        width:18px;
+        height:18px;
+    }
+    .domain-main .domain-page-intro .domain-search-banner small{font-size:12px}
+}
+
+/* Keep the full-bleed panel square at every width, then cancel the page
+   gutter below 640px so the panel still reaches both edges on phones. */
+@media(max-width:760px){
+    .domain-registration-guest .domain-page-intro{
+        min-height:0;
+        margin-bottom:24px;
+        border-radius:0;
+    }
+}
+@media(max-width:640px){
+    .domain-registration-guest .domain-page-intro{
+        margin-right:-16px;
+        margin-left:-16px;
+    }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     @include('partials.head', ['title' => 'Domain registration'])
-    <link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ filemtime(public_path('css/domains.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/domains.css') }}?v={{ @md5_file(public_path('css/domains.css')) }}">
     @unless(session('customer'))<link rel="stylesheet" href="{{ asset('css/home.css') }}?v={{ md5_file(public_path('css/home.css')) }}">@endunless
     <style>
         .domain-result .result-price { min-width:190px; }
@@ -62,22 +62,15 @@
             <section class="domain-page-intro" aria-labelledby="domain-page-title">
                 <div class="domain-page-intro-copy">
                     <span class="domain-kicker">FIND YOUR PLACE ONLINE</span>
-                    <h1 id="domain-page-title">Choose a domain<br><em>that feels like you.</em></h1>
-                    <p>Search your perfect name, compare popular extensions, and add it to your cart in seconds.</p>
+                    <h1 id="domain-page-title">Choose a domain <em>that feels like you.</em></h1>
                 </div>
-                <div class="domain-page-intro-points" aria-label="Domain registration benefits">
-                    <span><b>✓</b> Fast search</span>
-                    <span><b>✓</b> Clear pricing</span>
-                    <span><b>✓</b> Secure checkout</span>
-                </div>
+                <form class="domain-search domain-search-primary domain-search-banner" method="POST" action="{{ route('domains.search') }}" data-spinner="search">
+                    @csrf
+                    <label for="domain-search-input">Search your perfect domain</label>
+                    <div class="domain-search-row"><span class="domain-search-icon" aria-hidden="true"></span><input id="domain-search-input" name="domain" value="{{ $query }}" placeholder="yourbrand.com" autocomplete="off" required><button type="submit">Search domain <span class="search-button-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M10 2a8 8 0 105.29 14.29l4.71 4.7 1.41-1.41-4.7-4.71A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z"/></svg></span></button></div>
+                    <small>Try a name without spaces. Search a specific extension or compare all popular extensions.</small>
+                </form>
             </section>
-
-            <form class="domain-search domain-search-primary" method="POST" action="{{ route('domains.search') }}" data-spinner="search">
-                @csrf
-                <label for="domain-search-input">Search for your domain</label>
-                <div class="domain-search-row"><input id="domain-search-input" name="domain" value="{{ $query }}" placeholder="yourbrand.com" autocomplete="off" required><button type="submit">Search domain <span class="search-button-icon" aria-hidden="true"></span></button></div>
-                <small>Try a name without spaces. Search a specific extension or compare all popular extensions.</small>
-            </form>
 
             @if($results)
                 <section class="domain-results">
