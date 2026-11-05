@@ -65,6 +65,7 @@
                 <input class="dt-auth-input" id="dtAuthCode" name="auth_code" type="password" placeholder="EPP / Auth code" autocomplete="off" autocapitalize="none" spellcheck="false" required data-dt-auth>
 
                 <p class="dt-auth-error" role="alert" hidden data-dt-auth-error>Enter the authorization code from your current registrar.</p>
+                <p class="dt-dialog-copy">We check transfer eligibility and domain lock status before checkout. The registry confirms the EPP code when the transfer is submitted after payment.</p>
 
                 <div class="dt-dialog-actions">
                     <button class="dt-btn dt-btn--primary" type="submit" data-dt-confirm>Continue to checkout</button>
@@ -83,7 +84,7 @@
             <p>Have these four details ready and your transfer will be quick and straightforward.</p>
         </div>
         <ul class="dt-checklist dt-prep-grid">
-            <li><span class="dt-guide-icon">01</span><div><strong>Unlock the domain.</strong><p>Turn off the transfer lock at your current registrar.</p></div></li>
+            <li><span class="dt-guide-icon">01</span><div><strong>Unlock the domain.</strong><p>Turn off the transfer lock (often shown as clientTransferProhibited) at your current registrar.</p></div></li>
             <li><span class="dt-guide-icon">02</span><div><strong>Check the 60-day rule.</strong><p>A domain generally cannot move within 60 days of registration or a previous transfer.</p></div></li>
             <li><span class="dt-guide-icon">03</span><div><strong>Get your EPP/Auth code.</strong><p>Request the code from your current registrar and keep it private.</p></div></li>
             <li><span class="dt-guide-icon">04</span><div><strong>Check your admin email.</strong><p>Make sure you can approve the transfer confirmation email.</p></div></li>
@@ -95,7 +96,7 @@
         </div>
         <ol class="dt-transfer-steps">
             <li><span>01</span><div><strong>Start your request</strong><p>Sign in to your Cloud Technology account or continue as a guest.</p></div></li>
-            <li><span>02</span><div><strong>Enter your details</strong><p>Provide the domain and EPP/Auth code, then continue to checkout.</p></div></li>
+            <li><span>02</span><div><strong>Enter your details</strong><p>Provide the domain and EPP/Auth code. We check transfer eligibility before checkout.</p></div></li>
             <li><span>03</span><div><strong>Review and pay</strong><p>Review the live transfer price and complete payment securely.</p></div></li>
             <li><span>04</span><div><strong>Approve the transfer</strong><p>Confirm the email sent to your administrative contact.</p></div></li>
         </ol>

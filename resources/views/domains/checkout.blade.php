@@ -28,6 +28,8 @@
         .checkout-trust strong,.checkout-trust small { display:block; }
         .checkout-trust strong { font-size:12px; }
         .checkout-trust small { margin-top:2px; color:#6f9b88; font-size:10px; }
+        .checkout-transfer-note { margin:0 0 20px; padding:13px 16px; border:1px solid #f0d7a8; border-radius:12px; background:#fffaf0; color:#795b25; font-size:12px; line-height:1.6; }
+        .checkout-transfer-note strong { display:block; margin-bottom:3px; color:#654a1a; }
         .checkout-progress { display:flex; align-items:center; max-width:650px; margin:0 0 25px; color:#9aaabd; font-size:11px; font-weight:800; }
         .checkout-progress span { display:flex; align-items:center; gap:7px; white-space:nowrap; }
         .checkout-progress span:not(.is-current):not(.is-complete) { opacity:.7; }
@@ -164,6 +166,12 @@
         <div class="checkout-trust"><span>✓</span><div><strong>Safe &amp; secure</strong><small>Protected checkout</small></div></div>
     </div>
     <div class="checkout-progress co-anim" aria-label="Checkout progress"><span class="is-complete"><em>1</em><b>Cart</b></span><i></i><span class="is-current"><em>2</em><b>Payment</b></span><i></i><span><em>3</em><b>Confirmation</b></span></div>
+    @if(collect($cart)->contains(function ($item) { return ($item['order_type'] ?? 'registration') === 'transfer'; }))
+        <aside class="checkout-transfer-note" role="note">
+            <strong>Transfer eligibility checked; please verify your EPP code.</strong>
+            The registry checks the EPP code when the transfer is submitted after payment. An incorrect code can cause the transfer to fail.
+        </aside>
+    @endif
     <div class="checkout-grid">
         @if(session('customer'))
             <form class="checkout-form checkout-card co-anim d1" method="POST" action="{{ route('domains.place-order') }}">

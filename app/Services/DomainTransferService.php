@@ -139,6 +139,14 @@ class DomainTransferService
                 return 'Domain transfer is not fully configured. Please contact support.';
             }
 
+            $eligible = $this->resellerClub->validateDomainTransferIn($item['domain']);
+            if ($eligible === null) {
+                return 'We could not verify this domain’s transfer eligibility. No payment has been taken; please try again shortly.';
+            }
+            if (!$eligible) {
+                return 'This domain is no longer eligible for transfer. Disable its transfer lock at the current registrar and check the 60-day transfer rule. No payment has been taken.';
+            }
+
             $price = $this->resellerClub->liveTransferPrice(end($parts));
             if ($price === null) {
                 return 'We could not verify the current ResellerClub transfer price. No payment has been taken; please try again shortly.';

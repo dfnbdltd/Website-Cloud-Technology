@@ -38,6 +38,10 @@ class DomainTransferWorkflowTest extends TestCase
         ]);
 
         $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('validateDomainTransferIn')
+            ->twice()
+            ->with('example.com')
+            ->andReturn(true);
         $resellerClub->shouldReceive('liveTransferPrice')->twice()->with('com')->andReturn(1600.0);
         $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
         $resellerClub->shouldReceive('walletBalance')->once()->andReturn([
@@ -75,6 +79,10 @@ class DomainTransferWorkflowTest extends TestCase
         $cart = session('domain_cart');
         $this->assertSame(1600.0, $cart['example.com']['price']);
         $this->assertNotSame('epp-secret-123', $cart['example.com']['transfer_auth_code']);
+        $this->get(route('domains.checkout'))
+            ->assertOk()
+            ->assertSee('Transfer eligibility checked; please verify your EPP code.')
+            ->assertSee('The registry checks the EPP code when the transfer is submitted after payment.');
 
         $this->post(route('domains.place-order'), [
             'payment_method' => 'wallet',
@@ -103,6 +111,88 @@ class DomainTransferWorkflowTest extends TestCase
         ])->assertRedirect(route('landing'))
             ->assertSessionHasErrors(['domain'])
             ->assertSessionMissing('_old_input.auth_code');
+    }
+
+    public function testMalformedGenericTldAuthCodeIsRejectedBeforeCheckout()
+    {
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldNotReceive('validateDomainTransferIn');
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $this->withSession([])->from(route('landing'))->post(route('domains.transfer'), [
+            'domain' => 'example.com',
+            'auth_code' => 'invalid-epp',
+        ])->assertRedirect(route('landing'))
+            ->assertSessionHasErrors(['auth_code'])
+            ->assertSessionMissing('_old_input.auth_code');
+    }
+
+    public function testLockedDomainIsRejectedBeforeCheckout()
+    {
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('validateDomainTransferIn')
+            ->once()
+            ->with('example.com')
+            ->andReturn(false);
+        $resellerClub->shouldNotReceive('liveTransferPrice');
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $this->withSession([])->from(route('landing'))->post(route('domains.transfer'), [
+            'domain' => 'example.com',
+            'auth_code' => 'epp-secret-123',
+        ])->assertRedirect(route('landing'))
+            ->assertSessionHasErrors(['domain'])
+            ->assertSessionMissing('_old_input.auth_code');
+    }
+
+    public function testTransferIsRejectedWhenEligibilityCannotBeVerified()
+    {
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('validateDomainTransferIn')
+            ->once()
+            ->with('example.com')
+            ->andReturn(null);
+        $resellerClub->shouldNotReceive('liveTransferPrice');
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $this->withSession([])->from(route('landing'))->post(route('domains.transfer'), [
+            'domain' => 'example.com',
+            'auth_code' => 'epp-secret-123',
+        ])->assertRedirect(route('landing'))
+            ->assertSessionHasErrors(['domain'])
+            ->assertSessionMissing('_old_input.auth_code');
+    }
+
+    public function testCheckoutPreflightStopsPaymentWhenDomainIsNoLongerEligible()
+    {
+        config([
+            'services.resellerclub.customer_id' => 'reseller-customer',
+            'services.resellerclub.reg_contact_id' => 'registration-contact',
+            'services.resellerclub.admin_contact_id' => 'admin-contact',
+            'services.resellerclub.tech_contact_id' => 'tech-contact',
+            'services.resellerclub.billing_contact_id' => 'billing-contact',
+        ]);
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
+        $resellerClub->shouldReceive('validateDomainTransferIn')
+            ->once()
+            ->with('example.com')
+            ->andReturn(false);
+        $resellerClub->shouldNotReceive('liveTransferPrice');
+        $resellerClub->shouldNotReceive('walletBalance');
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $error = $this->app->make(\App\Services\DomainTransferService::class)
+            ->preflightError([
+                'example.com' => [
+                    'domain' => 'example.com',
+                    'order_type' => 'transfer',
+                    'price' => 1600,
+                ],
+            ]);
+
+        $this->assertStringContainsString('no payment has been taken', strtolower($error));
     }
 
     public function testRejectedTransferIsMarkedFailedAndIsNotAutomaticallyRetried()

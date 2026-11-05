@@ -180,6 +180,15 @@ class DomainController extends Controller
             return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'Enter a valid domain name, including its extension.']);
         }
 
+        $tld = substr(strrchr($domain, '.'), 1);
+        $genericTlds = ['com', 'net', 'xyz', 'top', 'icu', 'live', 'club', 'website'];
+        if (in_array($tld, $genericTlds, true)
+            && !preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/', trim($data['auth_code']))) {
+            return back()->withInput($request->except('auth_code'))->withErrors([
+                'auth_code' => 'For this domain extension, the authorization code must contain a letter, a number, and a special character.',
+            ]);
+        }
+
         $cart = $request->session()->get('domain_cart', []);
         if (collect($cart)->contains(function ($item) {
             return ($item['order_type'] ?? 'registration') !== 'transfer';
@@ -187,8 +196,18 @@ class DomainController extends Controller
             return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'Domain transfers must be checked out separately from domain registrations.']);
         }
 
-        $parts = explode('.', $domain);
-        $tld = end($parts);
+        $eligible = $this->resellerClub->validateDomainTransferIn($domain);
+        if ($eligible === null) {
+            return back()->withInput($request->except('auth_code'))->withErrors([
+                'domain' => 'We could not verify this domain’s transfer eligibility. No payment has been taken; please try again shortly.',
+            ]);
+        }
+        if (!$eligible) {
+            return back()->withInput($request->except('auth_code'))->withErrors([
+                'domain' => 'This domain is not eligible for transfer. Disable its transfer lock at the current registrar and check the 60-day transfer rule.',
+            ]);
+        }
+
         $price = $this->resellerClub->liveTransferPrice($tld);
         if ($price === null) {
             return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'A live transfer price is not available for this domain extension. Please contact support.']);

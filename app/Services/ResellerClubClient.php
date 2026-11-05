@@ -135,6 +135,67 @@ class ResellerClubClient
         return (float) $this->convertLivePriceToBdt($price);
     }
 
+    /**
+     * Checks transfer eligibility without initiating or charging for a transfer.
+     * Returns null when the eligibility check could not be verified.
+     */
+    public function validateDomainTransferIn($domain)
+    {
+        if (!$this->isConfigured() || empty($this->config['v2_base_url'])) {
+            \Log::warning('ResellerClub transfer validation skipped because the v2 client is not configured', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        $url = rtrim($this->config['v2_base_url'], '/') . '/domains/' . rawurlencode(strtolower(trim($domain))) . '/validate-transfer-in';
+        $curl = curl_init($url);
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Authorization: ApiKey ' . $this->config['api_key'],
+                'X-User-Id: ' . $this->config['auth_userid'],
+            ],
+        ]);
+
+        $body = curl_exec($curl);
+        $error = curl_error($curl);
+        $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($body === false || $error || $httpStatus < 200 || $httpStatus >= 300) {
+            \Log::warning('ResellerClub transfer eligibility check failed', [
+                'domain' => $domain,
+                'http_status' => $httpStatus,
+                'error' => $error ?: null,
+            ]);
+
+            return null;
+        }
+
+        $response = json_decode($body, true);
+        if (!is_array($response) || !array_key_exists('success', $response) || !is_bool($response['success'])) {
+            \Log::warning('ResellerClub transfer eligibility response was invalid', [
+                'domain' => $domain,
+                'http_status' => $httpStatus,
+            ]);
+
+            return null;
+        }
+
+        if (!$response['success']) {
+            return false;
+        }
+
+        $status = strtoupper((string) ($response['status'] ?? ''));
+
+        return $status === '' || $status === 'SUCCESS';
+    }
+
     public function transferDomain($domain, $authCode)
     {
         if (!$this->isConfigured() || !$this->config['customer_id']) {
