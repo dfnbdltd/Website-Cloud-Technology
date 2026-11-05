@@ -105,6 +105,7 @@
     .reg4-secure{display:flex;align-items:center;justify-content:center;gap:7px;margin:14px 0 0;
         color:#8fa2b6;font-size:12.5px;line-height:1.5;text-align:center}
     .reg4-secure svg{flex:none;width:15px;height:15px}
+    .cf-turnstile{display:flex;justify-content:center;margin:0 auto 14px}
 
     /* Submit + footer */
     .reg4-submit{width:100%;padding:17px 22px;border:0;border-radius:13px;cursor:pointer;display:inline-flex;

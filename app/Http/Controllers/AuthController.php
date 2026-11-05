@@ -18,6 +18,8 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    private const VERIFICATION_RESEND_COOLDOWN = 300;
+
     private $httpClient;
 
     public function __construct($httpClient = null)
@@ -253,7 +255,9 @@ class AuthController extends Controller
             'found_us' => null,
         ]);
         $user->forceFill(['customer_uid' => User::generateUid()])->save();
-        $this->sendVerificationEmail($user);
+        if ($this->sendVerificationEmail($user)) {
+            $this->startVerificationResendCooldown($request, $user->email);
+        }
 
         return redirect()->route('verification.notice')->with('verify_email', $user->email);
     }
@@ -349,8 +353,11 @@ class AuthController extends Controller
      */
     public function verificationNotice(Request $request)
     {
+        $email = session('verify_email', old('email'));
+
         return view('auth.verify', [
-            'email' => session('verify_email', old('email')),
+            'email' => $email,
+            'resendAvailableAt' => $this->verificationResendAvailableAt($request, $email),
             'returnTo' => AuthIntent::peek($request->session()),
         ]);
     }
@@ -358,17 +365,53 @@ class AuthController extends Controller
     public function resendVerification(Request $request)
     {
         $data = $request->validate(['email' => ['required', 'email']]);
+        $availableAt = $this->verificationResendAvailableAt($request, $data['email']);
+        if ($availableAt !== null) {
+            $seconds = max(1, $availableAt - now()->timestamp);
+
+            return redirect()
+                ->route('verification.notice')
+                ->with('verify_email', $data['email'])
+                ->withErrors(['email' => 'Please wait ' . ceil($seconds / 60) . ' minute(s) before requesting another verification email.']);
+        }
+
         $user = User::where('email', $data['email'])->first();
 
         // Same answer whether or not the address exists, so emails can't be probed.
         if ($user && !$user->email_verified_at) {
-            $this->sendVerificationEmail($user);
+            if ($this->sendVerificationEmail($user)) {
+                $this->startVerificationResendCooldown($request, $user->email);
+            }
         }
 
         return redirect()
             ->route('verification.notice')
             ->with('verify_email', $data['email'])
             ->with('success', 'If that account is waiting for verification, a new link is on its way.');
+    }
+
+    private function startVerificationResendCooldown(Request $request, $email): void
+    {
+        $request->session()->put('verification_resend_email', strtolower(trim($email)));
+        $request->session()->put('verification_resend_available_at', now()->addSeconds(self::VERIFICATION_RESEND_COOLDOWN)->timestamp);
+    }
+
+    private function verificationResendAvailableAt(Request $request, $email)
+    {
+        $availableAt = (int) $request->session()->get('verification_resend_available_at', 0);
+        $cooldownEmail = strtolower(trim((string) $request->session()->get('verification_resend_email', '')));
+
+        if (!$availableAt || !$email || $cooldownEmail !== strtolower(trim($email))) {
+            return null;
+        }
+
+        if ($availableAt <= now()->timestamp) {
+            $request->session()->forget(['verification_resend_email', 'verification_resend_available_at']);
+
+            return null;
+        }
+
+        return $availableAt;
     }
 
     /**

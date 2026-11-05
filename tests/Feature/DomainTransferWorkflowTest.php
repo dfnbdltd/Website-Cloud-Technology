@@ -18,9 +18,11 @@ class DomainTransferWorkflowTest extends TestCase
     {
         $this->get(route('services.coming-soon', ['service' => 'domain-transfer']))
             ->assertOk()
-            ->assertSee('Prepare your domain for transfer')
+            ->assertSee('Domain Transfer Procedure')
+            ->assertSee('Pre-requirements to Transfer a Domain to Cloud Technology')
             ->assertSee('clientTransferProhibited')
-            ->assertSee('60-day rule')
+            ->assertSee('60-Day Rule:')
+            ->assertSee('After Submitting Transfer Procedure')
             ->assertSee('Continue to checkout')
             ->assertSee(route('domains.transfer'), false)
             ->assertDontSee('Transfer request received');

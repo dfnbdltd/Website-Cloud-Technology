@@ -533,6 +533,12 @@ body.dt-modal-open{overflow:hidden}
 .dt-guide .dt-kicker{display:block;margin-bottom:8px;color:#5279b9;font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase}
 .dt-guide h2{margin:0;color:var(--dt-ink);font:800 clamp(27px,3.3vw,38px)/1.2 'Manrope',sans-serif;letter-spacing:-.9px}
 .dt-guide-heading p{margin:12px 0 30px;color:var(--dt-body);font-size:16px}
+.dt-procedure-section{margin-top:34px}
+.dt-procedure-heading{display:flex;align-items:center;gap:13px;margin-bottom:20px}
+.dt-procedure-heading h3{margin:0;color:var(--dt-ink);font:800 clamp(20px,2.4vw,27px)/1.25 'Manrope',sans-serif;letter-spacing:-.5px}
+.dt-procedure-icon{display:grid;flex:none;place-items:center;width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,#dceaff,#edf5ff);color:var(--dt-blue);font:800 11px 'Manrope',sans-serif;box-shadow:0 8px 18px -14px rgba(42,95,174,.75)}
+.dt-procedure-section--steps{margin-top:56px}
+.dt-procedure-section--after{margin-top:56px}
 .dt-checklist,.dt-transfer-steps{margin:0;padding:0;list-style:none;color:var(--dt-body);font-size:16px;line-height:1.65}
 .dt-prep-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .dt-prep-grid li{display:flex;gap:14px;padding:20px;border:1px solid #dce7f3;border-radius:16px;background:rgba(255,255,255,.82);box-shadow:0 12px 28px -24px rgba(15,35,64,.55)}
@@ -541,7 +547,7 @@ body.dt-modal-open{overflow:hidden}
 .dt-prep-grid p,.dt-transfer-steps p{margin:5px 0 0;color:var(--dt-body);font-size:15px;line-height:1.6}
 .dt-guide li strong{color:var(--dt-ink)}
 .dt-steps-heading{margin:58px 0 22px}
-.dt-transfer-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.dt-transfer-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:36px}
 .dt-transfer-steps li{position:relative;padding:18px 16px;border:1px solid #dce7f3;border-radius:15px;background:#fff}
 .dt-transfer-steps li>span{margin-bottom:16px;background:#173d82;color:#fff}
 .dt-after-card{display:flex;align-items:flex-start;gap:14px;margin-top:28px;padding:19px 21px;border:1px solid #cfe2f5;border-radius:16px;background:linear-gradient(110deg,#edf6ff,#fff)}
@@ -549,5 +555,113 @@ body.dt-modal-open{overflow:hidden}
 .dt-after-card .dt-kicker{margin-bottom:5px}
 .dt-after-card strong{display:block;color:var(--dt-ink);font-size:16px}
 .dt-after-card p{margin:5px 0 0;color:var(--dt-body);font-size:15px}
+.dt-after-list{margin:0;padding:0;list-style:none;color:var(--dt-body);font-size:15px;line-height:1.65}
+.dt-after-list li{position:relative;padding-left:22px}
+.dt-after-list li::before{position:absolute;left:0;top:1px;color:#159568;content:"✓";font-weight:800}
+.dt-transfer-steps li>div{color:var(--dt-body);font-size:15px;line-height:1.6}
+.dt-transfer-steps li:nth-child(5){grid-column:4;grid-row:2}
+.dt-transfer-steps li:nth-child(6){grid-column:3;grid-row:2}
+.dt-transfer-steps li:nth-child(7){grid-column:2;grid-row:2}
+.dt-transfer-steps li:nth-child(8){grid-column:1;grid-row:2}
+.dt-transfer-steps li:nth-child(-n+3)::after,
+.dt-transfer-steps li:nth-child(5)::after,
+.dt-transfer-steps li:nth-child(6)::after,
+.dt-transfer-steps li:nth-child(7)::after,
+.dt-transfer-steps li:nth-child(4)::after{
+    position:absolute;
+    z-index:2;
+    display:block;
+    width:18px;
+    height:1px;
+    border-top:1px solid #8eafe0;
+    background:transparent;
+    content:"";
+}
+.dt-transfer-steps li:nth-child(-n+3)::before,
+.dt-transfer-steps li:nth-child(5)::before,
+.dt-transfer-steps li:nth-child(6)::before,
+.dt-transfer-steps li:nth-child(7)::before,
+.dt-transfer-steps li:nth-child(4)::before{
+    position:absolute;
+    z-index:3;
+    display:block;
+    width:7px;
+    height:7px;
+    border-top:1.5px solid #527fca;
+    border-right:1.5px solid #527fca;
+    content:"";
+}
+.dt-transfer-steps li:nth-child(-n+3)::after{
+    top:50%;
+    right:-27px;
+    transform:translateY(-50%);
+}
+.dt-transfer-steps li:nth-child(-n+3)::before{
+    top:50%;
+    right:-27px;
+    transform:translateY(-50%) rotate(45deg);
+}
+.dt-transfer-steps li:nth-child(4)::after{
+    right:50%;
+    bottom:-27px;
+    width:1px;
+    height:18px;
+    border-top:0;
+    border-left:1px solid #8eafe0;
+    transform:translateX(50%);
+}
+.dt-transfer-steps li:nth-child(4)::before{
+    right:50%;
+    bottom:-27px;
+    transform:translate(50%, 0) rotate(135deg);
+}
+.dt-transfer-steps li:nth-child(5)::after,
+.dt-transfer-steps li:nth-child(6)::after,
+.dt-transfer-steps li:nth-child(7)::after{
+    top:50%;
+    left:-27px;
+    transform:translateY(-50%);
+}
+.dt-transfer-steps li:nth-child(5)::before,
+.dt-transfer-steps li:nth-child(6)::before,
+.dt-transfer-steps li:nth-child(7)::before{
+    top:50%;
+    left:-27px;
+    transform:translateY(-50%) rotate(225deg);
+}
 @media(max-width:800px){.dt-transfer-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.dt-prep-grid,.dt-transfer-steps{grid-template-columns:1fr}.dt-after-card{padding:17px}}
+@media(max-width:800px) and (min-width:621px){
+    .dt-transfer-steps{column-gap:36px;row-gap:36px}
+    .dt-transfer-steps li{grid-column:auto!important;grid-row:auto!important}
+    .dt-transfer-steps li::before,
+    .dt-transfer-steps li::after{display:none!important}
+}
+@media(max-width:620px){
+    .dt-prep-grid,.dt-transfer-steps{grid-template-columns:1fr}
+    .dt-after-card{padding:17px}
+    .dt-procedure-heading{align-items:flex-start}
+    .dt-procedure-heading h3{font-size:20px}
+    .dt-transfer-steps li{grid-column:auto!important;grid-row:auto!important}
+    .dt-transfer-steps li:not(:last-child)::after{
+        top:auto;
+        right:50%;
+        left:auto;
+        bottom:-27px;
+        width:1px;
+        height:18px;
+        border-top:0;
+        border-left:1px solid #8eafe0;
+        transform:translateX(50%)!important;
+        display:block!important;
+    }
+    .dt-transfer-steps li:not(:last-child)::before{
+        top:auto;
+        right:50%;
+        left:auto;
+        bottom:-27px;
+        transform:translate(50%, 0) rotate(135deg)!important;
+        display:block!important;
+    }
+    .dt-transfer-steps li:last-child::before,
+    .dt-transfer-steps li:last-child::after{display:none}
+}
