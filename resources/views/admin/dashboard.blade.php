@@ -33,21 +33,36 @@
             <div class="table-card">
                 <div class="table-head"><span>REFERENCE</span><span>CUSTOMER</span><span>AMOUNT</span><span>STATUS</span></div>
                 @foreach($orders as $order)
+                    @php($transferItems = $order->items->where('order_type', 'transfer'))
+                    @php($firstTransferItem = $transferItems->first())
                     <div class="table-row">
-                        <strong>{{ $order->reference }}<small class="admin-domain">{{ optional($order->items->first())->domain }} · {{ optional($order->items->first())->order_type === 'transfer' ? 'transfer' : 'registration' }} ({{ $order->status === 'active' && optional($order->items->first())->order_type === 'transfer' ? 'transferred' : str_replace('_', ' ', optional($order->items->first())->registration_status) }})</small></strong>
+                        <strong>{{ $order->reference }}<small class="admin-domain">{{ optional($order->items->first())->domain }} · {{ $firstTransferItem ? 'Transfer' : 'Registration' }}</small>
+                            @foreach($transferItems as $transferItem)
+                                @php($transferStatus = \App\Support\DomainTransferStatus::forOrderItem($order->status, $order->payment_status, $transferItem->registration_status))
+                                <small class="admin-domain">{{ $transferItem->domain }} transfer: {{ $transferStatus['label'] }} · {{ $transferStatus['message'] }}</small>
+                            @endforeach
+                        </strong>
                         <span>{{ $order->customer_email }}</span>
                         <span>৳ {{ number_format($order->total) }}</span>
                         <form method="POST" action="{{ route('admin.orders.status', $order) }}">
                             @csrf
                             <select name="status" onchange="this.form.submit()">
-                                <option value="{{ $order->status }}">{{ ucfirst(str_replace('_', ' ', $order->status)) }}</option>
-                                <option value="paid">Paid</option>
-                                <option value="registration_pending">Registration pending</option>
-                                <option value="transfer_pending">Transfer pending</option>
-                                <option value="transfer_failed">Transfer failed</option>
-                                <option value="active">Active</option>
-                                <option value="failed">Failed</option>
-                                <option value="cancelled">Cancelled</option>
+                                @php($firstTransferStatus = $firstTransferItem ? \App\Support\DomainTransferStatus::forOrderItem($order->status, $order->payment_status, $firstTransferItem->registration_status) : null)
+                                <option value="{{ $order->status }}">{{ $firstTransferStatus ? $firstTransferStatus['label'] : ucfirst(str_replace('_', ' ', $order->status)) }}</option>
+                                @if($firstTransferItem)
+                                    <option value="transfer_processing">Transfer Initialized</option>
+                                    <option value="transfer_pending">Pending</option>
+                                    <option value="transfer_failed">Failed</option>
+                                    <option value="active">Success</option>
+                                @else
+                                    <option value="paid">Paid</option>
+                                    <option value="registration_pending">Registration pending</option>
+                                    <option value="transfer_pending">Transfer pending</option>
+                                    <option value="transfer_failed">Transfer failed</option>
+                                    <option value="active">Active</option>
+                                    <option value="failed">Failed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                @endif
                             </select>
                         </form>
                         @if($order->payment_status === 'paid' && in_array($order->status, ['paid', 'registration_pending', 'registration_processing'], true))

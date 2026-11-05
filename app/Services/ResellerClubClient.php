@@ -142,32 +142,50 @@ class ResellerClubClient
     public function validateDomainTransferIn($domain)
     {
         if (!$this->isConfigured()) {
-            \Log::warning('ResellerClub transfer validation skipped because the v2 client is not configured', [
+            \Log::warning('ResellerClub transfer validation skipped because the client is not configured', [
                 'domain' => $domain,
             ]);
 
             return null;
         }
 
-        $response = $this->v2Request(
+        $baseParts = parse_url(trim((string) ($this->config['base_url'] ?? '')));
+        if (!$baseParts || strtolower($baseParts['scheme'] ?? '') !== 'https' || empty($baseParts['host'])) {
+            \Log::warning('ResellerClub transfer validation skipped because its HTTPS configuration is invalid', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        $response = $this->request(
+            '/domains/validate-transfer.json',
+            ['domain-name' => strtolower(trim($domain))],
             'GET',
-            '/domains/' . rawurlencode(strtolower(trim($domain))) . '/validate-transfer-in'
+            true,
+            true,
+            true
         );
-        if (!is_array($response) || !array_key_exists('success', $response) || !is_bool($response['success'])) {
-            \Log::warning('ResellerClub transfer eligibility response was invalid', [
+        if (is_bool($response)) {
+            return $response;
+        }
+        if (is_string($response)) {
+            $normalized = strtolower(trim($response, " \t\n\r\0\x0B\"'"));
+            if ($normalized === 'true') {
+                return true;
+            }
+            if ($normalized === 'false') {
+                return false;
+            }
+        }
+
+        if ($response !== null) {
+            \Log::warning('ResellerClub transfer eligibility check could not be completed', [
                 'domain' => $domain,
             ]);
-
-            return null;
         }
 
-        if (!$response['success']) {
-            return false;
-        }
-
-        $status = strtoupper((string) ($response['status'] ?? ''));
-
-        return $status === '' || $status === 'SUCCESS';
+        return null;
     }
 
     public function transferDomain($domain, $authCode)
@@ -514,14 +532,33 @@ class ResellerClubClient
         $body = curl_exec($curl);
         $error = curl_error($curl);
         $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($curl, CURLINFO_CONTENT_TYPE);
         curl_close($curl);
 
         if ($body === false || $error || $httpStatus < 200 || $httpStatus >= 300) {
+            $apiError = null;
+            $decodedBody = is_string($body) ? json_decode($body, true) : null;
+            if (is_array($decodedBody)) {
+                foreach (['message', 'error_description', 'error', 'errorCode', 'code'] as $key) {
+                    $value = $decodedBody[$key] ?? null;
+                    if (is_array($value)) {
+                        $value = $value['message'] ?? null;
+                    }
+                    if (is_scalar($value) && trim((string) $value) !== '') {
+                        $apiError = substr(preg_replace('/[\r\n\t]+/', ' ', trim((string) $value)), 0, 250);
+                        break;
+                    }
+                }
+            }
+
             \Log::warning('ResellerClub v2 request failed', [
                 'method' => strtoupper($method),
                 'path' => $path,
                 'http_status' => $httpStatus,
                 'error' => $error ?: null,
+                'api_error' => $apiError,
+                'response_content_type' => $contentType ?: null,
+                'response_bytes' => is_string($body) ? strlen($body) : 0,
             ]);
 
             return null;
@@ -585,7 +622,14 @@ class ResellerClubClient
         return (float) round($amount * $rate);
     }
 
-    private function request($path, array $parameters = [], $method = 'GET', $allowScalar = false)
+    protected function request(
+        $path,
+        array $parameters = [],
+        $method = 'GET',
+        $allowScalar = false,
+        $ipv4Only = false,
+        $requireSuccessStatus = false
+    )
     {
         $parameters['auth-userid'] = $this->config['auth_userid'];
         $parameters['api-key'] = $this->config['api_key'];
@@ -601,6 +645,10 @@ class ResellerClubClient
             CURLOPT_TIMEOUT => 12,
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
         ];
+        if ($ipv4Only) {
+            $options[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
+            $options[CURLOPT_SSLVERSION] = CURL_SSLVERSION_TLSv1_2;
+        }
         if ($method === 'POST') {
             $options[CURLOPT_POST] = true;
             $options[CURLOPT_POSTFIELDS] = $this->encodeParameters($parameters);
@@ -616,7 +664,7 @@ class ResellerClubClient
         $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-        if ($body === false || $error) {
+        if ($body === false || $error || ($requireSuccessStatus && ($httpStatus < 200 || $httpStatus >= 300))) {
             \Log::warning('ResellerClub request failed', [
                 'method' => $method,
                 'path' => $path,

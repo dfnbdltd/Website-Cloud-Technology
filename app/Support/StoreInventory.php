@@ -263,11 +263,19 @@ class StoreInventory
     {
         return $this->paidOrders()->flatMap(function (DomainOrder $order) {
             return $order->items->where('order_type', 'transfer')->map(function ($item) use ($order) {
+                $transferStatus = DomainTransferStatus::forOrderItem(
+                    $order->status,
+                    $order->payment_status,
+                    $item->registration_status
+                );
+
                 return [
                     'item_id' => $item->id,
                     'domain' => $item->domain,
                     'tld' => $item->tld,
-                    'status' => $order->status === 'active' ? 'transferred' : $item->registration_status,
+                    'status' => $transferStatus['key'],
+                    'status_label' => $transferStatus['label'],
+                    'status_message' => $transferStatus['message'],
                     'price' => (float) $item->price,
                     'order' => $order,
                     'invoice' => $this->invoiceMap()->get($order->id),

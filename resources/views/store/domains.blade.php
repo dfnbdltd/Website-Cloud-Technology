@@ -11,13 +11,13 @@
                     <h2>{{ $transfer['domain'] }}</h2>
                     <p>Domain transfer · order <b>{{ $transfer['order']->reference }}</b></p>
                 </div>
-                <span class="table-status {{ $transfer['status'] }}">{{ ucfirst(str_replace('_', ' ', $transfer['status'])) }}</span>
+                <span class="table-status {{ $transfer['status'] }}">{{ $transfer['status_label'] }}</span>
             </header>
             <div class="store-facts">
                 <div class="store-fact">
                     <small>TRANSFER</small>
-                    <strong>{{ $transfer['status'] === 'transfer_submitted' ? 'Submitted to registrar' : ($transfer['status'] === 'transferred' ? 'Transfer complete' : ucfirst(str_replace('_', ' ', $transfer['status']))) }}</strong>
-                    <em>{{ $transfer['status'] === 'transfer_submitted' ? 'Registrar approval may take 5–7 days' : ($transfer['status'] === 'transfer_failed' ? 'Contact support with your order reference' : ($transfer['status'] === 'transferred' ? 'The domain is now in your account' : 'Transfer request status')) }}</em>
+                    <strong>{{ $transfer['status_label'] }}</strong>
+                    <em>{{ $transfer['status_message'] }}</em>
                 </div>
                 <div class="store-fact">
                     <small>PAID</small>

@@ -80,6 +80,8 @@
 .quick-actions a{font-size:12px}
 .quick-actions a b{font-size:16px}
 .table-status.initiated{color:#2f7fd1}
+.table-status.initialized{color:#2f7fd1}
+.table-status.payment-pending{color:#ec9a48}
 .table-status.approved{color:#28ac7c}
 .table-status.rejected{color:#d87878}
 .table-status.cancelled{color:#dc3f4f!important;background:#fff0f1;border:1px solid #ffc9cf;border-radius:999px;padding:7px 12px;font-weight:800}

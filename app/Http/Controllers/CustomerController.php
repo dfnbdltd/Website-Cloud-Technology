@@ -7,6 +7,7 @@ use App\Models\DomainOrder;
 use App\Models\SupportTicket;
 use App\Models\Topup;
 use App\Rules\StrongPassword;
+use App\Support\DomainTransferStatus;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -80,8 +81,24 @@ class CustomerController extends Controller
             }
         }
         $domainLifecycle = collect();
+        $transferLifecycle = collect();
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
+                if ($item->order_type === 'transfer') {
+                    $transferLifecycle->push([
+                        'domain' => $item->domain,
+                        'order' => $order,
+                        'purchaseDate' => $order->created_at->copy()->startOfDay(),
+                        'status' => DomainTransferStatus::forOrderItem(
+                            $order->status,
+                            $order->payment_status,
+                            $item->registration_status
+                        ),
+                    ]);
+
+                    continue;
+                }
+
                 $purchaseDate = $order->created_at->copy()->startOfDay();
                 $years = max(1, (int) $item->years);
                 $expiryDate = $purchaseDate->copy()->addYears($years);
@@ -117,6 +134,7 @@ class CustomerController extends Controller
             'hostingInvoices' => $hostingInvoices,
             'hostingLifecycle' => $hostingLifecycle,
             'domainLifecycle' => $domainLifecycle,
+            'transferLifecycle' => $transferLifecycle,
         ]);
     }
 

@@ -48,6 +48,15 @@
             <div class="dashboard-domain-actions"><span class="table-status {{ $domain['expired'] ? 'failed' : $domain['order']->payment_status }}">{{ $domain['expired'] ? 'Expired' : ucfirst(str_replace('_', ' ', $domain['order']->payment_status)) }}</span>@if($invoiceMap->has($domain['order']->id))<a class="dashboard-invoice-link" href="{{ route('invoices.pdf', $invoiceMap->get($domain['order']->id)) }}?download=1" title="Download invoice">↓ <span>Invoice</span></a>@endif</div>
         </div>
 @endforeach
+@foreach($transferLifecycle as $transfer)
+        @php($hasDomainItems = true)
+        <div class="dashboard-domain-row">
+            <div class="dashboard-domain-name"><strong>{{ $transfer['domain'] }}</strong><small>Transfer · order {{ $transfer['order']->reference }} · {{ $transfer['purchaseDate']->format('d M Y') }}</small></div>
+            <div class="dashboard-domain-detail"><span>Transfer</span><small>Domain service</small></div>
+            <div class="dashboard-domain-detail"><strong>{{ $transfer['status']['label'] }}</strong><small>{{ $transfer['status']['message'] }}</small></div>
+            <div class="dashboard-domain-actions"><span class="table-status {{ $transfer['status']['key'] }}">{{ $transfer['status']['label'] }}</span><a class="dashboard-invoice-link" href="{{ route('mystore.domains') }}">Details</a></div>
+        </div>
+@endforeach
 @unless($hasDomainItems)
     <div class="dashboard-domain-empty">No purchased domains yet. <a href="{{ route('domains.index') }}">Search for a domain →</a></div>
 @endunless
