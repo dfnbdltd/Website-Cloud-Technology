@@ -181,7 +181,7 @@ class DomainTermPricingTest extends TestCase
             'services.resellerclub.api_key' => 'test-key',
             'services.resellerclub.price_currency' => 'BDT',
         ]);
-        Cache::put('resellerclub.reseller_pricing.v1', [
+        Cache::put('resellerclub.reseller_cost_pricing.v1', [
             'domcno' => [
                 'addnewdomain' => ['1' => 1309, '2' => 2500],
                 'renewdomain' => ['1' => 1359],

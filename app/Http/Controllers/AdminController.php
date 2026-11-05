@@ -96,7 +96,7 @@ class AdminController extends Controller
                     'status' => $resellerClubConfigured ? 'Configured' : 'Needs configuration',
                     'endpoints' => [
                         ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
-                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/reseller-price.json', 'usage' => 'Fetch reseller costs for invoice purchase-price snapshots.'],
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/reseller-cost-price.json', 'usage' => 'Fetch actual reseller costs for invoice purchase-price snapshots.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/domains/available.json', 'usage' => 'Check domain availability.'],
                         ['method' => 'POST', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain under the configured default ResellerClub customer.'],

@@ -292,6 +292,9 @@ class InvoiceWorkflowTest extends TestCase
             'order_type' => 'transfer',
         ]);
         $invoice = app(InvoiceService::class)->createForOrder($order->fresh());
+        $invoice->items()->where('item_type', 'domain-registration')->update([
+            'description' => 'Domain registration - invoiceable.com',
+        ]);
 
         $resellerClub = \Mockery::mock(\App\Services\ResellerClubClient::class);
         $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
@@ -302,7 +305,7 @@ class InvoiceWorkflowTest extends TestCase
         $this->assertSame(0, Artisan::call('invoices:sync-resellerclub-costs'));
 
         $invoiceItems = $invoice->fresh()->items->keyBy('description');
-        $this->assertSame(1000.0, $invoiceItems->get('Domain registration — invoiceable.com')->purchase_price);
+        $this->assertSame(1000.0, $invoiceItems->get('Domain registration - invoiceable.com')->purchase_price);
         $this->assertSame(900.0, $invoiceItems->get('Domain transfer — invoiceable.net')->purchase_price);
         $this->assertSame(1000.0, $order->items()->where('domain', 'invoiceable.com')->first()->purchase_price);
         $this->assertSame(900.0, $order->items()->where('domain', 'invoiceable.net')->first()->purchase_price);

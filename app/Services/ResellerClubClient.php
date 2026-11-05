@@ -59,7 +59,7 @@ class ResellerClubClient
     }
 
     /**
-     * Live reseller cost prices, keyed by ResellerClub classkey.
+     * Live ResellerClub cost prices, keyed by classkey.
      * Returns [] when the cost-pricing API is unavailable.
      */
     public function resellerPricing()
@@ -68,11 +68,8 @@ class ResellerClubClient
             return [];
         }
 
-        return cache()->remember('resellerclub.reseller_pricing.v1', now()->addMinutes(5), function () {
-            $resellerId = $this->config['reseller_id'] ?: $this->config['auth_userid'];
-            $response = $this->request('/products/reseller-price.json', [
-                'reseller-id' => $resellerId,
-            ]);
+        return cache()->remember('resellerclub.reseller_cost_pricing.v1', now()->addMinutes(5), function () {
+            $response = $this->request('/products/reseller-cost-price.json');
 
             if (!is_array($response) || isset($response['status'])) {
                 return [];
