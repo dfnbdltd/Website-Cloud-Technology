@@ -9,6 +9,7 @@ use App\Models\Topup;
 use App\Services\InvoiceService;
 use App\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -46,7 +47,7 @@ class InvoiceWorkflowTest extends TestCase
         ]];
     }
 
-    private function orderWithItems($user, $years = 3, $price = 1214.00, $paid = false)
+    private function orderWithItems($user, $years = 3, $price = 1214.00, $paid = false, $purchasePrice = null)
     {
         $order = DomainOrder::create([
             'reference' => 'CT-TEST-' . uniqid(),
@@ -66,6 +67,7 @@ class InvoiceWorkflowTest extends TestCase
             'years' => $years,
             'price' => $price,
             'renewal_price' => $price,
+            'purchase_price' => $purchasePrice,
         ]);
 
         return $order;
@@ -89,7 +91,7 @@ class InvoiceWorkflowTest extends TestCase
         $this->assertSame('Domain registration — invoiceable.com', $item->description);
         $this->assertSame(3, $item->years);
         $this->assertSame(3642.0, $item->line_total);
-        $this->assertSame(1214.0, $item->purchase_price);
+        $this->assertNull($item->purchase_price);
 
         // Idempotent: calling again returns the same invoice, not a second one.
         $again = app(InvoiceService::class)->createForOrder($order->fresh());
@@ -136,7 +138,7 @@ class InvoiceWorkflowTest extends TestCase
     public function testAdminEditExtendsYearsOnAPaidInvoiceAndReopensDifference()
     {
         $user = $this->customer();
-        $order = $this->orderWithItems($user, 3, 1214.00, true); // 3 years @ 1214 = 3642
+        $order = $this->orderWithItems($user, 3, 1214.00, true, 1214); // 3 years @ 1214 = 3642
         $invoice = app(InvoiceService::class)->createForOrder($order->fresh());
         $invoice->forceFill([
             'status' => Invoice::STATUS_PAID,
@@ -190,7 +192,7 @@ class InvoiceWorkflowTest extends TestCase
     public function testAdminInvoiceTableShowsDomainMarginAndPurchasePriceSnapshot()
     {
         $user = $this->customer();
-        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user, 2, 1214)->fresh());
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user, 2, 1214, false, 1214)->fresh());
         $session = ['admin' => ['email' => 'admin@mail.net']];
 
         $this->withSession($session)->post(route('admin.invoices.update', $invoice), [
@@ -223,6 +225,87 @@ class InvoiceWorkflowTest extends TestCase
             ->assertSee('Nagad')
             ->assertSee('View')
             ->assertSee('Edit');
+    }
+
+    public function testAdminInvoiceTableAndEditorIncludeDomainTransfers()
+    {
+        $user = $this->customer();
+        $order = $this->orderWithItems($user, 1, 1600);
+        $order->items()->first()->forceFill([
+            'order_type' => 'transfer',
+            'purchase_price' => 1000,
+        ])->save();
+        $invoice = app(InvoiceService::class)->createForOrder($order->fresh());
+        $session = ['admin' => ['email' => 'admin@mail.net']];
+
+        $this->assertSame('domain-transfer', $invoice->items->first()->item_type);
+
+        $this->withSession($session)->get(route('admin.invoices'))
+            ->assertOk()
+            ->assertSee('invoiceable.com')
+            ->assertSee('1,000.00')
+            ->assertSee('1,600.00')
+            ->assertSee('600.00');
+
+        $this->withSession($session)->get(route('admin.invoices.edit', $invoice))
+            ->assertOk()
+            ->assertSee('domain-transfer"  selected', false);
+
+        $pdfHtml = view('invoices.pdf', [
+            'invoice' => $invoice->fresh()->load('items', 'user', 'source'),
+            'isAdmin' => true,
+        ])->render();
+        $this->assertStringContainsString('invoiceable.com', $pdfHtml);
+        $this->assertStringContainsString('ResellerClub', $pdfHtml);
+        $this->assertStringContainsString('BDT 1,000.00', $pdfHtml);
+        $this->assertStringContainsString('BDT 600.00', $pdfHtml);
+
+        $this->withSession($session)->post(route('admin.invoices.update', $invoice), [
+            'status' => 'unpaid',
+            'payment_method' => 'nagad',
+            'vat_percent' => 0,
+            'items' => [[
+                'id' => $invoice->items->first()->id,
+                'description' => 'Domain transfer — invoiceable.com',
+                'item_type' => 'domain-transfer',
+                'years' => 1,
+                'quantity' => 1,
+                'unit_price' => 1600,
+            ]],
+        ])->assertRedirect(route('admin.invoices.show', $invoice->fresh()));
+
+        $this->assertSame(1000.0, $invoice->fresh()->items->first()->purchase_price);
+    }
+
+    public function testResellerCostSyncRefreshesExistingRegistrationAndTransferInvoices()
+    {
+        config(['services.resellerclub.enabled' => true]);
+        $user = $this->customer();
+        $order = $this->orderWithItems($user, 1, 1500);
+        $order->items()->create([
+            'domain' => 'invoiceable.net',
+            'tld' => 'net',
+            'years' => 1,
+            'price' => 1600,
+            'renewal_price' => 1600,
+            'purchase_price' => 1600,
+            'order_type' => 'transfer',
+        ]);
+        $invoice = app(InvoiceService::class)->createForOrder($order->fresh());
+
+        $resellerClub = \Mockery::mock(\App\Services\ResellerClubClient::class);
+        $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
+        $resellerClub->shouldReceive('liveRegistrationCost')->once()->with('domcno', 1)->andReturn(1000.0);
+        $resellerClub->shouldReceive('liveTransferCost')->once()->with('net')->andReturn(900.0);
+        $this->app->instance(\App\Services\ResellerClubClient::class, $resellerClub);
+
+        $this->assertSame(0, Artisan::call('invoices:sync-resellerclub-costs'));
+
+        $invoiceItems = $invoice->fresh()->items->keyBy('description');
+        $this->assertSame(1000.0, $invoiceItems->get('Domain registration — invoiceable.com')->purchase_price);
+        $this->assertSame(900.0, $invoiceItems->get('Domain transfer — invoiceable.net')->purchase_price);
+        $this->assertSame(1000.0, $order->items()->where('domain', 'invoiceable.com')->first()->purchase_price);
+        $this->assertSame(900.0, $order->items()->where('domain', 'invoiceable.net')->first()->purchase_price);
     }
 
     public function testTopupApprovalIssuesPaidReceiptInvoice()
@@ -271,7 +354,7 @@ class InvoiceWorkflowTest extends TestCase
     public function testAdminCanMarkAPaidInvoiceUnpaidWithoutChangingTheTotal()
     {
         $user = $this->customer();
-        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user, 3, 1214, false, 1214)->fresh());
         $invoice->forceFill([
             'status' => Invoice::STATUS_PAID,
             'amount_paid' => $invoice->total,
@@ -306,7 +389,7 @@ class InvoiceWorkflowTest extends TestCase
     public function testAdminCanTogglePaidStatusFromTheInvoicePage()
     {
         $user = $this->customer();
-        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user, 3, 1214, false, 1214)->fresh());
         $session = ['admin' => ['email' => 'admin@mail.net']];
 
         $this->withSession($session)->post(route('admin.invoices.status', $invoice), ['status' => 'paid'])
@@ -365,7 +448,7 @@ class InvoiceWorkflowTest extends TestCase
     public function testEditPageUsesVerticalCardsAndKeepsSnapshotsAfterAValidationError()
     {
         $user = $this->customer();
-        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user)->fresh());
+        $invoice = app(InvoiceService::class)->createForOrder($this->orderWithItems($user, 3, 1214, false, 1214)->fresh());
         $invoice->forceFill([
             'status' => Invoice::STATUS_PAID,
             'amount_paid' => $invoice->total,

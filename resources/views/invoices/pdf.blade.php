@@ -148,9 +148,9 @@
     <tbody>
         @foreach($invoice->items as $item)
             @php
-                $isDomain = in_array($item->item_type, ['domain-registration', 'domain-renewal'], true);
+                $isDomain = in_array($item->item_type, ['domain-registration', 'domain-renewal', 'domain-transfer'], true);
                 $domainName = $isDomain
-                    ? preg_replace('/^Domain (registration|renewal)\s*[—-]\s*/u', '', $item->description)
+                    ? preg_replace('/^Domain (registration|renewal|transfer)\s*[—-]\s*/u', '', $item->description)
                     : $item->description;
                 $purchase = $item->purchase_price !== null
                     ? round((float) $item->purchase_price * max(1, (int) $item->years) * max(1, (int) $item->quantity), 2)

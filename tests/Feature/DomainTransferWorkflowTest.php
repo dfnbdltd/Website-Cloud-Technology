@@ -49,6 +49,7 @@ class DomainTransferWorkflowTest extends TestCase
             ->with('example.com')
             ->andReturn(true);
         $resellerClub->shouldReceive('liveTransferPrice')->twice()->with('com')->andReturn(1600.0);
+        $resellerClub->shouldReceive('liveTransferCost')->once()->with('com')->andReturn(1000.0);
         $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
         $resellerClub->shouldReceive('walletBalance')->once()->andReturn([
             'balance' => 10000.0,
@@ -88,6 +89,7 @@ class DomainTransferWorkflowTest extends TestCase
 
         $cart = session('domain_cart');
         $this->assertSame(1600.0, $cart['example.com']['price']);
+        $this->assertSame(1000.0, $cart['example.com']['purchase_price']);
         $this->assertNotSame('epp-secret-123', $cart['example.com']['transfer_auth_code']);
         $this->get(route('domains.checkout'))
             ->assertOk()
@@ -107,6 +109,7 @@ class DomainTransferWorkflowTest extends TestCase
         $this->assertSame('transfer_pending', $order->status);
         $this->assertSame('paid', $order->payment_status);
         $this->assertSame('transfer', $item->order_type);
+        $this->assertSame(1000.0, $item->purchase_price);
         $this->assertSame('transfer_submitted', $item->registration_status);
         $this->assertNull($item->transfer_auth_code);
         $this->assertStringNotContainsString('epp-secret-123', $order->payload);

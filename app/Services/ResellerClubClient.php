@@ -59,6 +59,30 @@ class ResellerClubClient
     }
 
     /**
+     * Live reseller cost prices, keyed by ResellerClub classkey.
+     * Returns [] when the cost-pricing API is unavailable.
+     */
+    public function resellerPricing()
+    {
+        if (!$this->isConfigured()) {
+            return [];
+        }
+
+        return cache()->remember('resellerclub.reseller_pricing.v1', now()->addMinutes(5), function () {
+            $resellerId = $this->config['reseller_id'] ?: $this->config['auth_userid'];
+            $response = $this->request('/products/reseller-price.json', [
+                'reseller-id' => $resellerId,
+            ]);
+
+            if (!is_array($response) || isset($response['status'])) {
+                return [];
+            }
+
+            return $response;
+        });
+    }
+
+    /**
      * Public catalog: one row per TLD we want to show, using live prices.
      */
     public function catalog(array $classkeys = ['domcno', 'dotnet', 'dotxyz', 'dottop', 'doticu', 'dotlive', 'dotclub', 'dotwebsite'])
@@ -129,6 +153,69 @@ class ResellerClubClient
         $price = $this->pricing()[$classkey]['addtransferdomain']['1'] ?? null;
 
         if (!is_numeric($price)) {
+            return null;
+        }
+
+        return (float) $this->convertLivePriceToBdt($price);
+    }
+
+    /**
+     * Reseller cost per year for a registration term, in BDT.
+     * Returns null rather than substituting the customer selling price.
+     */
+    public function liveRegistrationCost($classkey, $years)
+    {
+        $years = max(1, (int) $years);
+        $live = $this->resellerPricing()[$classkey] ?? null;
+        $firstYear = $live['addnewdomain']['1'] ?? null;
+
+        if (!is_numeric($firstYear)) {
+            \Log::warning('ResellerClub registration reseller cost is unavailable', [
+                'classkey' => $classkey,
+                'years' => $years,
+            ]);
+
+            return null;
+        }
+
+        if ($years === 1) {
+            return (float) $this->convertLivePriceToBdt($firstYear);
+        }
+
+        $termPrice = $live['addnewdomain'][(string) $years] ?? null;
+        if (is_numeric($termPrice) && (float) $termPrice !== (float) $firstYear) {
+            return (float) $this->convertLivePriceToBdt($termPrice) / $years;
+        }
+
+        $renewalPrice = $live['renewdomain']['1'] ?? null;
+        if (!is_numeric($renewalPrice)) {
+            \Log::warning('ResellerClub registration reseller renewal cost is unavailable', [
+                'classkey' => $classkey,
+                'years' => $years,
+            ]);
+
+            return null;
+        }
+
+        $termTotal = (float) $firstYear + ((float) $renewalPrice * ($years - 1));
+
+        return (float) $this->convertLivePriceToBdt($termTotal) / $years;
+    }
+
+    /**
+     * Reseller cost for a domain transfer, in BDT.
+     */
+    public function liveTransferCost($tld)
+    {
+        $tld = strtolower(trim($tld, ". \t\n\r\0\x0B"));
+        $classkey = $tld === 'com' ? 'domcno' : 'dot' . $tld;
+        $price = $this->resellerPricing()[$classkey]['addtransferdomain']['1'] ?? null;
+
+        if (!is_numeric($price)) {
+            \Log::warning('ResellerClub transfer reseller cost is unavailable', [
+                'classkey' => $classkey,
+            ]);
+
             return null;
         }
 

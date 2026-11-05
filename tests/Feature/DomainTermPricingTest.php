@@ -47,6 +47,7 @@ class DomainTermPricingTest extends TestCase
         ];
         $resellerClub = \Mockery::mock(ResellerClubClient::class);
         $resellerClub->shouldReceive('catalog')->times(3)->andReturn($catalog);
+        $resellerClub->shouldReceive('liveRegistrationCost')->once()->with('domcno', 2)->andReturn(null);
         $resellerClub->shouldReceive('isConfigured')->once()->andReturn(false);
         $resellerClub->shouldReceive('checkAvailability')
             ->once()
@@ -75,7 +76,7 @@ class DomainTermPricingTest extends TestCase
         $cart = session('domain_cart');
         $this->assertSame(2, $cart['brand.com']['years']);
         $this->assertSame(1250.0, $cart['brand.com']['price']);
-        $this->assertSame(1250.0, $cart['brand.com']['purchase_price']);
+        $this->assertNull($cart['brand.com']['purchase_price']);
         $this->assertSame(1214.0, $cart['brand.com']['first_year_price']);
         $this->assertSame(1399.0, $cart['brand.com']['renewal_price']);
 
@@ -170,5 +171,29 @@ class DomainTermPricingTest extends TestCase
         $this->assertSame(1399.0, $plan['renewal']);
         $this->assertSame(2399.0, $plan['year_prices'][2]);
         $this->assertSame(4012.0, $plan['year_prices'][3]);
+    }
+
+    public function testResellerCostApiProvidesRegistrationAndTransferCostSnapshots()
+    {
+        config([
+            'services.resellerclub.enabled' => true,
+            'services.resellerclub.auth_userid' => 'test-user',
+            'services.resellerclub.api_key' => 'test-key',
+            'services.resellerclub.price_currency' => 'BDT',
+        ]);
+        Cache::put('resellerclub.reseller_pricing.v1', [
+            'domcno' => [
+                'addnewdomain' => ['1' => 1309, '2' => 2500],
+                'renewdomain' => ['1' => 1359],
+                'addtransferdomain' => ['1' => 900],
+            ],
+        ], 60);
+
+        $client = new ResellerClubClient();
+
+        $this->assertSame(1309.0, $client->liveRegistrationCost('domcno', 1));
+        $this->assertSame(1250.0, $client->liveRegistrationCost('domcno', 2));
+        $this->assertSame(900.0, $client->liveTransferCost('com'));
+        $this->assertNull($client->liveTransferCost('net'));
     }
 }

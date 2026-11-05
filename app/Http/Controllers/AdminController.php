@@ -96,6 +96,7 @@ class AdminController extends Controller
                     'status' => $resellerClubConfigured ? 'Configured' : 'Needs configuration',
                     'endpoints' => [
                         ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/reseller-price.json', 'usage' => 'Fetch reseller costs for invoice purchase-price snapshots.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/domains/available.json', 'usage' => 'Check domain availability.'],
                         ['method' => 'POST', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain under the configured default ResellerClub customer.'],
@@ -593,7 +594,7 @@ class AdminController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.id' => ['nullable', 'integer'],
-            'items.*.item_type' => ['nullable', 'in:domain-registration,domain-renewal,hosting,topup,manual'],
+            'items.*.item_type' => ['nullable', 'in:domain-registration,domain-renewal,domain-transfer,hosting,topup,manual'],
             'items.*.years' => ['required', 'integer', 'min:0', 'max:10'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0', 'max:999999.99'],

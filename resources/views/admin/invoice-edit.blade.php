@@ -126,7 +126,7 @@
 
         <section class="inv-card inv-lines-card">
             <h3>Line items <span class="inv-count">{{ $invoice->items->count() }}</span></h3>
-            <p class="sub">Purchase price is the saved ResellerClub customer-price snapshot. Line total = quantity × years × selling price (Years = 0 bills once).</p>
+            <p class="sub">Purchase price is the saved ResellerClub reseller-cost snapshot. Line total = quantity × years × selling price (Years = 0 bills once).</p>
 
             <div id="lines" class="inv-lines-stack">
                 @foreach(old('items', $invoice->items->toArray()) as $i => $item)
@@ -148,7 +148,7 @@
                         </label>
                         <label class="inv-field inv-type">
                             <span class="inv-label">Type</span>
-                            <select name="items[{{ $i }}][item_type]">@foreach(['domain-registration' => 'Domain registration', 'domain-renewal' => 'Domain renewal', 'hosting' => 'Hosting', 'topup' => 'Wallet top-up', 'manual' => 'Manual / one-off'] as $value => $label)<option value="{{ $value }}" @if(old('items.'.$i.'.item_type', $item['item_type'] ?? '') === $value) selected @endif>{{ $label }}</option>@endforeach</select>
+                            <select name="items[{{ $i }}][item_type]">@foreach(['domain-registration' => 'Domain registration', 'domain-renewal' => 'Domain renewal', 'domain-transfer' => 'Domain transfer', 'hosting' => 'Hosting', 'topup' => 'Wallet top-up', 'manual' => 'Manual / one-off'] as $value => $label)<option value="{{ $value }}" @if(old('items.'.$i.'.item_type', $item['item_type'] ?? '') === $value) selected @endif>{{ $label }}</option>@endforeach</select>
                         </label>
                         <label class="inv-field inv-years">
                             <span class="inv-label">Years</span>
@@ -233,7 +233,7 @@
 </header>
 <div class="inv-line-grid">
 <label class="inv-field inv-desc"><span class="inv-label">Description</span><input type="text" name="items[__N__][description]" required maxlength="255" placeholder="e.g. example.com — domain registration"></label>
-<label class="inv-field inv-type"><span class="inv-label">Type</span><select name="items[__N__][item_type]"><option value="domain-registration">Domain registration</option><option value="domain-renewal">Domain renewal</option><option value="hosting">Hosting</option><option value="topup">Wallet top-up</option><option value="manual">Manual / one-off</option></select></label>
+<label class="inv-field inv-type"><span class="inv-label">Type</span><select name="items[__N__][item_type]"><option value="domain-registration">Domain registration</option><option value="domain-renewal">Domain renewal</option><option value="domain-transfer">Domain transfer</option><option value="hosting">Hosting</option><option value="topup">Wallet top-up</option><option value="manual">Manual / one-off</option></select></label>
 <label class="inv-field inv-years"><span class="inv-label">Years</span><input type="number" class="years" name="items[__N__][years]" value="1" min="0" max="10"></label>
 <label class="inv-field inv-qty"><span class="inv-label">Qty</span><input type="number" class="qty" name="items[__N__][quantity]" value="1" min="1" max="999"></label>
 <div class="inv-field inv-purchase"><span class="inv-label">Purchase / year</span><div class="inv-readonly">&mdash;</div></div>

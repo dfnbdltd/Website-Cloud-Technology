@@ -60,7 +60,7 @@ class InvoiceService
                     'years' => (int) $item->years,
                     'quantity' => 1,
                     'unit_price' => (float) $item->price,
-                    'purchase_price' => (float) ($item->purchase_price ?? $item->price),
+                    'purchase_price' => $item->purchase_price,
                     'line_total' => round((float) $item->price * (int) $item->years, 2),
                 ]);
             }

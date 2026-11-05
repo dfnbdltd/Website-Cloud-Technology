@@ -129,6 +129,7 @@ class DomainController extends Controller
             $firstYearPrice = $yearPrice;
             $renewalPrice = (float) $testDomains[$domain]['renewal'];
             $years = 1;
+            $classkey = null;
         } else {
             $plan = $this->resellerClub->catalog()[$tld] ?? null;
             if (!$plan) {
@@ -142,6 +143,7 @@ class DomainController extends Controller
             $yearPrice = (float) $termPrice / $years;
             $firstYearPrice = (float) $plan['price'];
             $renewalPrice = (float) $plan['renewal'];
+            $classkey = $plan['classkey'];
         }
 
         $cart = $request->session()->get('domain_cart', []);
@@ -154,7 +156,7 @@ class DomainController extends Controller
             'domain' => $domain,
             'order_type' => 'registration',
             'price' => $yearPrice,
-            'purchase_price' => $yearPrice,
+            'purchase_price' => $classkey ? $this->resellerClub->liveRegistrationCost($classkey, $years) : null,
             'first_year_price' => $firstYearPrice,
             'renewal_price' => $renewalPrice,
             'years' => $years,
@@ -212,12 +214,13 @@ class DomainController extends Controller
         if ($price === null) {
             return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'A live transfer price is not available for this domain extension. Please contact support.']);
         }
+        $purchasePrice = $this->resellerClub->liveTransferCost($tld);
 
         $cart[$domain] = [
             'domain' => $domain,
             'order_type' => 'transfer',
             'price' => $price,
-            'purchase_price' => $price,
+            'purchase_price' => $purchasePrice,
             'first_year_price' => $price,
             'renewal_price' => $price,
             'years' => 1,

@@ -77,7 +77,7 @@
                                 $clientEmail = $invoice->user ? $invoice->user->email : (isset($source->customer_email) ? $source->customer_email : 'Customer record unavailable');
                                 $clientPhone = $invoice->user ? $invoice->user->phone : (isset($source->customer_phone) ? $source->customer_phone : null);
                                 $domainItems = $invoice->items->filter(function ($item) {
-                                    return in_array($item->item_type, ['domain-registration', 'domain-renewal'], true);
+                                    return in_array($item->item_type, ['domain-registration', 'domain-renewal', 'domain-transfer'], true);
                                 });
                                 $hasUnknownCost = $domainItems->contains(function ($item) {
                                     return $item->purchase_price === null;
@@ -92,7 +92,7 @@
                                 <td class="invoice-domain">
                                     <a class="invoice-id" href="{{ route('admin.invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a>
                                     @forelse($domainItems as $item)
-                                        <span class="invoice-domain-line">{{ preg_replace('/^Domain (registration|renewal) — /', '', $item->description) }}</span>
+                                        <span class="invoice-domain-line">{{ preg_replace('/^Domain (registration|renewal|transfer) — /', '', $item->description) }}</span>
                                     @empty
                                         <small>{{ ucfirst($invoice->type) }} invoice</small>
                                     @endforelse
