@@ -42,6 +42,10 @@ class DomainTransferWorkflowTest extends TestCase
             ->twice()
             ->with('example.com')
             ->andReturn(true);
+        $resellerClub->shouldReceive('isTransferConfiguredForDomain')
+            ->once()
+            ->with('example.com')
+            ->andReturn(true);
         $resellerClub->shouldReceive('liveTransferPrice')->twice()->with('com')->andReturn(1600.0);
         $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
         $resellerClub->shouldReceive('walletBalance')->once()->andReturn([
@@ -51,7 +55,11 @@ class DomainTransferWorkflowTest extends TestCase
         $resellerClub->shouldReceive('transferDomain')
             ->once()
             ->with('example.com', 'epp-secret-123')
-            ->andReturn(['actionstatus' => 'NoError', 'entityid' => '12345']);
+            ->andReturn([
+                'status' => 'Success',
+                'actionStatus' => 'Success',
+                'entityId' => '12345',
+            ]);
         $this->app->instance(ResellerClubClient::class, $resellerClub);
 
         $user = User::create([
@@ -175,6 +183,10 @@ class DomainTransferWorkflowTest extends TestCase
 
         $resellerClub = \Mockery::mock(ResellerClubClient::class);
         $resellerClub->shouldReceive('isConfigured')->once()->andReturn(true);
+        $resellerClub->shouldReceive('isTransferConfiguredForDomain')
+            ->once()
+            ->with('example.com')
+            ->andReturn(true);
         $resellerClub->shouldReceive('validateDomainTransferIn')
             ->once()
             ->with('example.com')
@@ -238,7 +250,116 @@ class DomainTransferWorkflowTest extends TestCase
         $this->assertDatabaseHas('domain_order_items', [
             'domain_order_id' => $order->id,
             'registration_status' => 'transfer_failed',
+            'transfer_auth_code' => null,
         ]);
+    }
+
+    public function testTransferProcessingOrderIsNeverAutomaticallyResubmitted()
+    {
+        $order = DomainOrder::create([
+            'reference' => 'CT-TRANSFER-PROCESSING',
+            'total' => 1600,
+            'status' => 'transfer_processing',
+            'payment_method' => 'bank',
+            'payment_status' => 'paid',
+            'provider' => 'manual',
+            'customer_name' => 'Transfer Customer',
+            'customer_phone' => '01700000000',
+            'customer_email' => 'transfer@example.test',
+        ]);
+        DomainOrderItem::create([
+            'domain_order_id' => $order->id,
+            'domain' => 'example.com',
+            'tld' => 'com',
+            'years' => 1,
+            'price' => 1600,
+            'renewal_price' => 1600,
+            'order_type' => 'transfer',
+            'transfer_auth_code' => Crypt::encryptString('secure-epp-123!'),
+        ]);
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldNotReceive('transferDomain');
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $this->app->make(\App\Services\DomainTransferService::class)
+            ->transferPaidOrder($order->fresh());
+
+        $this->assertDatabaseHas('domain_orders', [
+            'id' => $order->id,
+            'status' => 'transfer_processing',
+        ]);
+    }
+
+    public function testTransferSubmissionUsesResellerClubV2JsonApi()
+    {
+        config([
+            'services.resellerclub.enabled' => true,
+            'services.resellerclub.auth_userid' => 'reseller-user-123',
+            'services.resellerclub.api_key' => 'api-key-secret',
+            'services.resellerclub.v2_base_url' => 'https://api.resellerclub.com/v2',
+            'services.resellerclub.customer_id' => '14569999',
+            'services.resellerclub.reg_contact_id' => '101',
+            'services.resellerclub.admin_contact_id' => '102',
+            'services.resellerclub.tech_contact_id' => '103',
+            'services.resellerclub.billing_contact_id' => '104',
+        ]);
+
+        $client = new class extends ResellerClubClient {
+            public $request;
+
+            protected function v2Request($method, $path, array $payload = [])
+            {
+                $this->request = [$method, $path, $payload];
+
+                return ['status' => 'Success'];
+            }
+        };
+
+        $this->assertSame(['status' => 'Success'], $client->transferDomain('Example.com', 'secure-epp-123!'));
+        $this->assertSame([
+            'POST',
+            '/domains/example.com/transfer-in',
+            [
+                'authCode' => 'secure-epp-123!',
+                'customerId' => 14569999,
+                'invoiceOption' => 'PayInvoice',
+                'autoRenew' => false,
+                'regContactId' => 101,
+                'adminContactId' => 102,
+                'techContactId' => 103,
+                'billingContactId' => 104,
+            ],
+        ], $client->request);
+    }
+
+    public function testTransferSubmissionDoesNotCallApiWithInvalidContactIds()
+    {
+        config([
+            'services.resellerclub.enabled' => true,
+            'services.resellerclub.auth_userid' => 'reseller-user-123',
+            'services.resellerclub.api_key' => 'api-key-secret',
+            'services.resellerclub.v2_base_url' => 'https://api.resellerclub.com/v2',
+            'services.resellerclub.customer_id' => '14569999',
+            'services.resellerclub.reg_contact_id' => 'not-a-contact-id',
+            'services.resellerclub.admin_contact_id' => '102',
+            'services.resellerclub.tech_contact_id' => '103',
+            'services.resellerclub.billing_contact_id' => '104',
+        ]);
+
+        $client = new class extends ResellerClubClient {
+            public $requestMade = false;
+
+            protected function v2Request($method, $path, array $payload = [])
+            {
+                $this->requestMade = true;
+
+                return null;
+            }
+        };
+
+        $this->assertNull($client->transferDomain('example.com', 'secure-epp-123!'));
+        $this->assertFalse($client->requestMade);
     }
 
     public function testTransferPriceIsFetchedFromResellerClubCustomerPriceResponse()

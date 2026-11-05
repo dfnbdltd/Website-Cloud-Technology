@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\DomainOrder;
-use App\Support\ResellerClubDomainContacts;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -37,9 +36,11 @@ class DomainTransferService
                 return null;
             }
 
-            $recentlyProcessing = $lockedOrder->status === 'transfer_processing'
-                && $lockedOrder->updated_at->gt(now()->subMinutes(5));
-            if ($recentlyProcessing) {
+            if ($lockedOrder->status === 'transfer_processing') {
+                Log::warning('Domain transfer retry skipped because a prior submission may still be in progress', [
+                    'order' => $lockedOrder->reference,
+                ]);
+
                 return null;
             }
 
@@ -97,13 +98,14 @@ class DomainTransferService
                     'domain' => $item->domain,
                 ]);
             } else {
-                $item->update(['registration_status' => 'transfer_failed']);
-                Log::warning('ResellerClub domain transfer was not accepted', [
+                $item->update([
+                    'registration_status' => 'transfer_failed',
+                    'transfer_auth_code' => null,
+                ]);
+                Log::warning('ResellerClub domain transfer did not return a confirmed success response', [
                     'order' => $order->reference,
                     'domain' => $item->domain,
-                    'response_status' => is_array($response)
-                        ? ($response['actionstatus'] ?? $response['status'] ?? null)
-                        : null,
+                    'response_status' => is_array($response) ? ($response['status'] ?? null) : null,
                 ]);
             }
         }
@@ -130,12 +132,7 @@ class DomainTransferService
         $required = 0.0;
         foreach ($items as $item) {
             $parts = explode('.', strtolower($item['domain']));
-            if (ResellerClubDomainContacts::forDomain($item['domain'], [
-                'reg' => config('services.resellerclub.reg_contact_id'),
-                'admin' => config('services.resellerclub.admin_contact_id'),
-                'tech' => config('services.resellerclub.tech_contact_id'),
-                'billing' => config('services.resellerclub.billing_contact_id'),
-            ]) === null) {
+            if (!$this->resellerClub->isTransferConfiguredForDomain($item['domain'])) {
                 return 'Domain transfer is not fully configured. Please contact support.';
             }
 
@@ -184,11 +181,10 @@ class DomainTransferService
             return false;
         }
 
-        $status = strtoupper((string) ($response['actionstatus'] ?? $response['status'] ?? ''));
+        $status = strtoupper((string) ($response['status'] ?? ''));
 
-        return in_array($status, ['SUCCESS', 'NOERROR'], true)
-            && strtoupper((string) ($response['status'] ?? '')) !== 'ERROR'
+        return $status === 'SUCCESS'
             && !isset($response['error'])
-            && !isset($response['errorcode']);
+            && !isset($response['errorCode']);
     }
 }

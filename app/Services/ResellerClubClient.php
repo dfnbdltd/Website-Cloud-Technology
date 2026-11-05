@@ -141,7 +141,7 @@ class ResellerClubClient
      */
     public function validateDomainTransferIn($domain)
     {
-        if (!$this->isConfigured() || empty($this->config['v2_base_url'])) {
+        if (!$this->isConfigured()) {
             \Log::warning('ResellerClub transfer validation skipped because the v2 client is not configured', [
                 'domain' => $domain,
             ]);
@@ -149,39 +149,13 @@ class ResellerClubClient
             return null;
         }
 
-        $url = rtrim($this->config['v2_base_url'], '/') . '/domains/' . rawurlencode(strtolower(trim($domain))) . '/validate-transfer-in';
-        $curl = curl_init($url);
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT => 12,
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
-                'Authorization: ApiKey ' . $this->config['api_key'],
-                'X-User-Id: ' . $this->config['auth_userid'],
-            ],
-        ]);
-
-        $body = curl_exec($curl);
-        $error = curl_error($curl);
-        $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        if ($body === false || $error || $httpStatus < 200 || $httpStatus >= 300) {
-            \Log::warning('ResellerClub transfer eligibility check failed', [
-                'domain' => $domain,
-                'http_status' => $httpStatus,
-                'error' => $error ?: null,
-            ]);
-
-            return null;
-        }
-
-        $response = json_decode($body, true);
+        $response = $this->v2Request(
+            'GET',
+            '/domains/' . rawurlencode(strtolower(trim($domain))) . '/validate-transfer-in'
+        );
         if (!is_array($response) || !array_key_exists('success', $response) || !is_bool($response['success'])) {
             \Log::warning('ResellerClub transfer eligibility response was invalid', [
                 'domain' => $domain,
-                'http_status' => $httpStatus,
             ]);
 
             return null;
@@ -198,8 +172,44 @@ class ResellerClubClient
 
     public function transferDomain($domain, $authCode)
     {
-        if (!$this->isConfigured() || !$this->config['customer_id']) {
+        if (!is_string($authCode) || trim($authCode) === '') {
+            \Log::warning('ResellerClub domain transfer skipped because the authorization code is missing', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        $parameters = $this->transferRequestParameters($domain);
+        if ($parameters === null) {
+            return null;
+        }
+
+        return $this->v2Request(
+            'POST',
+            '/domains/' . rawurlencode(strtolower(trim($domain))) . '/transfer-in',
+            array_merge(['authCode' => $authCode], $parameters)
+        );
+    }
+
+    public function isTransferConfiguredForDomain($domain)
+    {
+        return $this->transferRequestParameters($domain) !== null;
+    }
+
+    private function transferRequestParameters($domain)
+    {
+        if (!$this->isConfigured()) {
             \Log::warning('ResellerClub domain transfer skipped because client or customer is not configured', [
+                'domain' => $domain,
+            ]);
+
+            return null;
+        }
+
+        $customerId = $this->positiveInteger($this->config['customer_id'] ?? null);
+        if ($customerId === null) {
+            \Log::warning('ResellerClub domain transfer skipped because the customer ID is invalid', [
                 'domain' => $domain,
             ]);
 
@@ -220,13 +230,30 @@ class ResellerClubClient
             return null;
         }
 
-        return $this->request('/domains/transfer.json', array_merge([
-            'domain-name' => strtolower(trim($domain)),
-            'customer-id' => $this->config['customer_id'],
-            'auth-code' => $authCode,
-            'invoice-option' => 'PayInvoice',
-            'auto-renew' => 'false',
-        ], $contacts), 'POST');
+        $contactIds = [];
+        foreach ([
+            'reg-contact-id' => 'regContactId',
+            'admin-contact-id' => 'adminContactId',
+            'tech-contact-id' => 'techContactId',
+            'billing-contact-id' => 'billingContactId',
+        ] as $legacyKey => $v2Key) {
+            $contactId = $this->contactInteger($contacts[$legacyKey]);
+            if ($contactId === null) {
+                \Log::warning('ResellerClub domain transfer skipped because a contact ID is invalid', [
+                    'domain' => $domain,
+                    'contact' => $v2Key,
+                ]);
+
+                return null;
+            }
+            $contactIds[$v2Key] = $contactId;
+        }
+
+        return array_merge([
+            'customerId' => $customerId,
+            'invoiceOption' => 'PayInvoice',
+            'autoRenew' => false,
+        ], $contactIds);
     }
 
     /**
@@ -425,6 +452,119 @@ class ResellerClubClient
             'renewal' => $renewalPrice,
             'year_prices' => $yearPrices,
         ];
+    }
+
+    protected function v2Request($method, $path, array $payload = [])
+    {
+        $baseUrl = trim((string) ($this->config['v2_base_url'] ?? ''));
+        $baseParts = parse_url($baseUrl);
+        if (
+            !$this->isConfigured()
+            || !$baseParts
+            || strtolower($baseParts['scheme'] ?? '') !== 'https'
+            || empty($baseParts['host'])
+            || isset($baseParts['user'])
+            || isset($baseParts['pass'])
+            || isset($baseParts['query'])
+            || isset($baseParts['fragment'])
+        ) {
+            \Log::warning('ResellerClub v2 request skipped because its HTTPS configuration is invalid', [
+                'path' => $path,
+            ]);
+
+            return null;
+        }
+
+        $url = rtrim($baseUrl, '/') . $path;
+        $headers = [
+            'Accept: application/json',
+            'Authorization: ApiKey ' . $this->config['api_key'],
+            'X-User-Id: ' . $this->config['auth_userid'],
+        ];
+        $options = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_HTTPHEADER => $headers,
+        ];
+
+        if (strtoupper($method) === 'POST') {
+            $body = json_encode($payload);
+            if ($body === false) {
+                \Log::warning('ResellerClub v2 request payload could not be encoded', [
+                    'path' => $path,
+                ]);
+
+                return null;
+            }
+            $options[CURLOPT_POST] = true;
+            $options[CURLOPT_POSTFIELDS] = $body;
+            $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/json';
+        } elseif (strtoupper($method) !== 'GET') {
+            throw new \InvalidArgumentException('Unsupported ResellerClub v2 HTTP method.');
+        }
+
+        $curl = curl_init($url);
+        if ($curl === false) {
+            \Log::warning('Could not initialize ResellerClub v2 request', ['path' => $path]);
+
+            return null;
+        }
+        curl_setopt_array($curl, $options);
+        $body = curl_exec($curl);
+        $error = curl_error($curl);
+        $httpStatus = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($body === false || $error || $httpStatus < 200 || $httpStatus >= 300) {
+            \Log::warning('ResellerClub v2 request failed', [
+                'method' => strtoupper($method),
+                'path' => $path,
+                'http_status' => $httpStatus,
+                'error' => $error ?: null,
+            ]);
+
+            return null;
+        }
+
+        $response = json_decode($body, true);
+        if (!is_array($response)) {
+            \Log::warning('ResellerClub v2 response was not a JSON object', [
+                'method' => strtoupper($method),
+                'path' => $path,
+                'http_status' => $httpStatus,
+            ]);
+
+            return null;
+        }
+
+        return $response;
+    }
+
+    private function positiveInteger($value)
+    {
+        if (!is_scalar($value) || !preg_match('/^[1-9][0-9]*$/', trim((string) $value))) {
+            return null;
+        }
+
+        $integer = filter_var(trim((string) $value), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 2147483647],
+        ]);
+
+        return $integer === false ? null : $integer;
+    }
+
+    private function contactInteger($value)
+    {
+        if (!is_scalar($value) || !preg_match('/^(?:-1|[1-9][0-9]*)$/', trim((string) $value))) {
+            return null;
+        }
+
+        $integer = filter_var(trim((string) $value), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => -1, 'max_range' => 2147483647],
+        ]);
+
+        return $integer === false ? null : $integer;
     }
 
     private function convertLivePriceToBdt($price)

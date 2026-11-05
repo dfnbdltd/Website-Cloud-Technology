@@ -181,8 +181,8 @@ class DomainController extends Controller
         }
 
         $tld = substr(strrchr($domain, '.'), 1);
-        $genericTlds = ['com', 'net', 'xyz', 'top', 'icu', 'live', 'club', 'website'];
-        if (in_array($tld, $genericTlds, true)
+        $isCountryCodeTld = preg_match('/^[a-z]{2}$/', $tld) === 1;
+        if (!$isCountryCodeTld
             && !preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/', trim($data['auth_code']))) {
             return back()->withInput($request->except('auth_code'))->withErrors([
                 'auth_code' => 'For this domain extension, the authorization code must contain a letter, a number, and a special character.',
