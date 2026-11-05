@@ -132,9 +132,23 @@ class MyStorePagesTest extends TestCase
         $this->withSession($session)->get('/mystore/domains')
             ->assertOk()
             ->assertSee('transfer-domain.com')
-            ->assertSee('Submitted to registrar')
+            ->assertSee('Pending')
+            ->assertSee('accepted by the registrar')
             ->assertSee($order->reference)
             ->assertDontSee('No domains yet.');
+
+        $this->withSession($session)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('transfer-domain.com')
+            ->assertSee('Pending')
+            ->assertSee('accepted by the registrar');
+
+        $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get(route('admin.orders'))
+            ->assertOk()
+            ->assertSee('transfer-domain.com transfer: Pending')
+            ->assertSee('Transfer Initialized')
+            ->assertSee('Success');
 
         $this->withSession($session)->get(route('domains.confirmation', $order->reference))
             ->assertOk()

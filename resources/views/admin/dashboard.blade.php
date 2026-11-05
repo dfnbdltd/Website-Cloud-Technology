@@ -30,6 +30,9 @@
             @if($errors->has('registration'))
                 <div class="domain-alert">{{ $errors->first('registration') }}</div>
             @endif
+            @if($errors->has('transfer'))
+                <div class="domain-alert">{{ $errors->first('transfer') }}</div>
+            @endif
             <div class="table-card">
                 <div class="table-head"><span>REFERENCE</span><span>CUSTOMER</span><span>AMOUNT</span><span>STATUS</span></div>
                 @foreach($orders as $order)
@@ -69,6 +72,17 @@
                             <form method="POST" action="{{ route('admin.orders.retry-registration', $order) }}">
                                 @csrf
                                 <button type="submit">Retry registration</button>
+                            </form>
+                        @endif
+                        @if($order->payment_status === 'paid' && $order->status === 'transfer_failed' && $transferItems->isNotEmpty())
+                            <form method="POST" action="{{ route('admin.orders.retry-transfer', $order) }}">
+                                @csrf
+                                @foreach($transferItems->where('registration_status', 'transfer_failed')->whereNull('transfer_auth_code') as $failedTransfer)
+                                    <label class="admin-domain" for="transfer-auth-{{ $failedTransfer->id }}">EPP code for {{ $failedTransfer->domain }}</label>
+                                    <input id="transfer-auth-{{ $failedTransfer->id }}" type="password" name="auth_codes[{{ $failedTransfer->id }}]" autocomplete="new-password" required>
+                                @endforeach
+                                <small class="admin-domain">Retry only after confirming the registrar has no transfer already in progress.</small>
+                                <button type="submit">Retry transfer</button>
                             </form>
                         @endif
                     </div>

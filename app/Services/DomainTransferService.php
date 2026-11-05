@@ -100,7 +100,6 @@ class DomainTransferService
             } else {
                 $item->update([
                     'registration_status' => 'transfer_failed',
-                    'transfer_auth_code' => null,
                 ]);
                 Log::warning('ResellerClub domain transfer did not return a confirmed success response', [
                     'order' => $order->reference,
@@ -114,6 +113,47 @@ class DomainTransferService
             return $item->order_type === 'transfer' && $item->registration_status === 'transfer_failed';
         });
         $order->update(['status' => $failed ? 'transfer_failed' : 'transfer_pending']);
+    }
+
+    public function retryFailedTransfer(DomainOrder $order, array $authorizationCodes = [])
+    {
+        if ($order->payment_status !== 'paid' || $order->status !== 'transfer_failed') {
+            return false;
+        }
+
+        $order->load('items');
+        $failedItems = $order->items->where('order_type', 'transfer')
+            ->where('registration_status', 'transfer_failed');
+        if ($failedItems->isEmpty()) {
+            return false;
+        }
+
+        foreach ($failedItems as $item) {
+            $authorizationCode = $authorizationCodes[$item->id] ?? null;
+            if (
+                (!is_string($authorizationCode) || trim($authorizationCode) === '')
+                && (!is_string($item->transfer_auth_code) || $item->transfer_auth_code === '')
+            ) {
+                return false;
+            }
+        }
+
+        foreach ($failedItems as $item) {
+            $authorizationCode = $authorizationCodes[$item->id] ?? null;
+            if (is_string($authorizationCode) && trim($authorizationCode) !== '') {
+                $item->update([
+                    'transfer_auth_code' => Crypt::encryptString(trim($authorizationCode)),
+                    'registration_status' => 'pending',
+                ]);
+            } elseif (is_string($item->transfer_auth_code) && $item->transfer_auth_code !== '') {
+                $item->update(['registration_status' => 'pending']);
+            }
+        }
+
+        $order->update(['status' => 'transfer_pending']);
+        $this->transferPaidOrder($order->fresh());
+
+        return true;
     }
 
     public function preflightError(array $items)

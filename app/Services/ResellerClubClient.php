@@ -504,7 +504,10 @@ class ResellerClubClient
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT => 12,
             CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
         ];
+        $requestBodyBytes = 0;
 
         if (strtoupper($method) === 'POST') {
             $body = json_encode($payload);
@@ -515,12 +518,38 @@ class ResellerClubClient
 
                 return null;
             }
+            $requestBodyBytes = strlen($body);
             $options[CURLOPT_POST] = true;
             $options[CURLOPT_POSTFIELDS] = $body;
             $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/json';
         } elseif (strtoupper($method) !== 'GET') {
             throw new \InvalidArgumentException('Unsupported ResellerClub v2 HTTP method.');
         }
+
+        $responseHeaders = [];
+        $loggedResponseHeaders = [
+            'content-type',
+            'server',
+            'via',
+            'cf-ray',
+            'x-cache',
+            'x-request-id',
+            'request-id',
+            'www-authenticate',
+        ];
+        $options[CURLOPT_HEADERFUNCTION] = function ($curl, $headerLine) use (&$responseHeaders, $loggedResponseHeaders) {
+            $length = strlen($headerLine);
+            $separator = strpos($headerLine, ':');
+            if ($separator !== false) {
+                $name = strtolower(trim(substr($headerLine, 0, $separator)));
+                if (in_array($name, $loggedResponseHeaders, true)) {
+                    $value = trim(substr($headerLine, $separator + 1));
+                    $responseHeaders[$name] = substr(preg_replace('/[\r\n\t]+/', ' ', $value), 0, 250);
+                }
+            }
+
+            return $length;
+        };
 
         $curl = curl_init($url);
         if ($curl === false) {
@@ -545,7 +574,7 @@ class ResellerClubClient
                         $value = $value['message'] ?? null;
                     }
                     if (is_scalar($value) && trim((string) $value) !== '') {
-                        $apiError = substr(preg_replace('/[\r\n\t]+/', ' ', trim((string) $value)), 0, 250);
+                        $apiError = $this->sanitizeLogText((string) $value, 250);
                         break;
                     }
                 }
@@ -554,11 +583,17 @@ class ResellerClubClient
             \Log::warning('ResellerClub v2 request failed', [
                 'method' => strtoupper($method),
                 'path' => $path,
+                'api_host' => $baseParts['host'],
+                'request_payload_keys' => strtoupper($method) === 'POST' ? array_keys($payload) : [],
+                'request_body_bytes' => $requestBodyBytes,
                 'http_status' => $httpStatus,
                 'error' => $error ?: null,
                 'api_error' => $apiError,
                 'response_content_type' => $contentType ?: null,
                 'response_bytes' => is_string($body) ? strlen($body) : 0,
+                'response_body_sha256' => is_string($body) ? hash('sha256', $body) : null,
+                'response_headers' => $responseHeaders,
+                'response_excerpt' => is_string($body) ? $this->safeResponseExcerpt($body) : null,
             ]);
 
             return null;
@@ -576,6 +611,33 @@ class ResellerClubClient
         }
 
         return $response;
+    }
+
+    private function safeResponseExcerpt($body)
+    {
+        if (!preg_match('/<title\b[^>]*>(.*?)<\/title>/is', $body, $matches)) {
+            return null;
+        }
+        $body = $matches[1];
+
+        $body = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', ' ', $body);
+        $body = html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $body = preg_replace('/(api[-_ ]?key|auth(?:orization)?[-_ ]?code|epp(?:[-_ ]?code)?|access[-_ ]?token|token|password|cookie)\s*[:=]\s*["\']?[^"\',;\s}]+/i', '$1=[redacted]', $body);
+        $body = preg_replace('/\bBearer\s+[A-Za-z0-9._~+\/=-]+/i', 'Bearer [redacted]', $body);
+        $body = preg_replace('/[\r\n\t ]+/', ' ', $body);
+
+        return substr(trim($body), 0, 300);
+    }
+
+    private function sanitizeLogText($text, $limit)
+    {
+        $text = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', ' ', $text);
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/(api[-_ ]?key|auth(?:orization)?[-_ ]?code|epp(?:[-_ ]?code)?|access[-_ ]?token|token|password|cookie)\s*[:=]\s*["\']?[^"\',;\s}]+/i', '$1=[redacted]', $text);
+        $text = preg_replace('/\bBearer\s+[A-Za-z0-9._~+\/=-]+/i', 'Bearer [redacted]', $text);
+        $text = preg_replace('/[\r\n\t ]+/', ' ', $text);
+
+        return substr(trim($text), 0, $limit);
     }
 
     private function positiveInteger($value)

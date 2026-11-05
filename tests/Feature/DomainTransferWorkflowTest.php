@@ -209,7 +209,7 @@ class DomainTransferWorkflowTest extends TestCase
         $this->assertStringContainsString('no payment has been taken', strtolower($error));
     }
 
-    public function testRejectedTransferIsMarkedFailedAndIsNotAutomaticallyRetried()
+    public function testFailedTransferCanBeRetriedByAnAdmin()
     {
         $order = DomainOrder::create([
             'reference' => 'CT-TRANSFER-FAIL',
@@ -235,9 +235,12 @@ class DomainTransferWorkflowTest extends TestCase
 
         $resellerClub = \Mockery::mock(ResellerClubClient::class);
         $resellerClub->shouldReceive('transferDomain')
-            ->once()
+            ->twice()
             ->with('example.com', 'invalid-epp')
-            ->andReturn(['status' => 'ERROR', 'message' => 'Authorization code rejected']);
+            ->andReturn(
+                ['status' => 'ERROR', 'message' => 'Authorization code rejected'],
+                ['status' => 'Success']
+            );
         $this->app->instance(ResellerClubClient::class, $resellerClub);
 
         $service = $this->app->make(\App\Services\DomainTransferService::class);
@@ -252,6 +255,85 @@ class DomainTransferWorkflowTest extends TestCase
         $this->assertDatabaseHas('domain_order_items', [
             'domain_order_id' => $order->id,
             'registration_status' => 'transfer_failed',
+        ]);
+        $storedCode = DomainOrderItem::where('domain_order_id', $order->id)->value('transfer_auth_code');
+        $this->assertNotNull($storedCode);
+        $this->assertSame('invalid-epp', Crypt::decryptString($storedCode));
+
+        $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get(route('admin.orders'))
+            ->assertOk()
+            ->assertSee('Retry transfer')
+            ->assertDontSee('name="auth_codes[');
+
+        $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->post(route('admin.orders.retry-transfer', $order))
+            ->assertRedirect(route('admin.orders'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('domain_orders', [
+            'id' => $order->id,
+            'status' => 'transfer_pending',
+        ]);
+        $this->assertDatabaseHas('domain_order_items', [
+            'domain_order_id' => $order->id,
+            'registration_status' => 'transfer_submitted',
+            'transfer_auth_code' => null,
+        ]);
+    }
+
+    public function testAdminCanProvideEppCodeWhenRetryingAnOlderFailedTransfer()
+    {
+        $order = DomainOrder::create([
+            'reference' => 'CT-TRANSFER-OLD-FAIL',
+            'total' => 1600,
+            'status' => 'transfer_failed',
+            'payment_method' => 'bank',
+            'payment_status' => 'paid',
+            'provider' => 'manual',
+            'customer_name' => 'Transfer Customer',
+            'customer_phone' => '01700000000',
+            'customer_email' => 'transfer@example.test',
+        ]);
+        $item = DomainOrderItem::create([
+            'domain_order_id' => $order->id,
+            'domain' => 'example.com',
+            'tld' => 'com',
+            'years' => 1,
+            'price' => 1600,
+            'renewal_price' => 1600,
+            'order_type' => 'transfer',
+            'registration_status' => 'transfer_failed',
+            'transfer_auth_code' => null,
+        ]);
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('transferDomain')
+            ->once()
+            ->with('example.com', 'replacement-epp')
+            ->andReturn(['status' => 'Success']);
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $adminSession = ['admin' => ['email' => 'admin@example.test']];
+        $this->withSession($adminSession)
+            ->get(route('admin.orders'))
+            ->assertOk()
+            ->assertSee('name="auth_codes[' . $item->id . ']"', false);
+
+        $this->withSession($adminSession)
+            ->post(route('admin.orders.retry-transfer', $order), [
+                'auth_codes' => [$item->id => 'replacement-epp'],
+            ])
+            ->assertRedirect(route('admin.orders'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('domain_orders', [
+            'id' => $order->id,
+            'status' => 'transfer_pending',
+        ]);
+        $this->assertDatabaseHas('domain_order_items', [
+            'id' => $item->id,
+            'registration_status' => 'transfer_submitted',
             'transfer_auth_code' => null,
         ]);
     }
@@ -362,6 +444,25 @@ class DomainTransferWorkflowTest extends TestCase
 
         $this->assertNull($client->transferDomain('example.com', 'secure-epp-123!'));
         $this->assertFalse($client->requestMade);
+    }
+
+    public function testTransferFailureExcerptRedactsApiCredentialsAndEppCodes()
+    {
+        $client = new ResellerClubClient();
+        $method = new \ReflectionMethod(ResellerClubClient::class, 'safeResponseExcerpt');
+        $method->setAccessible(true);
+
+        $excerpt = $method->invoke(
+            $client,
+            '<html><title>Forbidden apiKey=private-key authCode=private-epp</title><p>hidden-private-epp</p></html>'
+        );
+
+        $this->assertStringContainsString('Forbidden', $excerpt);
+        $this->assertStringContainsString('apiKey=[redacted]', $excerpt);
+        $this->assertStringContainsString('authCode=[redacted]', $excerpt);
+        $this->assertStringNotContainsString('private-key', $excerpt);
+        $this->assertStringNotContainsString('private-epp', $excerpt);
+        $this->assertStringNotContainsString('hidden-private-epp', $excerpt);
     }
 
     public function testTransferPriceIsFetchedFromResellerClubCustomerPriceResponse()

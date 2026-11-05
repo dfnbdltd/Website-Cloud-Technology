@@ -15,6 +15,7 @@ use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\Services\ExchangeRateService;
 use App\Services\DomainRegistrationService;
+use App\Services\DomainTransferService;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -196,6 +197,7 @@ class AdminController extends Controller
             if ($order->payment_status !== 'paid') {
                 return redirect()->route('admin.dashboard')->withErrors(['status' => 'A transfer cannot be marked complete before payment is confirmed.']);
             }
+            $order->items()->where('order_type', 'transfer')->update(['transfer_auth_code' => null]);
         }
         $order->update(['status' => $data['status']]);
 
@@ -218,6 +220,40 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.dashboard')->with('success', 'Order status updated.');
+    }
+
+    public function retryOrderTransfer(Request $request, DomainOrder $order)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $data = $request->validate([
+            'auth_codes' => ['nullable', 'array'],
+            'auth_codes.*' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($order->payment_status !== 'paid' || $order->status !== 'transfer_failed') {
+            return redirect()->route('admin.orders')->withErrors([
+                'transfer' => 'Only failed, paid transfer orders can be retried.',
+            ]);
+        }
+
+        $retried = app(DomainTransferService::class)->retryFailedTransfer($order, $data['auth_codes'] ?? []);
+        if (!$retried) {
+            return redirect()->route('admin.orders')->withErrors([
+                'transfer' => 'A failed transfer needs its saved authorization code or a new EPP code before it can be retried.',
+            ]);
+        }
+
+        $freshOrder = $order->fresh();
+        $message = $freshOrder->status === 'transfer_pending'
+            ? 'The transfer request was submitted again for order ' . $freshOrder->reference . '.'
+            : 'The retry did not complete successfully. Check the ResellerClub response before retrying again.';
+
+        if ($freshOrder->status === 'transfer_pending') {
+            return redirect()->route('admin.orders')->with('success', $message);
+        }
+
+        return redirect()->route('admin.orders')->withErrors(['transfer' => $message]);
     }
 
     public function retryOrderRegistration(Request $request, DomainOrder $order)
