@@ -7,4 +7,14 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'services.turnstile.site_key' => null,
+            'services.turnstile.secret_key' => null,
+        ]);
+    }
 }

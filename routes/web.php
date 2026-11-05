@@ -39,7 +39,9 @@ Route::post('/password/email', [AuthController::class, 'sendPasswordResetLink'])
 Route::get('/password/reset/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
 Route::post('/password/reset', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('password.update');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
+Route::post('/register', [AuthController::class, 'register'])
+    ->middleware('throttle:5,10')
+    ->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Email verification (sign-up -> verify link -> login details emailed)

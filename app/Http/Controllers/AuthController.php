@@ -7,6 +7,7 @@ use App\Models\EmailVerificationToken;
 use App\Rules\StrongPassword;
 use App\Support\AuthIntent;
 use App\User;
+use GuzzleHttp\Client;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,13 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    private $httpClient;
+
+    public function __construct(Client $httpClient = null)
+    {
+        $this->httpClient = $httpClient;
+    }
+
     /**
      * Sign-in screen. The checkout page and the client-area guard send guests
      * here with ?return_to=..., so a buyer can finish the order they started.
@@ -227,6 +235,12 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'confirmed', new StrongPassword],
         ]);
 
+        if (!$this->turnstileIsValid($request)) {
+            return back()
+                ->withInput($request->except(['password', 'password_confirmation']))
+                ->withErrors(['captcha' => 'Please complete the security check and try again.']);
+        }
+
         list($firstName, $lastName, $fullName) = $this->resolveCustomerName($data);
 
         $user = User::create([
@@ -249,6 +263,50 @@ class AuthController extends Controller
         $this->sendVerificationEmail($user);
 
         return redirect()->route('verification.notice')->with('verify_email', $user->email);
+    }
+
+    private function turnstileIsValid(Request $request): bool
+    {
+        $secret = (string) config('services.turnstile.secret_key');
+        if ($secret === '') {
+            return true;
+        }
+
+        $token = (string) $request->input('cf-turnstile-response');
+        if ($token === '') {
+            return false;
+        }
+
+        try {
+            $client = $this->httpClient ?: new Client(['timeout' => 5]);
+            $response = $client->post(
+                'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+                [
+                    'form_params' => [
+                        'secret' => $secret,
+                        'response' => $token,
+                        'remoteip' => $request->ip(),
+                    ],
+                ]
+            );
+            $result = json_decode((string) $response->getBody(), true);
+        } catch (\Throwable $e) {
+            Log::error('Turnstile verification request failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+
+        if (!is_array($result) || empty($result['success'])) {
+            Log::warning('Turnstile verification rejected registration', [
+                'error_codes' => is_array($result) ? ($result['error-codes'] ?? []) : [],
+            ]);
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

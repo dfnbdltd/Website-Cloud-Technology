@@ -291,6 +291,13 @@
                 </label>
             </div>
 
+            @if(config('services.turnstile.site_key') && config('services.turnstile.secret_key'))
+                <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}"></div>
+                @error('captcha')
+                    <small class="reg4-hint">{{ $message }}</small>
+                @enderror
+            @endif
+
             <p class="reg4-secure">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                 <span>Your details are encrypted and used only for billing and support.</span>
@@ -309,6 +316,9 @@
 </div>
 
 @include('partials.chat')
+@if(config('services.turnstile.site_key') && config('services.turnstile.secret_key'))
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+@endif
 <script>
     (function () {
         var toggles = document.querySelectorAll('.reg4-eye');
