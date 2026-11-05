@@ -58,6 +58,7 @@ class EmailVerificationFlowTest extends TestCase
         $response = $this->post('/register', $this->validRegistration());
 
         $response->assertRedirect(route('verification.notice'));
+        $response->assertSessionHas('verification_resend_available_at');
 
         $user = User::where('email', 'token-flow@example.test')->first();
         $this->assertNotNull($user, 'user should be created');
@@ -86,6 +87,42 @@ class EmailVerificationFlowTest extends TestCase
         $this->assertSame('sent', $log->status);
         // {{name}} placeholder replaced from the registration data.
         $this->assertSame('Verify your email, Test', $log->subject);
+    }
+
+    public function testVerificationNoticeShowsFiveMinuteResendCountdown()
+    {
+        $availableAt = now()->addMinutes(5)->timestamp;
+
+        $response = $this->withSession([
+            'verify_email' => 'token-flow@example.test',
+            'verification_resend_email' => 'token-flow@example.test',
+            'verification_resend_available_at' => $availableAt,
+        ])->get(route('verification.notice'));
+
+        $response->assertOk()
+            ->assertSee('data-resend-countdown', false)
+            ->assertSee('disabled', false)
+            ->assertSee((string) $availableAt, false);
+    }
+
+    public function testVerificationResendIsRejectedDuringCooldown()
+    {
+        $user = User::create([
+            'name' => 'Test User',
+            'email' => 'token-flow@example.test',
+            'password' => bcrypt('password123'),
+        ]);
+        $availableAt = now()->addMinutes(5)->timestamp;
+
+        $this->withSession([
+            'verify_email' => $user->email,
+            'verification_resend_email' => $user->email,
+            'verification_resend_available_at' => $availableAt,
+        ])->post(route('verification.resend'), ['email' => $user->email])
+            ->assertRedirect(route('verification.notice'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertSame(0, EmailLog::where('recipient', $user->email)->count());
     }
 
     public function testRegistrationWorksWithoutHiddenOptionalProfileFields()
