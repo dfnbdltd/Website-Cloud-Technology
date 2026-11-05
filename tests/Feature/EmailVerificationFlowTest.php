@@ -115,6 +115,7 @@ class EmailVerificationFlowTest extends TestCase
         $response->assertSee('name="currency"', false);
 
         foreach ([
+            'name="full_name"',
             'name="state"',
             'name="address2"',
             'name="security_question"',
@@ -444,6 +445,7 @@ class EmailVerificationFlowTest extends TestCase
             'country' => 'Bangladesh',
             'postcode' => '1200',
             'currency' => 'BDT',
+            'terms' => '1',
             'password' => 'StrongPass1!',
             'password_confirmation' => 'StrongPass1!',
         ];

@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Http\Controllers\AuthController;
-use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Mockery;
 use Tests\TestCase;
@@ -45,7 +44,7 @@ class TurnstileVerificationTest extends TestCase
             'services.turnstile.secret_key' => 'test-secret',
         ]);
 
-        $client = Mockery::mock(Client::class);
+        $client = Mockery::mock();
         $responses = [
             $this->responseWithBody(json_encode([
                 'success' => false,

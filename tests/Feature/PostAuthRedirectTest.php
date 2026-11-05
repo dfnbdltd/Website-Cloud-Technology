@@ -139,6 +139,17 @@ class PostAuthRedirectTest extends TestCase
             ->assertSee('content="3; url=/domains/checkout"', false);
     }
 
+    public function testVerifiedNoticeFallsBackWhenStoredDestinationNoLongerExists()
+    {
+        $this->withSession([
+            'customer' => ['id' => 1, 'name' => 'Buyer Check', 'email' => 'buyer@example.test'],
+            'verified_destination' => '/removed-page',
+        ])->get('/email/verified')
+            ->assertOk()
+            ->assertSee('content="3; url=/dashboard"', false)
+            ->assertDontSee('content="3; url=/removed-page"', false);
+    }
+
     public function testPlainSignUpStartsInTheDashboardAfterVerification()
     {
         $this->get('/login?return_to=%2Fdomains%2Fcheckout')->assertOk();

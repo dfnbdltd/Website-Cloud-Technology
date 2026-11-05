@@ -7,7 +7,6 @@ use App\Models\EmailVerificationToken;
 use App\Rules\StrongPassword;
 use App\Support\AuthIntent;
 use App\User;
-use GuzzleHttp\Client;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +20,7 @@ class AuthController extends Controller
 {
     private $httpClient;
 
-    public function __construct(Client $httpClient = null)
+    public function __construct($httpClient = null)
     {
         $this->httpClient = $httpClient;
     }
@@ -214,11 +213,8 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            // The sign-up form collects one "Full Name" field. first_name/last_name
-            // are still accepted for backwards compatibility with older clients.
-            'full_name' => ['nullable', 'string', 'max:120', 'required_without:first_name'],
-            'first_name' => ['nullable', 'string', 'max:120', 'required_without:full_name'],
-            'last_name' => ['nullable', 'string', 'max:120'],
+            'first_name' => ['required', 'string', 'max:120'],
+            'last_name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone_dial' => ['nullable', 'string', 'max:8'],
             'phone' => ['required', 'string', 'max:32'],
@@ -229,9 +225,7 @@ class AuthController extends Controller
             'country' => ['required', 'string', 'max:120'],
             'postcode' => ['required', 'string', 'max:30'],
             'currency' => ['required', 'string', 'max:10'],
-            // found_us and newsletter are optional and no longer collected on
-            // the sign-up form; new accounts simply keep the default values.
-            'newsletter' => ['nullable', 'boolean'],
+            'terms' => ['required', 'accepted'],
             'password' => ['required', 'string', 'confirmed', new StrongPassword],
         ]);
 
@@ -257,7 +251,6 @@ class AuthController extends Controller
             'postcode' => $data['postcode'],
             'currency' => $data['currency'],
             'found_us' => null,
-            'newsletter' => $request->boolean('newsletter'),
         ]);
         $user->forceFill(['customer_uid' => User::generateUid()])->save();
         $this->sendVerificationEmail($user);
@@ -278,18 +271,44 @@ class AuthController extends Controller
         }
 
         try {
-            $client = $this->httpClient ?: new Client(['timeout' => 5]);
-            $response = $client->post(
-                'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-                [
-                    'form_params' => [
+            if ($this->httpClient) {
+                $response = $this->httpClient->post(
+                    'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+                    [
+                        'form_params' => [
+                            'secret' => $secret,
+                            'response' => $token,
+                            'remoteip' => $request->ip(),
+                        ],
+                    ]
+                );
+                $body = (string) $response->getBody();
+            } else {
+                if (!function_exists('curl_init')) {
+                    throw new \RuntimeException('The PHP cURL extension is not available.');
+                }
+
+                $curl = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+                curl_setopt_array($curl, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => http_build_query([
                         'secret' => $secret,
                         'response' => $token,
                         'remoteip' => $request->ip(),
-                    ],
-                ]
-            );
-            $result = json_decode((string) $response->getBody(), true);
+                    ]),
+                    CURLOPT_TIMEOUT => 8,
+                ]);
+                $body = curl_exec($curl);
+                $curlError = curl_error($curl);
+                curl_close($curl);
+
+                if ($body === false) {
+                    throw new \RuntimeException($curlError ?: 'Cloudflare verification request failed.');
+                }
+            }
+
+            $result = json_decode((string) $body, true);
         } catch (\Throwable $e) {
             Log::error('Turnstile verification request failed', [
                 'error' => $e->getMessage(),
@@ -310,18 +329,13 @@ class AuthController extends Controller
     }
 
     /**
-     * Split the single "Full Name" input into the first_name/last_name columns
-     * used by invoices, reports and the profile screen.
+     * Build the stored full name used by invoices, reports and the profile.
      *
      * @return array{0: string, 1: string|null, 2: string}
      */
     private function resolveCustomerName(array $data)
     {
-        if (!empty($data['full_name'])) {
-            $fullName = trim(preg_replace('/\s+/u', ' ', $data['full_name']));
-        } else {
-            $fullName = trim(trim($data['first_name']) . ' ' . trim($data['last_name'] ?? ''));
-        }
+        $fullName = trim(preg_replace('/\s+/u', ' ', trim($data['first_name']) . ' ' . trim($data['last_name'])));
 
         $parts = preg_split('/\s+/u', $fullName, 2, PREG_SPLIT_NO_EMPTY);
         $firstName = $parts[0] ?? '';
@@ -421,8 +435,16 @@ class AuthController extends Controller
             return redirect()->route('dashboard');
         }
 
+        $destination = (string) $request->session()->get('verified_destination');
+        try {
+            app('router')->getRoutes()->match(Request::create($destination, 'GET'));
+        } catch (\Throwable $e) {
+            $destination = route('dashboard', [], false);
+            $request->session()->put('verified_destination', $destination);
+        }
+
         return view('auth.verified', [
-            'destination' => $request->session()->get('verified_destination'),
+            'destination' => $destination,
             'name' => $request->session()->get('customer.name', 'there'),
         ]);
     }
