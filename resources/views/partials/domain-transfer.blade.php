@@ -74,13 +74,12 @@
             </div>
             <ol class="dt-transfer-steps">
                 <li><span>01</span><div>Sign In to your Cloud Technology Account.</div></li>
-                <li><span>02</span><div>Unlock your domain and get the EPP/authorization code (which will work as password) from your current registrar.</div></li>
-                <li><span>03</span><div>Go to “Domain &rarr; Domain Transfer”.</div></li>
-                <li><span>04</span><div>Enter the domain name and enter the Auth/EPP code, then click continue.</div></li>
-                <li><span>05</span><div>Click on “Place Order” and complete the payment.</div></li>
-                <li><span>06</span><div>The transfer begins after payment is completed.</div></li>
-                <li><span>07</span><div>Approve the confirmation email sent to your administrative contact address.</div></li>
-                <li><span>08</span><div>Update your DNS or name servers once the transfer finishes if you are also moving your hosting.</div></li>
+                <li><span>02</span><div>Go to “Domain &rarr; Domain Transfer”.</div></li>
+                <li><span>03</span><div>Enter the domain name and enter the Auth/EPP code, then click continue.</div></li>
+                <li><span>04</span><div>Click on “Place Order” and complete the payment.</div></li>
+                <li><span>05</span><div>The transfer begins after payment is completed.</div></li>
+                <li><span>06</span><div>Approve the confirmation email sent to your administrative contact address.</div></li>
+                <li><span>07</span><div>Update your DNS or name servers once the transfer finishes if you are also moving your hosting.</div></li>
             </ol>
         </div>
 

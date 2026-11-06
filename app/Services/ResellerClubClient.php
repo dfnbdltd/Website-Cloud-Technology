@@ -521,6 +521,69 @@ class ResellerClubClient
         ], 'POST');
     }
 
+    /**
+     * Read the nameservers currently assigned to a domain order.
+     * This is intentionally separate from the existing update flow.
+     */
+    public function nameservers($orderId)
+    {
+        if (!$this->isConfigured() || !is_scalar($orderId) || !ctype_digit((string) $orderId) || (int) $orderId < 1) {
+            return [];
+        }
+
+        $response = $this->request('/domains/details.json', [
+            'order-id' => (string) $orderId,
+            'options' => 'NsDetails',
+        ], 'GET', true);
+
+        if (!is_array($response)) {
+            return [];
+        }
+
+        $values = [];
+        $count = isset($response['noOfNameServers']) && is_numeric($response['noOfNameServers'])
+            ? min(13, max(0, (int) $response['noOfNameServers']))
+            : 13;
+        for ($index = 1; $index <= $count; $index++) {
+            $key = 'ns' . $index;
+            if (isset($response[$key]) && is_scalar($response[$key])) {
+                $values[] = $response[$key];
+            }
+        }
+
+        return array_values(array_unique(array_filter(array_map(function ($value) {
+            return is_scalar($value) ? strtolower(trim((string) $value)) : '';
+        }, $values))));
+    }
+
+    /**
+     * Return current and archived ResellerClub actions for one domain order.
+     * The v2 API is read-only here; legacy domain update calls are separate.
+     */
+    public function domainActions($orderId)
+    {
+        if (!is_scalar($orderId) || !ctype_digit((string) $orderId) || (int) $orderId < 1) {
+            return [];
+        }
+
+        $filters = [
+            'size' => 50,
+            'page' => 1,
+            'orderId' => [(int) $orderId],
+        ];
+        $actions = [];
+
+        foreach (['/actions/search-current', '/actions/search-archived'] as $path) {
+            $response = $this->v2Request('GET', $path, $filters);
+            if (!is_array($response) || !is_array($response['actions'] ?? null)) {
+                continue;
+            }
+            $actions = array_merge($actions, $response['actions']);
+        }
+
+        return $actions;
+    }
+
     private function priceOptions($live, array $fallback = [])
     {
         $liveFirstYearPrice = $live['addnewdomain']['1'] ?? null;
@@ -593,7 +656,12 @@ class ResellerClubClient
         ];
         $requestBodyBytes = 0;
 
-        if (strtoupper($method) === 'POST') {
+        if (strtoupper($method) === 'GET') {
+            $query = $this->encodeParameters($payload);
+            if ($query !== '') {
+                $url .= '?' . $query;
+            }
+        } elseif (strtoupper($method) === 'POST') {
             $body = json_encode($payload);
             if ($body === false) {
                 \Log::warning('ResellerClub v2 request payload could not be encoded', [

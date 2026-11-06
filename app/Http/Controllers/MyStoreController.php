@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\DomainOrderItem;
+use App\Models\Invoice;
+use App\Models\Payment;
 use App\Services\ResellerClubClient;
 use App\Support\StoreInventory;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -61,6 +64,40 @@ class MyStoreController extends Controller
             'section' => StoreInventory::section('domains'),
             'domains' => $inventory->domains(),
             'transfers' => $inventory->transfers(),
+        ]);
+    }
+
+    public function domainDetails(Request $request, $itemId)
+    {
+        $item = $this->ownedDomainItem($request, $itemId);
+        $invoice = Invoice::where('source_type', \App\Models\DomainOrder::class)
+            ->where('source_id', $item->order->id)
+            ->first();
+
+        $nameservers = $this->resellerClub->nameservers($this->resellerClub->domainOrderId($item->domain));
+        if (!$nameservers) {
+            $nameservers = array_values(array_filter(array_map('trim', (array) config('services.resellerclub.nameservers', []))));
+        }
+
+        return view('store.domain-details', [
+            'item' => $item,
+            'order' => $item->order,
+            'invoice' => $invoice,
+            'activities' => $this->domainActivities($item->order, $invoice),
+            'nameservers' => $nameservers,
+        ]);
+    }
+
+    public function domainActivity(Request $request, $itemId)
+    {
+        $item = $this->ownedDomainItem($request, $itemId);
+        $order = $item->order;
+        $invoice = Invoice::where('source_type', \App\Models\DomainOrder::class)
+            ->where('source_id', $order->id)
+            ->first();
+        return view('store.domain-activity', [
+            'item' => $item,
+            'activities' => $this->domainActivities($order, $invoice),
         ]);
     }
 
@@ -195,6 +232,96 @@ class MyStoreController extends Controller
     private function inventory(Request $request)
     {
         return new StoreInventory((int) $request->session()->get('customer.id'));
+    }
+
+    private function ownedDomainItem(Request $request, $itemId)
+    {
+        $userId = (int) ($request->user()
+            ? $request->user()->id
+            : $request->session()->get('customer.id'));
+
+        return DomainOrderItem::with('order')
+            ->whereKey($itemId)
+            ->where('order_type', 'registration')
+            ->where('registration_status', 'registered')
+            ->whereHas('order', function ($query) use ($userId) {
+                $query->where('user_id', $userId)
+                    ->where('payment_status', 'paid')
+                    ->where('status', 'active');
+            })
+            ->firstOrFail();
+    }
+
+    private function domainActivities($order, $invoice)
+    {
+        $activities = collect();
+        $orderLink = $invoice
+            ? route('invoices.view', $invoice)
+            : route('domains.confirmation', $order->reference);
+        $orderLinkLabel = $invoice ? 'View Invoice' : 'View Order';
+
+        if ($order->created_at) {
+            $activities->push([
+                'at' => $order->created_at,
+                'title' => 'Domain order placed',
+                'description' => 'Order ' . $order->reference,
+                'link' => $orderLink,
+                'link_label' => $orderLinkLabel,
+            ]);
+        }
+
+        foreach (Payment::where('domain_order_id', $order->id)->latest()->get() as $payment) {
+            $activities->push([
+                'at' => $payment->created_at,
+                'title' => 'Payment ' . ucfirst((string) $payment->status),
+                'description' => ucfirst((string) $payment->provider ?: 'Payment') . ' · ' . $payment->reference . ' · ৳ ' . number_format((float) $payment->amount, 2),
+                'link' => $orderLink,
+                'link_label' => $orderLinkLabel,
+            ]);
+        }
+
+        if ($invoice && $invoice->created_at) {
+            $activities->push([
+                'at' => $invoice->created_at,
+                'title' => 'Invoice issued',
+                'description' => $invoice->invoice_number . ' · ' . ucfirst((string) $invoice->status),
+                'link' => route('invoices.view', $invoice),
+                'link_label' => 'View Invoice',
+            ]);
+        }
+
+        $resellerOrderId = $this->resellerClub->domainOrderId($order->items()->value('domain'));
+        foreach ($this->resellerClub->domainActions($resellerOrderId) as $action) {
+            $at = $this->activityDate($action['actionCompleted'] ?? null)
+                ?: $this->activityDate($action['actionStarted'] ?? null)
+                ?: $this->activityDate($action['actionAdded'] ?? null);
+            if (!$at) {
+                continue;
+            }
+            $description = (string) ($action['actionStatusDesc'] ?? $action['description'] ?? 'ResellerClub domain action');
+            $activities->push([
+                'at' => $at,
+                'title' => (string) ($action['actionTypeDesc'] ?? $action['actionType'] ?? 'Domain action'),
+                'description' => $description,
+                'link' => route('domains.confirmation', $order->reference),
+                'link_label' => 'View Order',
+            ]);
+        }
+
+        return $activities->sortByDesc(function ($activity) {
+            return $activity['at'] ? $activity['at']->timestamp : 0;
+        })->values();
+    }
+
+    private function activityDate($value)
+    {
+        if (!is_scalar($value) || trim((string) $value) === '') {
+            return null;
+        }
+
+        $timestamp = strtotime((string) $value);
+
+        return $timestamp === false ? null : Carbon::createFromTimestamp($timestamp);
     }
 
     /**

@@ -566,7 +566,6 @@ body.dt-modal-open{overflow:hidden}
 .dt-transfer-steps li:nth-child(-n+3)::after,
 .dt-transfer-steps li:nth-child(5)::after,
 .dt-transfer-steps li:nth-child(6)::after,
-.dt-transfer-steps li:nth-child(7)::after,
 .dt-transfer-steps li:nth-child(4)::after{
     position:absolute;
     z-index:2;
@@ -580,7 +579,6 @@ body.dt-modal-open{overflow:hidden}
 .dt-transfer-steps li:nth-child(-n+3)::before,
 .dt-transfer-steps li:nth-child(5)::before,
 .dt-transfer-steps li:nth-child(6)::before,
-.dt-transfer-steps li:nth-child(7)::before,
 .dt-transfer-steps li:nth-child(4)::before{
     position:absolute;
     z-index:3;
@@ -616,19 +614,19 @@ body.dt-modal-open{overflow:hidden}
     transform:translate(50%, 0) rotate(135deg);
 }
 .dt-transfer-steps li:nth-child(5)::after,
-.dt-transfer-steps li:nth-child(6)::after,
-.dt-transfer-steps li:nth-child(7)::after{
+.dt-transfer-steps li:nth-child(6)::after{
     top:50%;
     left:-27px;
     transform:translateY(-50%);
 }
 .dt-transfer-steps li:nth-child(5)::before,
-.dt-transfer-steps li:nth-child(6)::before,
-.dt-transfer-steps li:nth-child(7)::before{
+.dt-transfer-steps li:nth-child(6)::before{
     top:50%;
     left:-27px;
     transform:translateY(-50%) rotate(225deg);
 }
+.dt-transfer-steps li:nth-child(7)::before,
+.dt-transfer-steps li:nth-child(7)::after{display:none}
 @media(max-width:800px){.dt-transfer-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px) and (min-width:621px){
     .dt-transfer-steps{column-gap:36px;row-gap:36px}
