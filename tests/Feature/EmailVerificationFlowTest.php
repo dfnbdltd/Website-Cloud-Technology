@@ -86,7 +86,7 @@ class EmailVerificationFlowTest extends TestCase
         $this->assertNotNull($log, 'email_logs row should exist');
         $this->assertSame('sent', $log->status);
         // {{name}} placeholder replaced from the registration data.
-        $this->assertSame('Verify your email, Test', $log->subject);
+        $this->assertSame('Verify your email, Test User', $log->subject);
     }
 
     public function testVerificationNoticeShowsFiveMinuteResendCountdown()
@@ -146,7 +146,7 @@ class EmailVerificationFlowTest extends TestCase
         $response = $this->get('/register');
 
         $response->assertOk();
-        $response->assertSee('name="first_name"', false);
+        $response->assertSee('name="name"', false);
         $response->assertSee('name="email"', false);
         $response->assertSee('name="address1"', false);
         $response->assertSee('name="currency"', false);
@@ -473,8 +473,7 @@ class EmailVerificationFlowTest extends TestCase
     private function validRegistration(): array
     {
         return [
-            'first_name' => 'Test',
-            'last_name' => 'User',
+            'name' => 'Test User',
             'email' => 'token-flow@example.test',
             'phone' => '01700000000',
             'address1' => '1 Test Street',

@@ -85,11 +85,6 @@
     .reg4-pw .password-strength{margin:11px 0 0}
     .reg4-pw .password-match-status{margin-top:7px}
 
-    /* Currency (single supported option) */
-    .reg4-currency{display:flex;align-items:center;gap:10px;margin:2px 0 0;padding:15px 16px;border:1px dashed #d4e1ef;
-        border-radius:11px;background:#f6f9fd;color:#5f738a;font-size:13.5px;line-height:1.5;min-height:56px}
-    .reg4-currency b{color:var(--ink);font-size:14px}
-
     /* Checkboxes — input first, label text after */
     .reg4-checks{display:grid;grid-template-columns:1fr;gap:12px;margin:4px 0 18px}
     .reg4-check{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:11px;
@@ -186,15 +181,10 @@
             <fieldset>
                 <legend><span class="reg4-step">1</span> Personal information</legend>
                 <div class="reg4-grid">
-                    <label class="reg4-field">
-                        <span>First Name <em class="reg4-req">*</em></span>
-                        <input type="text" name="first_name" value="{{ old('first_name') }}"
-                            placeholder="Your first name" autocomplete="given-name" required autofocus>
-                    </label>
-                    <label class="reg4-field">
-                        <span>Last Name <em class="reg4-req">*</em></span>
-                        <input type="text" name="last_name" value="{{ old('last_name') }}"
-                            placeholder="Your last name" autocomplete="family-name" required>
+                    <label class="reg4-field reg4-span">
+                        <span>Full Name <em class="reg4-req">*</em></span>
+                        <input type="text" name="name" value="{{ old('name') }}"
+                            placeholder="Your full name" autocomplete="name" required autofocus>
                     </label>
                     <label class="reg4-field reg4-span">
                         <span>Email Address <em class="reg4-req">*</em></span>
@@ -210,7 +200,7 @@
                                 <option value="+44" {{ old('phone_dial') === '+44' ? 'selected' : '' }}>+44</option>
                                 <option value="+1" {{ old('phone_dial') === '+1' ? 'selected' : '' }}>+1</option>
                             </select>
-                            <input type="tel" name="phone" value="{{ old('phone') }}" placeholder="1XXXXXXXXX" inputmode="tel" autocomplete="tel-national" required>
+                            <input type="tel" name="phone" value="{{ old('phone') }}" placeholder="1XXXXXXXXX" inputmode="numeric" pattern="[0-9]*" autocomplete="tel-national" required data-numeric-only>
                         </div>
                     </label>
                 </div>
@@ -249,10 +239,6 @@
                         <span>Postcode <em class="reg4-req">*</em></span>
                         <input type="text" name="postcode" value="{{ old('postcode') }}" placeholder="Postcode" autocomplete="postal-code" required>
                     </label>
-                </div>
-                <div class="reg4-currency">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 10.5h6M12.5 7c2 0 2.5 1.2 2.5 3.5S14 14 12.5 14H9l5 4"/></svg>
-                    <span><b>BDT &#2547;</b> &mdash; invoices are issued in Bangladeshi Taka.</span>
                 </div>
                 <input type="hidden" name="currency" value="BDT">
             </fieldset>
@@ -341,6 +327,16 @@
                 toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
                 toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
                 field.focus({ preventScroll: true });
+            });
+        });
+
+        var numericFields = document.querySelectorAll('[data-numeric-only]');
+        Array.prototype.forEach.call(numericFields, function (field) {
+            field.addEventListener('input', function () {
+                var digitsOnly = field.value.replace(/\D/g, '');
+                if (field.value !== digitsOnly) {
+                    field.value = digitsOnly;
+                }
             });
         });
     })();

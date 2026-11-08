@@ -215,11 +215,10 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:120'],
-            'last_name' => ['required', 'string', 'max:120'],
+            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone_dial' => ['nullable', 'string', 'max:8'],
-            'phone' => ['required', 'string', 'max:32'],
+            'phone' => ['required', 'string', 'max:32', 'regex:/^[0-9]+$/'],
             'company_name' => ['nullable', 'string', 'max:190'],
             'address1' => ['required', 'string', 'max:190'],
             // address2 and state are intentionally not collected on the sign-up form.
@@ -237,14 +236,10 @@ class AuthController extends Controller
                 ->withErrors(['captcha' => 'Please complete the security check and try again.']);
         }
 
-        list($firstName, $lastName, $fullName) = $this->resolveCustomerName($data);
-
         $user = User::create([
-            'name' => $fullName,
+            'name' => trim(preg_replace('/\s+/u', ' ', $data['name'])),
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'first_name' => $firstName,
-            'last_name' => $lastName,
             'phone' => trim(($request->input('phone_dial', '') . ' ' . $data['phone'])),
             'company_name' => $data['company_name'] ?? null,
             'address1' => $data['address1'],
@@ -330,22 +325,6 @@ class AuthController extends Controller
         }
 
         return true;
-    }
-
-    /**
-     * Build the stored full name used by invoices, reports and the profile.
-     *
-     * @return array{0: string, 1: string|null, 2: string}
-     */
-    private function resolveCustomerName(array $data)
-    {
-        $fullName = trim(preg_replace('/\s+/u', ' ', trim($data['first_name']) . ' ' . trim($data['last_name'])));
-
-        $parts = preg_split('/\s+/u', $fullName, 2, PREG_SPLIT_NO_EMPTY);
-        $firstName = $parts[0] ?? '';
-        $lastName = $parts[1] ?? null;
-
-        return [$firstName, $lastName, $fullName];
     }
 
     /**
