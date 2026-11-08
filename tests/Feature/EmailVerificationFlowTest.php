@@ -164,6 +164,54 @@ class EmailVerificationFlowTest extends TestCase
         }
     }
 
+    public function testRegistrationRejectsMissingRequiredFields()
+    {
+        $this->post('/register', [])
+            ->assertRedirect()
+            ->assertSessionHasErrors([
+                'name',
+                'email',
+                'phone',
+                'address1',
+                'city',
+                'country',
+                'postcode',
+                'terms',
+                'password',
+            ]);
+    }
+
+    public function testRegistrationRejectsDuplicateEmail()
+    {
+        User::create([
+            'name' => 'Existing User',
+            'email' => 'taken@example.test',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $this->post('/register', array_merge($this->validRegistration(), [
+            'email' => 'taken@example.test',
+        ]))
+            ->assertRedirect()
+            ->assertSessionHasErrors('email');
+    }
+
+    public function testRegistrationRejectsDuplicateNormalizedPhone()
+    {
+        User::create([
+            'name' => 'Existing User',
+            'email' => 'existing-phone@example.test',
+            'phone' => '+880 01700000000',
+            'password' => bcrypt('password123'),
+        ]);
+
+        $this->post('/register', array_merge($this->validRegistration(), [
+            'phone_dial' => '+880',
+        ]))
+            ->assertRedirect()
+            ->assertSessionHasErrors('phone');
+    }
+
     public function testSmtpVerificationMailUsesPhpMailerWithConfiguredStartTls()
     {
         config([

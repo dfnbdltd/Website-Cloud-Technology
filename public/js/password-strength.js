@@ -50,7 +50,13 @@
             return item;
         });
         panel.appendChild(list);
-        password.parentNode.appendChild(panel);
+        var passwordLabel = password.closest('label');
+        var passwordLabelText = passwordLabel ? passwordLabel.querySelector(':scope > span') : null;
+        if (passwordLabelText) {
+            passwordLabelText.appendChild(panel);
+        } else {
+            password.parentNode.appendChild(panel);
+        }
 
         var matchStatus = document.createElement('small');
         matchStatus.className = 'password-match-status';

@@ -230,6 +230,13 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'confirmed', new StrongPassword],
         ]);
 
+        $normalizedPhone = trim(($request->input('phone_dial', '') . ' ' . $data['phone']));
+        if (User::where('phone', $normalizedPhone)->exists()) {
+            return back()
+                ->withInput($request->except(['password', 'password_confirmation']))
+                ->withErrors(['phone' => 'This phone number is already registered.']);
+        }
+
         if (!$this->turnstileIsValid($request)) {
             return back()
                 ->withInput($request->except(['password', 'password_confirmation']))
@@ -240,7 +247,7 @@ class AuthController extends Controller
             'name' => trim(preg_replace('/\s+/u', ' ', $data['name'])),
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'phone' => trim(($request->input('phone_dial', '') . ' ' . $data['phone'])),
+            'phone' => $normalizedPhone,
             'company_name' => $data['company_name'] ?? null,
             'address1' => $data['address1'],
             'city' => $data['city'],
