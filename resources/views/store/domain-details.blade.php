@@ -129,13 +129,21 @@
                                                     @foreach($editNameservers as $index => $nameserver)
                                                         <div class="store-ns-input-row">
                                                             <div class="store-ns-field">
-                                                                <input type="text" value="{{ $nameserver }}" placeholder="ns{{ $index + 1 }}.example.com" aria-label="Nameserver {{ $index + 1 }}" required>
+                                                                <input id="nameserver-{{ $item->id }}-{{ $index + 1 }}" type="text" value="{{ $nameserver }}" placeholder="ns{{ $index + 1 }}.example.com" aria-label="Nameserver {{ $index + 1 }}" required>
                                                                 <span class="store-ns-field-icon" aria-hidden="true">
                                                                     <svg class="store-ns-icon-ok" viewBox="0 0 24 24"><path d="m6.5 12.5 4 4 7-8"></path></svg>
                                                                     <svg class="store-ns-icon-bad" viewBox="0 0 24 24"><path d="M12 7.5v6.2"></path><path d="M12 17.2h.01"></path></svg>
                                                                 </span>
                                                                 <small class="store-ns-field-msg"></small>
                                                             </div>
+                                                            @if($index < 2)
+                                                                <span class="store-ns-required" aria-hidden="true">*</span>
+                                                            @endif
+                                                            @if($index >= 2)
+                                                                <button type="button" class="store-ns-remove" aria-label="Remove nameserver">
+                                                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg>
+                                                                </button>
+                                                            @endif
                                                         </div>
                                                     @endforeach
                                                 </div>
@@ -348,7 +356,11 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
             '<span class="store-ns-field-icon" aria-hidden="true">' +
             '<svg class="store-ns-icon-ok" viewBox="0 0 24 24"><path d="m6.5 12.5 4 4 7-8"></path></svg>' +
             '<svg class="store-ns-icon-bad" viewBox="0 0 24 24"><path d="M12 7.5v6.2"></path><path d="M12 17.2h.01"></path></svg>' +
-            '</span><small class="store-ns-field-msg"></small></div>';
+            '</span><small class="store-ns-field-msg"></small></div>' +
+            (index < 2 ? '<span class="store-ns-required" aria-hidden="true">*</span>' : '') +
+            (index >= 2 ? '<button type="button" class="store-ns-remove" aria-label="Remove nameserver">' +
+                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg>' +
+                '</button>' : '');
         row.querySelector('input').value = value || '';
         return row;
     }
@@ -415,6 +427,17 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
         inputList.appendChild(row);
         row.querySelector('input').addEventListener('input', updateSubmitState);
         updateSubmitState();
+    });
+    inputList.addEventListener('click', function (event) {
+        var remove = event.target.closest('.store-ns-remove');
+        if (!remove) {
+            return;
+        }
+        var row = remove.closest('.store-ns-input-row');
+        if (row) {
+            row.remove();
+            updateSubmitState();
+        }
     });
     form.addEventListener('submit', function (event) {
         if (form.dataset.submitting === '1') {

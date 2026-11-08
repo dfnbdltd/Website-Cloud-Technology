@@ -256,7 +256,12 @@
 .store-ns-modal-main .store-ns-recommendation{margin:0 0 22px;color:#5d7691;font:600 13.5px/1.5 'DM Sans'}
 .store-ns-input-list{display:grid;gap:14px;max-width:600px;margin:0 auto}
 .store-ns-input-row{display:flex;align-items:flex-start;gap:12px}
+.store-ns-remove{display:grid;place-items:center;flex:none;width:42px;height:58px;padding:0;border:1px solid #d7e3f0;border-radius:12px;background:#fff;color:#8da2b8;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease}
+.store-ns-remove svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.store-ns-remove:hover{border-color:#efb4b4;background:#fff5f5;color:#c23b3b;box-shadow:0 6px 14px -10px #c23b3b}
+.store-ns-remove:focus-visible{outline:2px solid #1d63d6;outline-offset:2px}
 .store-ns-field{position:relative;flex:1;min-width:0}
+.store-ns-required{display:grid;place-items:center;flex:none;width:42px;height:58px;color:#f04444;font:700 23px/1 'DM Sans'}
 .store-ns-input-row input{width:100%;min-height:58px;padding:16px 50px 16px 18px;border:1px solid #d7e3f0;border-radius:12px;background:#fff;color:#2f5479;font:600 16px 'DM Sans';letter-spacing:.1px;text-align:left;outline:0;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
 .store-ns-input-row input::placeholder{color:#a3b5c8;font-weight:500}
 .store-ns-input-row input:hover{border-color:#c3d7ec}
