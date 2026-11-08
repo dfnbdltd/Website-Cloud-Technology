@@ -35,7 +35,7 @@
                 </div>
             </section>
 
-            <section class="store-detail-panel">
+            <section class="store-detail-panel store-ns-panel">
                 <div class="store-ns-row">
                     <span class="store-detail-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6.5" rx="2"></rect><rect x="3" y="13.5" width="18" height="6.5" rx="2"></rect><path d="M7 7.25h.01"></path><path d="M7 16.75h.01"></path><path d="M11 7.25h4"></path><path d="M11 16.75h4"></path></svg>
@@ -46,11 +46,11 @@
                         <div class="store-ns-actions">
                             <details class="store-ns-edit @if($errors->any() || old('nameservers')) is-editing @endif" @if($errors->any() || old('nameservers')) open @endif>
                                 <summary class="store-ns-btn store-ns-btn-primary">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z"></path>
-                                        <path d="m14.06 6.19 1.77-1.77a2.12 2.12 0 0 1 3 0l.75.75a2.12 2.12 0 0 1 0 3l-1.77 1.77"></path>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                        <path d="M12 20h9"></path>
+                                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                                     </svg>
-                                    <span>Name Servers</span>
+                                    <span>Edit Name Servers</span>
                                 </summary>
                                 <div class="store-ns-modal">
                                     <div class="store-ns-modal-backdrop"></div>
@@ -67,31 +67,34 @@
                                                 </button>
                                             </div>
                                             <div class="store-ns-view">
-                                                <p>You are currently using these Name Servers</p>
-                                                @forelse($nameservers as $index => $nameserver)
-                                                    <div class="store-ns-current-row">
-                                                        <span>{{ $nameserver }}</span>
-                                                        <button type="button" class="store-ns-pencil" aria-label="Edit nameserver {{ $index + 1 }}">
-                                                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z"></path>
-                                                                <path d="m14.06 6.19 1.77-1.77a2.12 2.12 0 0 1 3 0l.75.75a2.12 2.12 0 0 1 0 3l-1.77 1.77"></path>
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                @empty
-                                                    <p class="store-muted">No nameservers are configured yet.</p>
+                                                @if(!empty($nameservers))
+                                                    <p class="store-ns-view-title">You are currently using these Name Servers</p>
+                                                    @foreach($nameservers as $index => $nameserver)
+                                                        <div class="store-ns-current-row">
+                                                            <span>{{ $nameserver }}</span>
+                                                            <button type="button" class="store-ns-pencil" aria-label="Edit nameserver {{ $index + 1 }}">
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                                                    <path d="M12 20h9"></path>
+                                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <p class="store-ns-view-empty">No nameservers are configured yet.</p>
                                                     @for($index = 1; $index <= 2; $index++)
                                                         <div class="store-ns-current-row store-ns-empty-row">
                                                             <span>Nameserver {{ $index }} not configured</span>
                                                             <button type="button" class="store-ns-pencil" aria-label="Edit nameserver {{ $index }}">
-                                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z"></path>
-                                                                    <path d="m14.06 6.19 1.77-1.77a2.12 2.12 0 0 1 3 0l.75.75a2.12 2.12 0 0 1 0 3l-1.77 1.77"></path>
+                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                                                    <path d="M12 20h9"></path>
+                                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                                                                 </svg>
                                                             </button>
                                                         </div>
                                                     @endfor
-                                                @endforelse
+                                                    <p class="store-ns-empty-hint">Use the edit icon to add your nameservers.</p>
+                                                @endif
                                             </div>
                                             <form method="POST" action="{{ route('mystore.domains.nameservers', $item->id) }}" class="store-nameserver-form">
                                                 @csrf
