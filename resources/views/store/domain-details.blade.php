@@ -76,6 +76,10 @@
                                                     </span>
                                                     <span class="store-ns-alert-text">{{ $errors->first() }}</span>
                                                 </div>
+                                                <div class="store-ns-error-actions">
+                                                    <a class="store-ns-error-support" href="{{ route('support') }}">Contact Support <span aria-hidden="true">→</span></a>
+                                                    <button type="button" class="store-ns-error-trigger" aria-haspopup="dialog" aria-controls="nameserver-error-details-{{ $item->id }}">Why did this happen?</button>
+                                                </div>
                                             @elseif(session('success'))
                                                 <div class="store-ns-alert is-success" role="status">
                                                     <span class="store-ns-alert-icon" aria-hidden="true">
@@ -170,6 +174,40 @@
             </section>
         </main>
 
+    </div>
+
+    <div class="store-child-details store-ns-error-modal" id="nameserver-error-details-{{ $item->id }}" hidden>
+        <div class="store-ns-modal-backdrop store-ns-error-close"></div>
+        <div class="store-child-details-card" role="dialog" aria-modal="true" aria-labelledby="nameserver-error-title-{{ $item->id }}">
+            <button type="button" class="store-ns-modal-close store-ns-error-close" aria-label="Close">×</button>
+            <div class="store-child-details-head">
+                <span class="store-child-head-icon store-ns-error-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5"></path><path d="M12 16.4h.01"></path></svg>
+                </span>
+                <div>
+                    <span class="store-child-kicker">NAME SERVER UPDATE</span>
+                    <h3 id="nameserver-error-title-{{ $item->id }}">Why did this happen?</h3>
+                    <p class="store-child-domain">For <strong>{{ $item->domain }}</strong></p>
+                </div>
+            </div>
+            <div class="store-child-details-body">
+                <p>We could not connect this domain to its registrar order, so the nameserver change was not submitted.</p>
+                <div class="store-ns-error-section">
+                    <strong>Use this format</strong>
+                    <code>ns1.example.com</code>
+                    <p>Enter at least two complete nameserver hostnames, one per line. Do not enter an IP address, <code>https://</code>, spaces, or a trailing path.</p>
+                </div>
+                <div class="store-ns-error-section">
+                    <strong>Why the lookup can fail</strong>
+                    <ul>
+                        <li>The domain registration is still syncing with the registrar.</li>
+                        <li>The domain order is not active or cannot be found by the registrar.</li>
+                        <li>The registrar service is temporarily unavailable.</li>
+                    </ul>
+                </div>
+                <p class="store-ns-error-support-copy">If your nameservers follow the format above, please contact support and include the domain name so our team can check the registrar order.</p>
+            </div>
+        </div>
     </div>
 
     <div class="store-child-details store-ns-info-modal" id="nameserver-details-{{ $item->id }}" hidden>
@@ -337,10 +375,22 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
     function updateSubmitState() {
         submit.disabled = JSON.stringify(currentValues()) === JSON.stringify(initialValues);
     }
+    function clearFeedback() {
+        panel.querySelectorAll('.store-ns-error-trigger').forEach(function (trigger) {
+            var details = document.getElementById(trigger.getAttribute('aria-controls'));
+            if (details) {
+                details.hidden = true;
+            }
+        });
+        panel.querySelectorAll('.store-ns-alert, .store-ns-error-actions').forEach(function (feedback) {
+            feedback.remove();
+        });
+    }
     if (panel.classList.contains('is-editing')) {
         showEdit();
     }
     function closePanel() {
+        clearFeedback();
         panel.removeAttribute('open');
         panel.classList.remove('is-editing');
     }
@@ -377,6 +427,27 @@ document.querySelectorAll('.store-ns-info-button').forEach(function (button) {
 
     button.addEventListener('click', function () {
         modal.hidden = false;
+    });
+
+    document.querySelectorAll('.store-ns-error-trigger').forEach(function (button) {
+        var modal = document.getElementById(button.getAttribute('aria-controls'));
+        if (!modal) {
+            return;
+        }
+
+        button.addEventListener('click', function () {
+            modal.hidden = false;
+        });
+        modal.querySelectorAll('.store-ns-error-close').forEach(function (closer) {
+            closer.addEventListener('click', function () {
+                modal.hidden = true;
+            });
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !modal.hidden) {
+                modal.hidden = true;
+            }
+        });
     });
     closers.forEach(function (closer) {
         closer.addEventListener('click', function () {
