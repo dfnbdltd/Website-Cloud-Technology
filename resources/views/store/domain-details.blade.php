@@ -262,7 +262,7 @@
                 </span>
                 <div class="store-child-head-copy">
                     <span class="store-child-kicker">DOMAIN MANAGEMENT</span>
-                    <h3 id="child-ns-title-{{ $item->id }}">Add Child Server</h3>
+                    <h3 id="child-ns-title-{{ $item->id }}">Add Child Name Servers</h3>
                     <p class="store-child-domain">For <strong>{{ $item->domain }}</strong></p>
                 </div>
             </div>
@@ -283,19 +283,6 @@
                         <label class="store-child-field">
                             <span>IP address</span>
                             <input type="text" placeholder="203.0.113.10" inputmode="decimal" autocomplete="off">
-                        </label>
-                        <button type="button" class="store-child-remove" aria-label="Remove this child server">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
-                        </button>
-                    </div>
-                    <div class="store-child-row">
-                        <label class="store-child-field">
-                            <span>Host name</span>
-                            <input type="text" placeholder="ns2" autocomplete="off">
-                        </label>
-                        <label class="store-child-field">
-                            <span>IP address</span>
-                            <input type="text" placeholder="203.0.113.11" inputmode="decimal" autocomplete="off">
                         </label>
                         <button type="button" class="store-child-remove" aria-label="Remove this child server">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
@@ -328,17 +315,12 @@
                 </div>
             </div>
             <div class="store-child-details-body">
-                <p>Child name servers, also called vanity name servers, are branded name servers that use your own domain — for example <code>ns1.{{ $item->domain }}</code> instead of your hosting provider's domain.</p>
-                <p>To set them up:</p>
-                <ol>
-                    <li>Create two A records, <code>ns1.{{ $item->domain }}</code> and <code>ns2.{{ $item->domain }}</code>, pointing to the IP addresses provided by your hosting company.</li>
-                    <li>Add each child server below with its matching host name and IP address.</li>
-                    <li>Update this domain's name servers to the child servers you created.</li>
-                    <li>Allow up to 24–72 hours for DNS propagation worldwide.</li>
-                </ol>
+                <p>Your Child Name Servers can be <code>ns1.{{ $item->domain }}</code> and <code>ns2.{{ $item->domain }}</code>.</p>
+                <p>Create Child Name Servers when you want to use these as the Name Servers for your Domain Names.</p>
+                <p>Once created, Child Name Servers get registered with the Registry under this Domain Name.</p>
+                <p>When you associate these name servers with your domains, these details will be visible in the WHOIS results.</p>
                 <div class="store-child-details-tip">
-                    <strong>Good to know</strong>
-                    <p>Use at least two child servers for reliability, and keep both host names inside the domain shown above.</p>
+                    <p>Learn More about Child Name Servers</p>
                 </div>
             </div>
             <div class="store-child-details-foot">
