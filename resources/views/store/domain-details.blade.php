@@ -120,20 +120,6 @@
             </section>
         </main>
 
-        <aside class="store-detail-panel store-activity-panel">
-            <div class="store-detail-section-title">
-                <div><span class="domain-kicker">LATEST ACTIVITY</span><h2>Latest Activity</h2></div>
-            </div>
-            @forelse($activities ?? [] as $activity)
-                <div class="store-activity-row">
-                    <span class="store-activity-dot"></span>
-                    <div><small>{{ optional($activity['at'])->format('d M Y') }}</small><strong>{{ $activity['title'] }}</strong><p>{{ $activity['description'] }}</p></div>
-                </div>
-            @empty
-                <p class="store-muted">No local activity recorded yet.</p>
-            @endforelse
-            <a class="store-activity-view-all" href="{{ route('mystore.domains.activity', $item->id) }}">View All Activity →</a>
-        </aside>
     </div>
 @endsection
 

@@ -167,7 +167,7 @@
 .store-domain-detail-status{display:flex;align-items:center;gap:12px}
 .store-ghost-link{display:inline-block;padding:10px 14px;border:1px solid #d5e0ed;border-radius:7px;color:#34618f;background:#fff;font:700 11px 'DM Sans';text-decoration:none}
 .store-ghost-link:hover{border-color:#2f7ae5;color:#246acb}
-.store-domain-detail-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.8fr);gap:18px}
+.store-domain-detail-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 .store-detail-panel{background:#fff;border:1px solid #dfe9f5;border-radius:16px;padding:24px;box-shadow:0 14px 34px #163b6710;margin-bottom:18px}
 .store-detail-panel-head,.store-detail-section-title{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
 .store-detail-panel h2{margin:4px 0 5px;color:var(--ink);font:800 18px 'Manrope'}
