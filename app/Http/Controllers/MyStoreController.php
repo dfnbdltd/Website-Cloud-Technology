@@ -178,7 +178,7 @@ class MyStoreController extends Controller
         }
 
         return redirect()->route('mystore.domains.details', $item)
-            ->with('success', 'Nameservers for ' . $item->domain . ' were updated successfully.')
+            ->with('success', 'Nameserver updated successfully')
             ->with('manage_domain_item', $item->id);
     }
 
