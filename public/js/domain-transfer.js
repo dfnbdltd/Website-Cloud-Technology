@@ -27,6 +27,28 @@
         return;
     }
 
+    var steps = page.querySelectorAll('.dt-transfer-steps li');
+    steps.forEach(function (step) {
+        function activateStep() {
+            var activeIndex = Array.prototype.indexOf.call(steps, step);
+            steps.forEach(function (item, index) {
+                item.classList.remove('is-active');
+                item.removeAttribute('aria-current');
+                item.classList.toggle('is-complete', index < activeIndex);
+            });
+            step.classList.add('is-active');
+            step.setAttribute('aria-current', 'step');
+        }
+
+        step.addEventListener('click', activateStep);
+        step.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                activateStep();
+            }
+        });
+    });
+
     var lastFocused = null;
     var shakeAnimation = null;
     var INVALID_MESSAGE = 'The domain you entered is not valid';

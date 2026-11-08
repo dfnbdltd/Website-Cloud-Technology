@@ -56,36 +56,65 @@
 
         <div class="dt-procedure-section">
             <div class="dt-procedure-heading">
-                <span class="dt-procedure-icon" aria-hidden="true">01</span>
+                <span class="dt-procedure-icon dt-procedure-icon--requirements" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3 19 6v5c0 4.5-2.8 8.3-7 10-4.2-1.7-7-5.5-7-10V6l7-3Z"></path>
+                        <path d="m8.7 12 2.1 2.1 4.5-4.6"></path>
+                    </svg>
+                </span>
                 <h3>Pre-requirements to Transfer a Domain to Cloud Technology</h3>
             </div>
             <ul class="dt-checklist dt-prep-grid">
-                <li><span class="dt-guide-icon">01</span><div><strong>Domain Lock Status:</strong><p>Make sure the domain is unlocked at your current registrar before starting transfer the domain process. A WHOIS lookup should not show “clientTransferProhibited”.</p></div></li>
-                <li><span class="dt-guide-icon">02</span><div><strong>60-Day Rule:</strong><p>Confirm domain transfer is not within a 60-day transfer restriction caused by recent registration, transfer or registrant-detail changes. The domain cannot be transferred if it was registered or previously transferred within the last 60 days.</p></div></li>
-                <li><span class="dt-guide-icon">03</span><div><strong>Transfer Auth/EPP Code:</strong><p>You need the Auth/EPP code (transfer authorization code, which will work as password) from your current registrar.</p></div></li>
-                <li><span class="dt-guide-icon">04</span><div><strong>Admin Email:</strong><p>Make sure the administrative contact email address at your current registrar is active and accessible to approve the transfer request.</p></div></li>
+                <li>
+                    <span class="dt-guide-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path><path d="M12 14v2"></path></svg></span>
+                    <div><strong>Domain Lock Status</strong><p>Make sure the domain is unlocked at your current registrar before starting transfer the domain process. A WHOIS lookup should not show “clientTransferProhibited”.</p></div>
+                </li>
+                <li>
+                    <span class="dt-guide-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 9h16"></path><path d="M8 13h3M8 16h5"></path></svg></span>
+                    <div><strong>60-Day Rule</strong><p>Confirm domain transfer is not within a 60-day transfer restriction caused by recent registration, transfer or registrant-detail changes. The domain cannot be transferred if it was registered or previously transferred within the last 60 days.</p></div>
+                </li>
+                <li>
+                    <span class="dt-guide-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"></circle><path d="m11 12 7-7 3 3-7 7M16 7l2 2"></path></svg></span>
+                    <div><strong>Transfer Auth/EPP Code</strong><p>You need the Auth/EPP code (transfer authorization code, which will work as password) from your current registrar.</p></div>
+                </li>
+                <li>
+                    <span class="dt-guide-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg></span>
+                    <div><strong>Admin Email</strong><p>Make sure the administrative contact email address at your current registrar is active and accessible to approve the transfer request.</p></div>
+                </li>
             </ul>
         </div>
 
         <div class="dt-procedure-section dt-procedure-section--steps">
             <div class="dt-procedure-heading">
-                <span class="dt-procedure-icon" aria-hidden="true">02</span>
+                <span class="dt-procedure-icon dt-procedure-icon--procedure" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 8h12"></path>
+                        <path d="m12 4 4 4-4 4"></path>
+                        <path d="M20 16H8"></path>
+                        <path d="m12 12-4 4 4 4"></path>
+                    </svg>
+                </span>
                 <h3>Domain Transfer Procedure</h3>
             </div>
             <ol class="dt-transfer-steps">
-                <li><span>01</span><div>Sign In to your Cloud Technology Account.</div></li>
-                <li><span>02</span><div>Go to “Domain &rarr; Domain Transfer”.</div></li>
-                <li><span>03</span><div>Enter the domain name and enter the Auth/EPP code, then click continue.</div></li>
-                <li><span>04</span><div>Click on “Place Order” and complete the payment.</div></li>
-                <li><span>05</span><div>The transfer begins after payment is completed.</div></li>
-                <li><span>06</span><div>Approve the confirmation email sent to your administrative contact address.</div></li>
-                <li><span>07</span><div>Update your DNS or name servers once the transfer finishes if you are also moving your hosting.</div></li>
+                <li class="is-active" tabindex="0" aria-current="step"><button type="button" aria-label="Select step 1"><span>01</span></button><div>Sign In to your Cloud Technology Account.</div></li>
+                <li tabindex="0"><button type="button" aria-label="Select step 2"><span>02</span></button><div>Go to “Domain &rarr; Domain Transfer”.</div></li>
+                <li tabindex="0"><button type="button" aria-label="Select step 3"><span>03</span></button><div>Enter the domain name and enter the Auth/EPP code, then click continue.</div></li>
+                <li tabindex="0"><button type="button" aria-label="Select step 4"><span>04</span></button><div>Click on “Place Order” and complete the payment.</div></li>
+                <li tabindex="0"><button type="button" aria-label="Select step 5"><span>05</span></button><div>The transfer begins after payment is completed.</div></li>
+                <li tabindex="0"><button type="button" aria-label="Select step 6"><span>06</span></button><div>Approve the confirmation email sent to your administrative contact address.</div></li>
+                <li tabindex="0"><button type="button" aria-label="Select step 7"><span>07</span></button><div>Update your DNS or name servers once the transfer finishes if you are also moving your hosting.</div></li>
             </ol>
         </div>
 
         <div class="dt-procedure-section dt-procedure-section--after">
             <div class="dt-procedure-heading">
-                <span class="dt-procedure-icon" aria-hidden="true">03</span>
+                <span class="dt-procedure-icon dt-procedure-icon--complete" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="8.5"></circle>
+                        <path d="m8.2 12.2 2.5 2.5 5.2-5.4"></path>
+                    </svg>
+                </span>
                 <h3>After Submitting Transfer Procedure</h3>
             </div>
             <div class="dt-after-card">
