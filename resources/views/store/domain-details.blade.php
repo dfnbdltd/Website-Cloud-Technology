@@ -51,23 +51,23 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6.5" rx="2"></rect><rect x="3" y="13.5" width="18" height="6.5" rx="2"></rect><path d="M7 7.25h.01"></path><path d="M7 16.75h.01"></path><path d="M11 7.25h4"></path><path d="M11 16.75h4"></path></svg>
                     </span>
                     <div class="store-ns-heading">
-                        <h2>NAME SERVERS &amp; DNS</h2>
+                        <h2>NAMESERVERS &amp; DNS</h2>
                         <p class="store-ns-subtitle">Choose where this domain points on the internet.</p>
                         <div class="store-ns-actions">
                             <details class="store-ns-edit @if($errors->any() || old('nameservers')) is-editing @endif" @if($errors->any() || old('nameservers') || session('success')) open @endif>
                                 <summary class="store-ns-btn store-ns-btn-primary">
+                                    <span>Edit Nameservers</span>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                                         <path d="M12 20h9"></path>
                                         <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                                     </svg>
-                                    <span>Edit Name Servers</span>
                                 </summary>
                                 <div class="store-ns-modal">
                                     <div class="store-ns-modal-backdrop"></div>
-                                    <div class="store-ns-modal-card" role="dialog" aria-modal="true" aria-label="Name Servers and DNS">
+                                    <div class="store-ns-modal-card" role="dialog" aria-modal="true" aria-label="Nameservers and DNS">
                                         <button type="button" class="store-ns-modal-close" aria-label="Close">×</button>
                                         <div class="store-ns-modal-main">
-                                            <h3>NAME SERVERS &amp; DNS</h3>
+                                            <h3>NAMESERVERS &amp; DNS</h3>
                                             <p class="store-ns-modal-domain">For: <strong>{{ $item->domain }}</strong></p>
                                             @if($errors->any())
                                                 <div class="store-ns-alert is-error" role="alert">
@@ -75,10 +75,6 @@
                                                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5"></path><path d="M12 16.4h.01"></path></svg>
                                                     </span>
                                                     <span class="store-ns-alert-text">{{ $errors->first() }}</span>
-                                                </div>
-                                                <div class="store-ns-error-actions">
-                                                    <a class="store-ns-error-support" href="{{ route('support') }}">Contact Support <span aria-hidden="true">→</span></a>
-                                                    <button type="button" class="store-ns-error-trigger" aria-haspopup="dialog" aria-controls="nameserver-error-details-{{ $item->id }}">Why did this happen?</button>
                                                 </div>
                                             @elseif(session('success'))
                                                 <div class="store-ns-alert is-success" role="status">
@@ -89,7 +85,7 @@
                                                 </div>
                                             @endif
                                             <div class="store-child-note store-ns-modal-note">
-                                                <p>Not sure which name server option is right for this domain?</p>
+                                                <p>Not sure which nameserver option is right for this domain?</p>
                                                 <button type="button" class="store-child-info-trigger store-ns-info-button" aria-haspopup="dialog" aria-controls="nameserver-details-{{ $item->id }}">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>
                                                     <span>View details</span>
@@ -97,7 +93,7 @@
                                             </div>
                                             <div class="store-ns-view">
                                                 @if(!empty($nameservers))
-                                                    <p class="store-ns-view-title">You are currently using these Name Servers</p>
+                                                    <p class="store-ns-view-title">You are currently using these Nameservers</p>
                                                     @foreach($nameservers as $index => $nameserver)
                                                         <div class="store-ns-current-row">
                                                             <span>{{ $nameserver }}</span>
@@ -128,7 +124,7 @@
                                             <form method="POST" action="{{ route('mystore.domains.nameservers', $item->id) }}" class="store-nameserver-form" novalidate>
                                                 @csrf
                                                 <textarea name="nameservers" class="store-ns-submit-value" hidden>{{ implode("\n", $editNameservers) }}</textarea>
-                                                <p class="store-ns-recommendation">We recommend adding at least 2 name servers</p>
+                                                <p class="store-ns-recommendation">We recommend adding at least 2 nameservers</p>
                                                 <div class="store-ns-input-list">
                                                     @foreach($editNameservers as $index => $nameserver)
                                                         <div class="store-ns-input-row">
@@ -144,9 +140,9 @@
                                                     @endforeach
                                                 </div>
                                                 <p class="store-ns-form-status" role="status" aria-live="polite"></p>
-                                                <button type="button" class="store-ns-add">+ Add Name Servers</button>
+                                                <button type="button" class="store-ns-add">+ Add Nameservers</button>
                                                 <div class="store-ns-form-actions">
-                                                    <button class="store-primary store-ns-submit" type="submit" disabled>Update Name Servers</button>
+                                                    <button class="store-primary store-ns-submit" type="submit" disabled>Update Nameservers</button>
                                                     <button type="button" class="store-ns-cancel">Cancel Changes</button>
                                                 </div>
                                             </form>
@@ -220,7 +216,7 @@
                 </span>
                 <div>
                     <span class="store-child-kicker">NAME SERVERS &amp; DNS</span>
-                    <h3 id="nameserver-details-title-{{ $item->id }}">How name servers work</h3>
+                    <h3 id="nameserver-details-title-{{ $item->id }}">How nameservers work</h3>
                     <p class="store-child-domain">For <strong>{{ $item->domain }}</strong></p>
                 </div>
             </div>
@@ -228,20 +224,20 @@
                 <p>Use the DNS service to point this domain to a hosting or email package. Choose one of the two options below.</p>
                 <div class="store-ns-detail-option">
                     <span class="store-ns-detail-badge" aria-hidden="true">1</span>
-                    <p>Specify at least 2 name servers provided with your hosting package here. Your domain will start resolving to your hosting in 24–72 hours.</p>
+                    <p>Specify at least 2 nameservers provided with your hosting package here. Your domain will start resolving to your hosting in 24–72 hours.</p>
                 </div>
                 <div class="store-ns-detail-or" aria-hidden="true"><span>OR</span></div>
                 <div class="store-ns-detail-option">
                     <span class="store-ns-detail-badge" aria-hidden="true">2</span>
-                    <p>Use our default name servers and add the DNS records provided with your hosting package by clicking on <strong>Manage DNS Records</strong>. Your domain will start resolving to your hosting in 4–6 hours.</p>
+                    <p>Use our default nameservers and add the DNS records provided with your hosting package by clicking on <strong>Manage DNS Records</strong>. Your domain will start resolving to your hosting in 4–6 hours.</p>
                 </div>
                 <div class="store-child-details-tip">
-                    <strong>Our default name servers</strong>
+                    <strong>Our default nameservers</strong>
                     <ul class="store-ns-detail-ns">
                         @forelse($nameservers as $nameserver)
                             <li><code>{{ $nameserver }}</code></li>
                         @empty
-                            <li>No default name servers are assigned yet.</li>
+                            <li>No default nameservers are assigned yet.</li>
                         @endforelse
                     </ul>
                 </div>
@@ -262,13 +258,13 @@
                 </span>
                 <div class="store-child-head-copy">
                     <span class="store-child-kicker">DOMAIN MANAGEMENT</span>
-                    <h3 id="child-ns-title-{{ $item->id }}">Add Child Name Servers</h3>
+                    <h3 id="child-ns-title-{{ $item->id }}">Add Child Nameservers</h3>
                     <p class="store-child-domain">For <strong>{{ $item->domain }}</strong></p>
                 </div>
             </div>
             <div class="store-child-body">
                 <div class="store-child-note">
-                    <p>Child name servers let this domain run its own DNS and answer queries under <strong>{{ $item->domain }}</strong>.</p>
+                    <p>Child nameservers let this domain run its own DNS and answer queries under <strong>{{ $item->domain }}</strong>.</p>
                     <button type="button" class="store-child-info-trigger" aria-haspopup="dialog" aria-controls="child-ns-details-{{ $item->id }}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>
                         <span>View details</span>
@@ -311,16 +307,16 @@
                 </span>
                 <div>
                     <span class="store-child-kicker">CHILD NAME SERVERS</span>
-                    <h3 id="child-ns-details-title-{{ $item->id }}">What are child name servers?</h3>
+                    <h3 id="child-ns-details-title-{{ $item->id }}">What are child nameservers?</h3>
                 </div>
             </div>
             <div class="store-child-details-body">
-                <p>Your Child Name Servers can be <code>ns1.{{ $item->domain }}</code> and <code>ns2.{{ $item->domain }}</code>.</p>
-                <p>Create Child Name Servers when you want to use these as the Name Servers for your Domain Names.</p>
-                <p>Once created, Child Name Servers get registered with the Registry under this Domain Name.</p>
-                <p>When you associate these name servers with your domains, these details will be visible in the WHOIS results.</p>
+                <p>Your Child Nameservers can be <code>ns1.{{ $item->domain }}</code> and <code>ns2.{{ $item->domain }}</code>.</p>
+                <p>Create Child Nameservers when you want to use these as the Nameservers for your Domain Names.</p>
+                <p>Once created, Child Nameservers get registered with the Registry under this Domain Name.</p>
+                <p>When you associate these nameservers with your domains, these details will be visible in the WHOIS results.</p>
                 <div class="store-child-details-tip">
-                    <p>Learn More about Child Name Servers</p>
+                    <p>Learn More about Child Nameservers</p>
                 </div>
             </div>
             <div class="store-child-details-foot">

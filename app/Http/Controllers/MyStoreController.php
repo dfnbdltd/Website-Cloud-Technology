@@ -158,7 +158,7 @@ class MyStoreController extends Controller
             ]);
 
             return redirect()->route('mystore.domains.details', $item)
-                ->withErrors(['nameservers' => 'Cloud Technology could not find this domain order. Please contact support.'])
+                ->withErrors(['nameservers' => 'Cloud Technology unable to update nameservers. Please check correct nameserver and try again.'])
                 ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
         }
@@ -172,7 +172,7 @@ class MyStoreController extends Controller
             ]);
 
             return redirect()->route('mystore.domains.details', $item)
-                ->withErrors(['nameservers' => 'Cloud Technology could not update these nameservers. Please check the values and try again.'])
+                ->withErrors(['nameservers' => 'Cloud Technology unable to update nameservers. Please check correct nameserver and try again.'])
                 ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
         }
