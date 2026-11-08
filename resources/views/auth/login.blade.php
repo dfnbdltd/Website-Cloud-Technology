@@ -16,7 +16,7 @@
 <main class="login-stage">
     <section class="login-card" aria-labelledby="loginTitle">
         <span class="login-eyebrow">Sign in</span>
-        <h1 id="loginTitle">Welcome back</h1>
+        <h1 id="loginTitle">Please Sign In</h1>
 
         @if(session('success'))
             <div class="login-alert success">{{ session('success') }}</div>

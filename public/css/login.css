@@ -305,6 +305,38 @@
     .login-note{font-size:13px}
 }
 
+/* Short laptop screens need a compact rhythm so the complete card remains
+   visible without making the normal desktop layout feel cramped. */
+@media (min-width:641px) and (max-height:820px){
+    .login-header-inner{height:72px}
+    .login-page .login-brand .ct-logo-img{height:50px}
+    .login-stage{
+        min-height:calc(100vh - 72px);
+        align-items:flex-start;
+        padding:28px 20px 36px;
+    }
+    .login-card{
+        max-width:520px;
+        padding:24px 36px 22px;
+        border-radius:12px;
+    }
+    .login-eyebrow{font-size:11px}
+    .login-card h1{font-size:28px;margin:10px 0 20px}
+    .login-alert{padding:9px 12px;margin-bottom:13px;font-size:12px}
+    .login-field{margin-bottom:14px}
+    .login-label{margin-bottom:6px;font-size:13.5px}
+    .login-input{height:46px;padding:0 14px;font-size:15px}
+    .login-password .login-input{padding-right:48px}
+    .login-meta{margin:-1px 0 15px}
+    .login-check,.login-forgot{font-size:13.5px}
+    .login-submit{height:46px;font-size:15px}
+    .login-note{margin-top:14px;font-size:12px;line-height:1.5}
+    .login-note-icon{width:16px;height:16px;margin-top:2px}
+    .login-divider{margin:16px 0 14px}
+    .login-foot{font-size:13.5px}
+    .login-cart{margin-top:12px;padding:7px 10px;font-size:12px}
+}
+
 @media (prefers-reduced-motion:reduce){
     .login-card{animation:none}
     .login-submit,.login-eye,.login-input{transition:none}

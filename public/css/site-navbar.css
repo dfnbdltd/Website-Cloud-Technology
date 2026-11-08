@@ -121,17 +121,17 @@
    <=960px the links collapse into a hamburger-driven panel; nothing is
    rendered inline, so the header stays a single compact row. */
 @media(max-width:960px){
-#site-navbar .site-wrap{padding-left:20px;padding-right:20px}
+#site-navbar .site-wrap{padding-left:clamp(12px,3vw,20px);padding-right:clamp(12px,3vw,20px)}
 /* One clean row: logo left · phone + account + hamburger right.
    Only .site-account gets margin-left:auto so there is exactly ONE gap,
    not two competing ones (which used to strand the hamburger mid-bar). */
-#site-navbar .site-header-inner{display:flex;flex-wrap:nowrap;align-items:center;gap:12px;height:auto;min-height:68px;padding-top:10px;padding-bottom:10px}
+#site-navbar .site-header-inner{display:flex;flex-wrap:nowrap;align-items:center;gap:clamp(6px,1.5vw,12px);height:auto;min-height:68px;padding-top:10px;padding-bottom:10px}
 #site-navbar .site-logo{flex:0 0 auto}
 #site-navbar .site-logo .ct-logo-img{height:42px}
-#site-navbar .site-account{order:2;margin-left:auto;gap:12px;min-width:0}
+#site-navbar .site-account{order:2;margin-left:auto;gap:clamp(5px,1.5vw,12px);min-width:0}
 #site-navbar .site-nav-toggle{order:3;display:flex;margin-left:0}
 #site-navbar .site-phone span{display:none}
-#site-navbar .site-phone{padding:8px;font-size:17px}
+#site-navbar .site-phone{padding:clamp(4px,1vw,8px);font-size:clamp(15px,2vw,17px)}
 
 /* The panel: slides down under the header, scrolls if it is tall. */
 #site-navbar .site-nav{position:absolute;top:100%;left:0;right:0;z-index:40;display:none;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:0;width:100%;margin:0;padding:8px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 18px 34px #0f172a1f;max-height:calc(100vh - 68px);overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -147,7 +147,7 @@
 #site-navbar .site-nav-dropdown>a:after{content:'⌄';display:block;margin-left:auto;color:var(--muted);font-size:14px;transition:transform .2s ease}
 #site-navbar .site-nav-dropdown.open>a:after{transform:rotate(180deg)}
 /* Account controls sit inside the same flow on small screens. */
-#site-navbar .site-account{gap:10px}
+#site-navbar .site-account{gap:clamp(5px,1.5vw,10px)}
 #site-navbar .site-client-area-menu{width:min(240px,calc(100vw - 40px))}
 }
 @media(max-width:560px){
