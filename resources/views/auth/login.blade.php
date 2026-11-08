@@ -16,7 +16,7 @@
 <main class="login-stage">
     <section class="login-card" aria-labelledby="loginTitle">
         <span class="login-eyebrow">Sign in</span>
-        <h1 id="loginTitle">Please Sign In</h1>
+        <h1 id="loginTitle">Enter your login credentials</h1>
 
         @if(session('success'))
             <div class="login-alert success">{{ session('success') }}</div>
@@ -81,6 +81,8 @@
         var toggle = document.getElementById('passwordToggle');
         var field = document.getElementById('loginPassword');
         if (!toggle || !field) { return; }
+        toggle.querySelector('.eye-open').setAttribute('hidden', 'hidden');
+        toggle.querySelector('.eye-off').removeAttribute('hidden');
         toggle.addEventListener('click', function () {
             var show = field.type === 'password';
             field.type = show ? 'text' : 'password';

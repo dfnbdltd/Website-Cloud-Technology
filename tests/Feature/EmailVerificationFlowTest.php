@@ -173,9 +173,7 @@ class EmailVerificationFlowTest extends TestCase
                 'email',
                 'phone',
                 'address1',
-                'city',
                 'country',
-                'postcode',
                 'terms',
                 'password',
             ]);

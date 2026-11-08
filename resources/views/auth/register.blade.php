@@ -199,7 +199,7 @@
                         <small class="reg4-field-error" id="error-name" data-field-error="name">@error('name'){{ $message }}@enderror</small>
                     </label>
                     <label class="reg4-field reg4-span {{ $errors->has('email') ? 'is-invalid' : '' }}">
-                        <span>Email Address <em class="reg4-req">*</em><small class="reg4-inline-hint">This becomes your login ID &mdash; we'll send a verification link here.</small></span>
+                        <span>Email Address <em class="reg4-req">*</em><small class="reg4-inline-hint">This will be your login ID &mdash; we'll send a verification link here.</small></span>
                         <input type="email" name="email" value="{{ old('email') }}" class="{{ $errors->has('email') ? 'is-invalid' : '' }}" aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}" aria-describedby="error-email" placeholder="you@company.com" autocomplete="email" required>
                         <small class="reg4-field-error" id="error-email" data-field-error="email">@error('email'){{ $message }}@enderror</small>
                     </label>
@@ -247,13 +247,13 @@
                         <small class="reg4-field-error" id="error-address1" data-field-error="address1">@error('address1'){{ $message }}@enderror</small>
                     </label>
                     <label class="reg4-field {{ $errors->has('city') ? 'is-invalid' : '' }}">
-                        <span>City <em class="reg4-req">*</em></span>
-                        <input type="text" name="city" value="{{ old('city') }}" class="{{ $errors->has('city') ? 'is-invalid' : '' }}" aria-invalid="{{ $errors->has('city') ? 'true' : 'false' }}" aria-describedby="error-city" placeholder="City" autocomplete="address-level2" required>
+                        <span>City <small class="reg4-opt">(Optional)</small></span>
+                        <input type="text" name="city" value="{{ old('city') }}" class="{{ $errors->has('city') ? 'is-invalid' : '' }}" aria-invalid="{{ $errors->has('city') ? 'true' : 'false' }}" aria-describedby="error-city" placeholder="City" autocomplete="address-level2">
                         <small class="reg4-field-error" id="error-city" data-field-error="city">@error('city'){{ $message }}@enderror</small>
                     </label>
                     <label class="reg4-field {{ $errors->has('postcode') ? 'is-invalid' : '' }}">
-                        <span>Postcode <em class="reg4-req">*</em></span>
-                        <input type="text" name="postcode" value="{{ old('postcode') }}" class="{{ $errors->has('postcode') ? 'is-invalid' : '' }}" aria-invalid="{{ $errors->has('postcode') ? 'true' : 'false' }}" aria-describedby="error-postcode" placeholder="Postcode" autocomplete="postal-code" required>
+                        <span>Postcode <small class="reg4-opt">(Optional)</small></span>
+                        <input type="text" name="postcode" value="{{ old('postcode') }}" class="{{ $errors->has('postcode') ? 'is-invalid' : '' }}" aria-invalid="{{ $errors->has('postcode') ? 'true' : 'false' }}" aria-describedby="error-postcode" placeholder="Postcode" autocomplete="postal-code">
                         <small class="reg4-field-error" id="error-postcode" data-field-error="postcode">@error('postcode'){{ $message }}@enderror</small>
                     </label>
                 </div>

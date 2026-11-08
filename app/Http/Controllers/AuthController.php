@@ -222,9 +222,9 @@ class AuthController extends Controller
             'company_name' => ['nullable', 'string', 'max:190'],
             'address1' => ['required', 'string', 'max:190'],
             // address2 and state are intentionally not collected on the sign-up form.
-            'city' => ['required', 'string', 'max:120'],
+            'city' => ['nullable', 'string', 'max:120'],
             'country' => ['required', 'string', 'max:120'],
-            'postcode' => ['required', 'string', 'max:30'],
+            'postcode' => ['nullable', 'string', 'max:30'],
             'currency' => ['required', 'string', 'max:10'],
             'terms' => ['required', 'accepted'],
             'password' => ['required', 'string', 'confirmed', new StrongPassword],
@@ -250,9 +250,9 @@ class AuthController extends Controller
             'phone' => $normalizedPhone,
             'company_name' => $data['company_name'] ?? null,
             'address1' => $data['address1'],
-            'city' => $data['city'],
+            'city' => $data['city'] ?? null,
             'country' => $data['country'],
-            'postcode' => $data['postcode'],
+            'postcode' => $data['postcode'] ?? null,
             'currency' => $data['currency'],
             'found_us' => null,
         ]);
