@@ -3,9 +3,11 @@
 ## Stack / run
 - Laravel 6.20, PHP ^7.2.5|^8.0. Plain CSS/JS in public/css + public/js (no build step). No arrow functions needed (7.2 floor).
 - Local PHP CLI is 8.4 → `php artisan` fine, but plain `vendor/bin/phpunit` FATAL. Use
-  **`php80 vendor\bin\phpunit`**. Suite: 109 tests; only these 3 pre-existing failures:
-  DomainTermPricingTest (testCustomerCanSelectApiPricedRegistrationTerm, testCatalogUsesApiTermPrices…),
-  InvoiceWorkflowTest::testCustomerPdfHidesPurchaseAndProfit.
+  **`php80 vendor\bin\phpunit`**. Suite (155 tests) has PRE-EXISTING red: 9 failures / 2 errors —
+  mostly `ResellerClubDomainContacts::extractDefaultContactId()` missing (DomainRegistrationServiceTest,
+  AdminApiConnectionsTest), DomainTermPricingTest, InvoiceWorkflowTest::testCustomerPdfHidesPurchaseAndProfit,
+  and DomainTransferWorkflowTest expects `60-Day Rule:` but the view says `60-Day Rule`. Verified identical
+  at HEAD, so don't chase them when you only touched views/CSS.
 - Views are standalone Blade (no layouts) EXCEPT the store pages, which use
   `resources/views/store/layout.blade.php` via `@extends('store.layout', ['pageTitle'=>…,'navActive'=>…,'topbarTitle'=>…])`.
   Partials: head (loads app.css + workspace.css), sidebar (loads sidebar-nav.css AFTER domains.css),
@@ -16,6 +18,8 @@
 - **Never `write_file` an existing CSS/asset file** (it replaces the whole file). Read it, then append.
 - Browser: after /logout a fresh page load is needed (CSRF 419). Viewport-switch geometry can report the
   previous layout; reload after switching viewports before trusting overflow numbers.
+- Local shortcut for browser checks: `GET /__probe-login` (user-committed TEMP-PROBE route in routes/web.php)
+  seeds `session('customer')` and redirects to /mystore — enough to view client pages without real auth.
 - User commits work as they go, so `git status` may show less than expected.
 
 ## Post-auth redirects
@@ -29,6 +33,26 @@
   Plain sign-in (no cart, no return_to) still → dashboard. `email.verified` meta-refreshes to the target.
 - login/register/verify views forward `return_to` to each other through `$returnTo`.
 - Tests: `tests/Feature/PostAuthRedirectTest.php`.
+
+## Domain transfer page — partials/domain-transfer.blade.php + public/css/domain-transfer.css
+- One partial, two surfaces: `.dt-page--public` (`/services/domain-transfer`, navbar+footer, `.dt-guide` keeps its
+  #f5f8fd→#eef4fb band) and `.dt-page--client` (`/client/coming-soon/domain-transfer`, store layout) where
+  `.dt-page--client .dt-guide{padding:16px 0 12px;background:none}` drops the band into the workspace.
+- Guide column: `.dt-guide-inner` max-width **880px** = width of `.dt-transfer-panel` so heading, "7 steps" chip,
+  panel, prep grid and after-card share one right edge.
+- Steps (redesigned): `<div class="dt-transfer-panel">` white card (radius 22, padding 12, soft shadow) wrapping
+  `<ol class="dt-transfer-steps">`; each `li` = grid `var(--dt-step-node)` + copy, `li > button` is the round node
+  (JS keeps click-to-select walkthrough and toggles is-active/is-complete). Copy lives in
+  `.dt-step-body > p.dt-step-text` (15.5/1.62 DM Sans #5c7590; active #10233d 500; complete #6a8298).
+  Node: 44px, idle white + #6b7f95 number, active blue gradient (#3f86f0→#1b53c6) + 5px rgba ring, complete
+  soft green tint + ✓ via `::before` (span hidden).
+- Connector is ONE pseudo-element per row, `li:not(:last-child)::after` in the empty node column
+  (`left:calc(inset + node/2 - 1px)`, `top:calc(pad + node)`, `bottom:calc(pad * -1)`) so it reaches the next node
+  top across row padding. Solid gradient, colour by state (grey / green complete / blue active) — the old dotted
+  rail that looked broken is gone. Row backgrounds live on the CONTENT cell, so nothing ever hides the rail.
+- Responsive knobs are the CSS vars on `.dt-transfer-steps` (≤620px: node 40, inset 10, pad 13); "7 steps" chip
+  hides ≤620px. Verified no horizontal overflow at 390/820/1280 and rail continuity by sampling screenshot pixels.
+- `li` no longer has `tabindex` (button is the only tab stop); JS click/keydown still works through bubbling.
 
 ## My Store (reworked — /mystore = All Items + 7 section pages)
 - `App\Support\StoreInventory` is the single data layer: `sections()` metadata (7 entries: key/label/title/
@@ -108,3 +132,6 @@ handset icon; ≤1200px nav drops under the logo; ≤560px phone text and user n
   real stack trace (that is how the Eloquent merge()/getKey() bug was found), then delete the scratch test.
 - Computed-style inspection of pseudo-elements (`getComputedStyle(el, '::before')`) catches inherited
   decoration from domains.css that a plain visual check would miss.
+- Pixel-proof for purely visual work: `browser_screenshot` a full page (deviceScaleFactor 1, no scroll
+  offset), then sample the rail/node/row coordinates in PHP GD (`imagecolorat`) to prove connectors and
+  states actually paint instead of trusting CSS alone.

@@ -94,17 +94,58 @@
                         <path d="m12 12-4 4 4 4"></path>
                     </svg>
                 </span>
-                <h3>Domain Transfer Procedure</h3>
+                <div class="dt-procedure-heading-copy">
+                    <h3>Domain Transfer Procedure</h3>
+                </div>
+                <span class="dt-steps-count">7 steps</span>
             </div>
-            <ol class="dt-transfer-steps">
-                <li class="is-active" tabindex="0" aria-current="step"><button type="button" aria-label="Select step 1"><span>01</span></button><div>Sign In to your Cloud Technology Account.</div></li>
-                <li tabindex="0"><button type="button" aria-label="Select step 2"><span>02</span></button><div>Go to “Domain &rarr; Domain Transfer”.</div></li>
-                <li tabindex="0"><button type="button" aria-label="Select step 3"><span>03</span></button><div>Enter the domain name and enter the Auth/EPP code, then click continue.</div></li>
-                <li tabindex="0"><button type="button" aria-label="Select step 4"><span>04</span></button><div>Click on “Place Order” and complete the payment.</div></li>
-                <li tabindex="0"><button type="button" aria-label="Select step 5"><span>05</span></button><div>The transfer begins after payment is completed.</div></li>
-                <li tabindex="0"><button type="button" aria-label="Select step 6"><span>06</span></button><div>Approve the confirmation email sent to your administrative contact address.</div></li>
-                <li tabindex="0"><button type="button" aria-label="Select step 7"><span>07</span></button><div>Update your DNS or name servers once the transfer finishes if you are also moving your hosting.</div></li>
-            </ol>
+
+            <div class="dt-transfer-panel">
+                <ol class="dt-transfer-steps">
+                    <li class="is-active" aria-current="step">
+                        <button type="button" aria-label="Select step 1"><span>01</span></button>
+                        <div class="dt-step-body">
+                            <p class="dt-step-text">Sign In to your Cloud Technology Account.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <button type="button" aria-label="Select step 2"><span>02</span></button>
+                        <div class="dt-step-body">
+                            <p class="dt-step-text">Go to &ldquo;Domain &rarr; Domain Transfer&rdquo;.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <button type="button" aria-label="Select step 3"><span>03</span></button>
+                        <div class="dt-step-body">
+                            <p class="dt-step-text">Enter the domain name and enter the Auth/EPP code, then click continue.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <button type="button" aria-label="Select step 4"><span>04</span></button>
+                        <div class="dt-step-body">
+                            <p class="dt-step-text">Click on &ldquo;Place Order&rdquo; and complete the payment.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <button type="button" aria-label="Select step 5"><span>05</span></button>
+                        <div class="dt-step-body">
+                            <p class="dt-step-text">The transfer begins after payment is completed.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <button type="button" aria-label="Select step 6"><span>06</span></button>
+                        <div class="dt-step-body">
+                            <p class="dt-step-text">Approve the confirmation email sent to your administrative contact address.</p>
+                        </div>
+                    </li>
+                    <li>
+                        <button type="button" aria-label="Select step 7"><span>07</span></button>
+                        <div class="dt-step-body">
+                            <p class="dt-step-text">Update your DNS or name servers once the transfer finishes if you are also moving your hosting.</p>
+                        </div>
+                    </li>
+                </ol>
+            </div>
         </div>
 
         <div class="dt-procedure-section dt-procedure-section--after">
@@ -118,7 +159,6 @@
                 <h3>After Submitting Transfer Procedure</h3>
             </div>
             <div class="dt-after-card">
-                <div class="dt-after-card-icon" aria-hidden="true">✓</div>
                 <ul class="dt-after-list">
                     <li>Keep the domain unlocked.</li>
                     <li>Do not change the EPP/authorization code while the transfer is in progress.</li>
