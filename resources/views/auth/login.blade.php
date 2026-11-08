@@ -16,7 +16,7 @@
 <main class="login-stage">
     <section class="login-card" aria-labelledby="loginTitle">
         <span class="login-eyebrow">Sign in</span>
-        <h1 id="loginTitle">Enter your login credentials</h1>
+        <h1 id="loginTitle">Insert your login credentials</h1>
 
         @if(session('success'))
             <div class="login-alert success">{{ session('success') }}</div>
@@ -89,11 +89,11 @@
             var open = toggle.querySelector('.eye-open');
             var closed = toggle.querySelector('.eye-off');
             if (show) {
-                open.setAttribute('hidden', 'hidden');
-                closed.removeAttribute('hidden');
-            } else {
                 closed.setAttribute('hidden', 'hidden');
                 open.removeAttribute('hidden');
+            } else {
+                open.setAttribute('hidden', 'hidden');
+                closed.removeAttribute('hidden');
             }
             toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
             toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
