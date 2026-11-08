@@ -501,11 +501,26 @@ document.querySelectorAll('.store-child-ns-trigger').forEach(function (button) {
     var rows = modal.querySelector('.store-child-rows');
     var template = rows ? rows.querySelector('.store-child-row') : null;
 
+    function resetChildForm() {
+        if (!rows || !template) {
+            return;
+        }
+
+        var firstRow = template.cloneNode(true);
+        firstRow.querySelectorAll('input').forEach(function (input) {
+            input.value = '';
+        });
+        rows.innerHTML = '';
+        rows.appendChild(firstRow);
+    }
+
     function closeChild() {
+        resetChildForm();
         modal.hidden = true;
     }
 
     button.addEventListener('click', function () {
+        resetChildForm();
         modal.hidden = false;
     });
 
