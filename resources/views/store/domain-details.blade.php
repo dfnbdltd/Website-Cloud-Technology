@@ -331,12 +331,41 @@
 document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
     var view = panel.querySelector('.store-ns-view');
     var form = panel.querySelector('.store-nameserver-form');
+    var inputList = form.querySelector('.store-ns-input-list');
     var close = panel.querySelector('.store-ns-modal-close');
     var cancel = panel.querySelector('.store-ns-cancel');
     var pencils = panel.querySelectorAll('.store-ns-pencil');
     var add = panel.querySelector('.store-ns-add');
     var submit = panel.querySelector('.store-ns-submit');
     var initialValues = [];
+    var savedValues = @json(array_values($nameservers));
+
+    function createInputRow(value, index) {
+        var row = document.createElement('div');
+        row.className = 'store-ns-input-row';
+        row.innerHTML = '<div class="store-ns-field">' +
+            '<input type="text" value="" placeholder="ns' + (index + 1) + '.example.com" aria-label="Nameserver ' + (index + 1) + '" required>' +
+            '<span class="store-ns-field-icon" aria-hidden="true">' +
+            '<svg class="store-ns-icon-ok" viewBox="0 0 24 24"><path d="m6.5 12.5 4 4 7-8"></path></svg>' +
+            '<svg class="store-ns-icon-bad" viewBox="0 0 24 24"><path d="M12 7.5v6.2"></path><path d="M12 17.2h.01"></path></svg>' +
+            '</span><small class="store-ns-field-msg"></small></div>';
+        row.querySelector('input').value = value || '';
+        return row;
+    }
+
+    function resetForm() {
+        var values = savedValues.length ? savedValues : ['ns1.example.com', 'ns2.example.com'];
+        inputList.innerHTML = '';
+        values.forEach(function (value, index) {
+            inputList.appendChild(createInputRow(value, index));
+        });
+        initialValues = values.slice();
+        form.querySelector('.store-ns-submit-value').value = values.join('\n');
+        form.dataset.submitting = '0';
+        submit.classList.remove('is-loading');
+        submit.removeAttribute('aria-busy');
+        updateSubmitState();
+    }
 
     function showEdit() {
         panel.classList.add('is-editing');
@@ -369,19 +398,21 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
     }
     function closePanel() {
         clearFeedback();
+        resetForm();
         panel.removeAttribute('open');
         panel.classList.remove('is-editing');
     }
     pencils.forEach(function (button) { button.addEventListener('click', showEdit); });
     form.addEventListener('input', updateSubmitState);
     close.addEventListener('click', closePanel);
-    cancel.addEventListener('click', function () { panel.classList.remove('is-editing'); });
+    cancel.addEventListener('click', function () {
+        resetForm();
+        panel.classList.remove('is-editing');
+    });
     panel.querySelector('.store-ns-modal-backdrop').addEventListener('click', closePanel);
     add.addEventListener('click', function () {
-        var row = document.createElement('div');
-        row.className = 'store-ns-input-row';
-        row.innerHTML = '<input type="text" placeholder="ns.example.com" required><b>*</b>';
-        form.querySelector('.store-ns-input-list').appendChild(row);
+        var row = createInputRow('', inputList.querySelectorAll('.store-ns-input-row').length);
+        inputList.appendChild(row);
         row.querySelector('input').addEventListener('input', updateSubmitState);
         updateSubmitState();
     });
