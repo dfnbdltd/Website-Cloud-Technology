@@ -1,6 +1,16 @@
-@extends('store.layout', ['pageTitle' => 'Manage ' . $item->domain, 'navActive' => 'my-domains', 'topbarTitle' => 'My Store'])
+@extends('store.layout', ['pageTitle' => 'Manage ' . $item->domain, 'navActive' => 'my-domains', 'topbarTitle' => 'My Store', 'hideStoreAlerts' => true])
 
 @section('store')
+    @php
+        $oldNameservers = old('nameservers');
+        if (is_string($oldNameservers)) {
+            $oldNameservers = preg_split('/\r\n|\r|\n/', $oldNameservers);
+        }
+        $oldNameservers = is_array($oldNameservers)
+            ? array_values(array_filter(array_map('trim', $oldNameservers), function ($value) { return $value !== ''; }))
+            : [];
+        $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.example.com']);
+    @endphp
     <div class="store-domain-detail-head">
         <div>
             <a class="store-back" href="{{ route('mystore.domains') }}">← My Domains</a>
@@ -44,7 +54,7 @@
                         <h2>NAME SERVERS &amp; DNS</h2>
                         <p class="store-ns-subtitle">Choose where this domain points on the internet.</p>
                         <div class="store-ns-actions">
-                            <details class="store-ns-edit @if($errors->any() || old('nameservers')) is-editing @endif" @if($errors->any() || old('nameservers')) open @endif>
+                            <details class="store-ns-edit @if($errors->any() || old('nameservers')) is-editing @endif" @if($errors->any() || old('nameservers') || session('success')) open @endif>
                                 <summary class="store-ns-btn store-ns-btn-primary">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                                         <path d="M12 20h9"></path>
@@ -59,6 +69,21 @@
                                         <div class="store-ns-modal-main">
                                             <h3>NAME SERVERS &amp; DNS</h3>
                                             <p class="store-ns-modal-domain">For: <strong>{{ $item->domain }}</strong></p>
+                                            @if($errors->any())
+                                                <div class="store-ns-alert is-error" role="alert">
+                                                    <span class="store-ns-alert-icon" aria-hidden="true">
+                                                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5"></path><path d="M12 16.4h.01"></path></svg>
+                                                    </span>
+                                                    <span class="store-ns-alert-text">{{ $errors->first() }}</span>
+                                                </div>
+                                            @elseif(session('success'))
+                                                <div class="store-ns-alert is-success" role="status">
+                                                    <span class="store-ns-alert-icon" aria-hidden="true">
+                                                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m8.2 12.3 2.6 2.6 5-5.2"></path></svg>
+                                                    </span>
+                                                    <span class="store-ns-alert-text">{{ session('success') }}</span>
+                                                </div>
+                                            @endif
                                             <div class="store-child-note store-ns-modal-note">
                                                 <p>Not sure which name server option is right for this domain?</p>
                                                 <button type="button" class="store-child-info-trigger store-ns-info-button" aria-haspopup="dialog" aria-controls="nameserver-details-{{ $item->id }}">
@@ -96,18 +121,25 @@
                                                     <p class="store-ns-empty-hint">Use the edit icon to add your nameservers.</p>
                                                 @endif
                                             </div>
-                                            <form method="POST" action="{{ route('mystore.domains.nameservers', $item->id) }}" class="store-nameserver-form">
+                                            <form method="POST" action="{{ route('mystore.domains.nameservers', $item->id) }}" class="store-nameserver-form" novalidate>
                                                 @csrf
-                                                <textarea name="nameservers" class="store-ns-submit-value" hidden>{{ old('nameservers', implode("\n", $nameservers ?: ['ns1.example.com', 'ns2.example.com'])) }}</textarea>
+                                                <textarea name="nameservers" class="store-ns-submit-value" hidden>{{ implode("\n", $editNameservers) }}</textarea>
                                                 <p class="store-ns-recommendation">We recommend adding at least 2 name servers</p>
                                                 <div class="store-ns-input-list">
-                                                    @foreach($nameservers ?: ['ns1.example.com', 'ns2.example.com'] as $index => $nameserver)
+                                                    @foreach($editNameservers as $index => $nameserver)
                                                         <div class="store-ns-input-row">
-                                                            <input type="text" value="{{ old('nameservers.' . $index, $nameserver) }}" placeholder="ns{{ $index + 1 }}.example.com" required>
-                                                            <b>*</b>
+                                                            <div class="store-ns-field">
+                                                                <input type="text" value="{{ $nameserver }}" placeholder="ns{{ $index + 1 }}.example.com" aria-label="Nameserver {{ $index + 1 }}" required>
+                                                                <span class="store-ns-field-icon" aria-hidden="true">
+                                                                    <svg class="store-ns-icon-ok" viewBox="0 0 24 24"><path d="m6.5 12.5 4 4 7-8"></path></svg>
+                                                                    <svg class="store-ns-icon-bad" viewBox="0 0 24 24"><path d="M12 7.5v6.2"></path><path d="M12 17.2h.01"></path></svg>
+                                                                </span>
+                                                                <small class="store-ns-field-msg"></small>
+                                                            </div>
                                                         </div>
                                                     @endforeach
                                                 </div>
+                                                <p class="store-ns-form-status" role="status" aria-live="polite"></p>
                                                 <button type="button" class="store-ns-add">+ Add Name Servers</button>
                                                 <div class="store-ns-form-actions">
                                                     <button class="store-primary store-ns-submit" type="submit" disabled>Update Name Servers</button>
@@ -325,10 +357,17 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
         row.querySelector('input').addEventListener('input', updateSubmitState);
         updateSubmitState();
     });
-    form.addEventListener('submit', function () {
+    form.addEventListener('submit', function (event) {
+        if (form.dataset.submitting === '1') {
+            event.preventDefault();
+            return;
+        }
+        form.dataset.submitting = '1';
         form.querySelector('.store-ns-submit-value').value = Array.prototype.map.call(form.querySelectorAll('.store-ns-input-row input'), function (input) {
             return input.value.trim();
         }).filter(Boolean).join('\n');
+        submit.classList.add('is-loading');
+        submit.setAttribute('aria-busy', 'true');
     });
 });
 

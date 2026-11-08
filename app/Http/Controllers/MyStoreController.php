@@ -139,12 +139,12 @@ class MyStoreController extends Controller
         ], [
             'nameservers.min' => 'Enter at least two nameservers, one per line.',
             'nameservers.max' => 'Enter no more than 13 nameservers.',
-            'nameservers.*.regex' => 'Enter valid hostnames such as ns1.example.com.',
+            'nameservers.*.regex' => 'That is not a valid nameserver hostname. Use a format like ns1.example.com.',
             'nameservers.*.distinct' => 'Each nameserver must be unique.',
         ]);
 
         if ($validator->fails()) {
-            return redirect()->route('mystore.domains')
+            return redirect()->route('mystore.domains.details', $item)
                 ->withErrors($validator)
                 ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
@@ -157,8 +157,8 @@ class MyStoreController extends Controller
                 'user_id' => $userId,
             ]);
 
-            return redirect()->route('mystore.domains')
-                ->withErrors(['nameservers' => 'ResellerClub could not find this domain order. Please contact support.'])
+            return redirect()->route('mystore.domains.details', $item)
+                ->withErrors(['nameservers' => 'Cloud Technology could not find this domain order. Please contact support.'])
                 ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
         }
@@ -171,13 +171,13 @@ class MyStoreController extends Controller
                 'response' => $response,
             ]);
 
-            return redirect()->route('mystore.domains')
-                ->withErrors(['nameservers' => 'ResellerClub could not update these nameservers. Please check the values and try again.'])
+            return redirect()->route('mystore.domains.details', $item)
+                ->withErrors(['nameservers' => 'Cloud Technology could not update these nameservers. Please check the values and try again.'])
                 ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
         }
 
-        return redirect()->route('mystore.domains')
+        return redirect()->route('mystore.domains.details', $item)
             ->with('success', 'Nameservers for ' . $item->domain . ' were updated successfully.')
             ->with('manage_domain_item', $item->id);
     }

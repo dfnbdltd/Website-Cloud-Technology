@@ -11,8 +11,8 @@
 <main class="domain-main">
     @include('partials.topbar', ['title' => $topbarTitle, 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
     <div class="domain-content standalone-content store-page">
-        @if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
-        @if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
+        @if(session('success') && empty($hideStoreAlerts))<div class="domain-alert success">{{ session('success') }}</div>@endif
+        @if($errors->any() && empty($hideStoreAlerts))<div class="domain-alert error">{{ $errors->first() }}</div>@endif
         @yield('store')
     </div>
 </main>
