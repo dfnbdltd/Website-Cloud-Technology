@@ -81,17 +81,15 @@
 #site-navbar .site-user>span:not(.site-avatar){max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #site-navbar .site-phone{font-size:13px;letter-spacing:-.1px}
 }
-/* 1500px and under: the phone number folds down to the handset icon
-   (the tel: link and its aria-label are unchanged) and the rows tighten.
-   Keeping this tier wide means the seven links + account never wrap on
-   laptop widths, even for signed-in customers with the extra pills. */
+/* 1500px and under: keep the support number visible while tightening the
+   navigation spacing for laptop widths. */
 @media(min-width:961px) and (max-width:1500px){
 #site-navbar .site-header-inner{gap:14px;max-width:1240px}
 #site-navbar .site-logo .ct-logo-img{height:44px}
 #site-navbar .site-nav a,#site-navbar .site-nav-dropdown>a{padding:8px 9px;font-size:14.5px}
 #site-navbar .site-nav{gap:2px}
-#site-navbar .site-phone span{display:none}
-#site-navbar .site-phone{padding:8px 8px;font-size:16px}
+#site-navbar .site-phone span{display:inline}
+#site-navbar .site-phone{gap:4px;padding:6px 4px;font-size:13px;letter-spacing:-.15px}
 #site-navbar .site-user>span:not(.site-avatar){max-width:104px}
 }
 
@@ -130,8 +128,8 @@
 #site-navbar .site-logo .ct-logo-img{height:42px}
 #site-navbar .site-account{order:2;margin-left:auto;gap:clamp(5px,1.5vw,12px);min-width:0}
 #site-navbar .site-nav-toggle{order:3;display:flex;margin-left:0}
-#site-navbar .site-phone span{display:none}
-#site-navbar .site-phone{padding:clamp(4px,1vw,8px);font-size:clamp(15px,2vw,17px)}
+#site-navbar .site-phone span{display:inline}
+#site-navbar .site-phone{gap:4px;padding:clamp(4px,1vw,8px);font-size:clamp(12px,1.8vw,15px);letter-spacing:-.15px}
 
 /* The panel: slides down under the header, scrolls if it is tall. */
 #site-navbar .site-nav{position:absolute;top:100%;left:0;right:0;z-index:40;display:none;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:0;width:100%;margin:0;padding:8px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 18px 34px #0f172a1f;max-height:calc(100vh - 68px);overflow-y:auto;-webkit-overflow-scrolling:touch}
