@@ -35,7 +35,7 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                     <p>Order {{ $order->reference }} · {{ max(1, (int) $item->years) }} year registration</p>
                 </div>
                 @if($invoice)
-                <a class="store-ghost-link" href="{{ route('invoices.view', $invoice) }}">View Invoice</a>
+                <a class="store-ghost-link" href="{{ route('invoices.view', $invoice) }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}">View Invoice</a>
                 @endif
             </div>
             <div class="store-detail-facts store-detail-facts--inline">

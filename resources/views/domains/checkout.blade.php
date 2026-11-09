@@ -224,13 +224,13 @@
                 <section class="checkout-form checkout-auth-panel">
                     <h2>Confirm with your account</h2>
                     <p class="checkout-auth-lead">Log in so your domain is registered in your own name — or create an account in under a minute. Your order stays safe in your cart.</p>
-                    <a class="checkout-auth-card" href="{{ route('login', ['return_to' => request()->getRequestUri()]) }}">
+                    <a class="checkout-auth-card" href="{{ route('login', ['return_to' => \App\Support\ReturnTo::path()]) }}">
                         <span class="checkout-auth-icon">👤</span>
                         <span><strong>Log in to confirm</strong><small>Use your saved details and continue to payment</small></span>
                         <b>→</b>
                     </a>
                     <div class="checkout-auth-or">Or</div>
-                    <a class="checkout-auth-card ghost" href="{{ route('register', ['return_to' => request()->getRequestUri()]) }}">
+                    <a class="checkout-auth-card ghost" href="{{ route('register', ['return_to' => \App\Support\ReturnTo::path()]) }}">
                         <span class="checkout-auth-icon">✚</span>
                         <span><strong>Create new account</strong><small>The domain will be assigned to your new account</small></span>
                         <b>→</b>

@@ -53,7 +53,7 @@
             <footer class="store-item-foot">
                 <div class="store-item-links">
                     @if($item['invoice'])
-                        <a href="{{ route('invoices.view', $item['invoice']) }}">Invoice {{ $item['invoice']->invoice_number }}</a>
+                        <a href="{{ route('invoices.view', $item['invoice']) }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}">Invoice {{ $item['invoice']->invoice_number }}</a>
                         <a href="{{ route('invoices.pdf', $item['invoice']) }}?download=1">Download PDF</a>
                     @endif
                     @if(!empty($section['cta']['route']))

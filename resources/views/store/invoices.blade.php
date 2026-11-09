@@ -32,9 +32,9 @@
                     </b>
                     <span>
                         @if($invoice)
-                            <a class="store-link" href="{{ route('invoices.view', $invoice) }}">{{ $invoice->invoice_number }}</a>
+                            <a class="store-link" href="{{ route('invoices.view', $invoice) }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}">{{ $invoice->invoice_number }}</a>
                             <div class="store-row-note">
-                                <a class="store-link" href="{{ route('invoices.view', $invoice) }}">View</a> ·
+                                <a class="store-link" href="{{ route('invoices.view', $invoice) }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}">View</a> ·
                                 <a class="store-link" href="{{ route('invoices.pdf', $invoice) }}?download=1">PDF</a>
                             </div>
                         @else

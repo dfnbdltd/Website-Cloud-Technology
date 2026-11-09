@@ -40,7 +40,7 @@
                         {{ $payment['description'] }}
                         @if($payment['invoice'])
                             <div class="store-row-note">
-                                <a class="store-link" href="{{ route('invoices.view', $payment['invoice']) }}">{{ $payment['invoice']->invoice_number }}</a>
+                                <a class="store-link" href="{{ route('invoices.view', $payment['invoice']) }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}">{{ $payment['invoice']->invoice_number }}</a>
                             </div>
                         @endif
                     </span>

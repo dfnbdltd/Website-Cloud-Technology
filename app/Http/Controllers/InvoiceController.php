@@ -27,6 +27,8 @@ class InvoiceController extends Controller
         return view('invoices.show', [
             'invoice' => $invoice->loadMissing('items', 'user'),
             'isAdmin' => false,
+            // Back returns to whichever list opened this invoice.
+            'backUrl' => \App\Support\ReturnTo::url(route('invoices')),
         ]);
     }
 

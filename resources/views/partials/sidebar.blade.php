@@ -14,7 +14,7 @@
         <div class="subnav{{ $domainMenuActive ? ' open' : '' }}" id="domainRegistrationSubnav">
             <div class="subnav-inner">
                 <a data-sidebar-label="Domain Registration" {!! $active === 'domains' ? 'class="active"' : '' !!} href="{{ route('domains.index') }}"><span>Domain Registration</span></a>
-                <a data-sidebar-label="Domain Transfer" {!! $active === 'domain-transfer' ? 'class="active"' : '' !!} href="{{ route('client.coming-soon', 'domain-transfer') }}?back={{ urlencode(request()->getRequestUri()) }}"><span>Domain Transfer</span></a>
+                <a data-sidebar-label="Domain Transfer" {!! $active === 'domain-transfer' ? 'class="active"' : '' !!} href="{{ route('client.coming-soon', 'domain-transfer') }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}"><span>Domain Transfer</span></a>
             </div>
         </div>
         <a data-sidebar-label="Web Hosting" href="#" data-current="{{ $hostingMenuActive ? 'true' : 'false' }}" {!! $hostingMenuActive ? 'class="active open hosting-package-toggle service-nav-item"' : 'class="hosting-package-toggle service-nav-item"' !!} aria-expanded="{{ $hostingMenuActive ? 'true' : 'false' }}" aria-controls="hostingPackageSubnav"><b>▤</b><span>Web Hosting</span><i class="nav-caret nav-toggle" aria-hidden="true"></i></a>
@@ -25,9 +25,9 @@
                 <a data-sidebar-label="Dedicated Hosting" {!! $active === 'hosting-dedicated' ? 'class="active"' : '' !!} href="{{ route('client.hosting', 'dedicated') }}"><span>Dedicated Hosting</span></a>
             </div>
         </div>
-        <a data-sidebar-label="SSL Certificate" {!! $active === 'ssl-certificate' ? 'class="active service-nav-item"' : 'class="service-nav-item"' !!} href="{{ route('client.coming-soon', 'ssl-certificate') }}?back={{ urlencode(request()->getRequestUri()) }}"><b>◇</b><span>SSL Certificate</span></a>
-        <a data-sidebar-label="Business Email" {!! $active === 'business-email' ? 'class="active service-nav-item"' : 'class="service-nav-item"' !!} href="{{ route('client.coming-soon', 'business-email') }}?back={{ urlencode(request()->getRequestUri()) }}"><b>✉</b><span>Business Email</span></a>
-        <a data-sidebar-label="SMS Service" {!! $active === 'sms-service' ? 'class="active service-group-end service-nav-item"' : 'class="service-group-end service-nav-item"' !!} href="{{ route('client.coming-soon', 'sms-service') }}?back={{ urlencode(request()->getRequestUri()) }}"><b>✆</b><span>SMS Service</span></a>
+        <a data-sidebar-label="SSL Certificate" {!! $active === 'ssl-certificate' ? 'class="active service-nav-item"' : 'class="service-nav-item"' !!} href="{{ route('client.coming-soon', 'ssl-certificate') }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}"><b>◇</b><span>SSL Certificate</span></a>
+        <a data-sidebar-label="Business Email" {!! $active === 'business-email' ? 'class="active service-nav-item"' : 'class="service-nav-item"' !!} href="{{ route('client.coming-soon', 'business-email') }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}"><b>✉</b><span>Business Email</span></a>
+        <a data-sidebar-label="SMS Service" {!! $active === 'sms-service' ? 'class="active service-group-end service-nav-item"' : 'class="service-group-end service-nav-item"' !!} href="{{ route('client.coming-soon', 'sms-service') }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}"><b>✆</b><span>SMS Service</span></a>
         <span class="sidebar-nav-label sidebar-nav-label-store">Account</span>
         <a data-sidebar-label="My Store" href="#" data-current="{{ $myStoreMenuActive ? 'true' : 'false' }}" {!! $myStoreMenuActive ? 'class="active open service-nav-item"' : 'class="service-nav-item"' !!} aria-expanded="{{ $myStoreMenuActive ? 'true' : 'false' }}" aria-controls="myStoreSubnav"><b>▦</b><span>My Store</span><i class="nav-caret nav-toggle" aria-hidden="true"></i></a>
         <div class="subnav{{ $myStoreMenuActive ? ' open' : '' }}" id="myStoreSubnav">

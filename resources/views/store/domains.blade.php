@@ -26,7 +26,7 @@
     <footer class="store-item-foot">
         <div class="store-item-links">
             @if($transfer['invoice'])
-            <a href="{{ route('invoices.view', $transfer['invoice']) }}">Invoice
+            <a href="{{ route('invoices.view', $transfer['invoice']) }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}">Invoice
                 {{ $transfer['invoice']->invoice_number }}</a>
             <a href="{{ route('invoices.pdf', $transfer['invoice']) }}?download=1">Download PDF</a>
             @endif
