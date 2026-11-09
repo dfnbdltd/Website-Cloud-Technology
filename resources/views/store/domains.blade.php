@@ -1,90 +1,78 @@
 @extends('store.layout', ['pageTitle' => 'My Domains', 'navActive' => 'my-domains', 'topbarTitle' => 'My Store'])
 
 @section('store')
-    @include('store.partials.page-head', ['section' => $section, 'count' => $domains->count() + $transfers->count(), 'countLabel' => 'domain'])
+@include('store.partials.page-head', ['section' => $section, 'count' => $domains->count() + $transfers->count(),
+'countLabel' => 'domain'])
 
-    @foreach($transfers as $transfer)
-        <article class="store-item">
-            <header class="store-item-head">
-                <span class="store-item-icon tone-{{ $section['tone'] }}" aria-hidden="true">{{ $section['icon'] }}</span>
-                <div class="store-item-title">
-                    <h2>{{ $transfer['domain'] }}</h2>
-                    <p>Domain transfer · order <b>{{ $transfer['order']->reference }}</b></p>
-                </div>
-                <span class="table-status {{ $transfer['status'] }}">{{ $transfer['status_label'] }}</span>
-            </header>
-            <div class="store-facts">
-                <div class="store-fact">
-                    <small>TRANSFER</small>
-                    <strong>{{ $transfer['status_label'] }}</strong>
-                    <em>{{ $transfer['status_message'] }}</em>
-                </div>
-                <div class="store-fact">
-                    <small>PAID</small>
-                    <strong>৳ {{ number_format($transfer['price'], 2) }}</strong>
-                    <em>{{ ucfirst(str_replace('_', ' ', (string) $transfer['order']->payment_method ?: 'n/a')) }}</em>
-                </div>
-            </div>
-            <footer class="store-item-foot">
-                <div class="store-item-links">
-                    @if($transfer['invoice'])
-                        <a href="{{ route('invoices.view', $transfer['invoice']) }}">Invoice {{ $transfer['invoice']->invoice_number }}</a>
-                        <a href="{{ route('invoices.pdf', $transfer['invoice']) }}?download=1">Download PDF</a>
-                    @endif
-                    <a href="{{ route('domains.confirmation', $transfer['order']->reference) }}">Order details</a>
-                </div>
-            </footer>
-        </article>
-    @endforeach
+@foreach($transfers as $transfer)
+<article class="store-item">
+    <header class="store-item-head">
+        <span class="store-item-icon tone-{{ $section['tone'] }}" aria-hidden="true">{{ $section['icon'] }}</span>
+        <div class="store-item-title">
+            <h2>{{ $transfer['domain'] }}</h2>
+        </div>
+        <span class="table-status {{ $transfer['status'] }}">{{ $transfer['status_label'] }}</span>
+    </header>
+    <div class="store-facts store-facts--transfer">
+        <div class="store-fact">
+            <small>TRANSFER</small>
+            <strong>{{ $transfer['status_label'] }}</strong>
+        </div>
+        <div class="store-fact">
+            <small>PAID</small>
+            <strong>৳ {{ number_format($transfer['price'], 2) }}</strong>
+        </div>
+    </div>
+    <footer class="store-item-foot">
+        <div class="store-item-links">
+            @if($transfer['invoice'])
+            <a href="{{ route('invoices.view', $transfer['invoice']) }}">Invoice
+                {{ $transfer['invoice']->invoice_number }}</a>
+            <a href="{{ route('invoices.pdf', $transfer['invoice']) }}?download=1">Download PDF</a>
+            @endif
+            <a href="{{ route('domains.confirmation', $transfer['order']->reference) }}">Order details</a>
+        </div>
+    </footer>
+</article>
+@endforeach
 
-    @foreach($domains as $domain)
-        <article class="store-item">
-            <header class="store-item-head">
-                <span class="store-item-icon tone-{{ $section['tone'] }}" aria-hidden="true">{{ $section['icon'] }}</span>
-                <div class="store-item-title">
-                    <h2>{{ $domain['domain'] }}</h2>
-                    <p>
-                        .{{ $domain['tld'] }} · {{ $domain['years'] }} year{{ $domain['years'] > 1 ? 's' : '' }} registration
-                        · order <b>{{ $domain['order']->reference }}</b>
-                    </p>
-                </div>
-                <div class="store-item-actions">
-                    <span class="table-status {{ $domain['order']->payment_status }}">{{ ucfirst(str_replace('_', ' ', $domain['order']->status)) }}</span>
-                    @if($domain['registration_status'] === 'registered' && $domain['order']->status === 'active' && !isset(config('services.test_domains')[$domain['domain']]))
-                        <a class="store-domain-manage-link" href="{{ route('mystore.domains.details', $domain['item_id']) }}">Manage</a>
-                    @endif
-                </div>
-            </header>
+@foreach($domains as $domain)
+<article class="store-item">
+    <header class="store-item-head">
+        <span class="store-item-icon tone-{{ $section['tone'] }}" aria-hidden="true">{{ $section['icon'] }}</span>
+        <div class="store-item-title">
+            <h2>{{ $domain['domain'] }}</h2>
+        </div>
+        <div class="store-item-actions">
+            <span
+                class="table-status {{ $domain['order']->payment_status }}">{{ ucfirst(str_replace('_', ' ', $domain['order']->status)) }}</span>
+            @if($domain['registration_status'] === 'registered' && $domain['order']->status === 'active' &&
+            !isset(config('services.test_domains')[$domain['domain']]))
+            <a class="store-domain-manage-link"
+                href="{{ route('mystore.domains.details', $domain['item_id']) }}">Manage</a>
+            @endif
+        </div>
+    </header>
 
-            <div class="store-facts">
-                <div class="store-fact">
-                    <small>REGISTERED</small>
-                    <strong>{{ $domain['registered_at'] ? $domain['registered_at']->format('d M Y') : '—' }}</strong>
-                    <em>order placed</em>
-                </div>
-                <div class="store-fact">
-                    <small>EXPIRES</small>
-                    <strong>{{ $domain['expires_at'] ? $domain['expires_at']->format('d M Y') : '—' }}</strong>
-                    @if($domain['days_left'] !== null)
-                        <em>{{ $domain['days_left'] >= 0 ? $domain['days_left'] . ' days left' : 'expired' }}</em>
-                    @endif
-                </div>
-                <div class="store-fact">
-                    <small>RENEWAL PRICE</small>
-                    <strong>৳ {{ number_format($domain['renewal_price'], 2) }}<i>/year</i></strong>
-                    <em>after this term</em>
-                </div>
-                <div class="store-fact">
-                    <small>PAID</small>
-                    <strong>৳ {{ number_format($domain['price'] * $domain['years'], 2) }}</strong>
-                    <em>{{ ucfirst(str_replace('_', ' ', (string) $domain['order']->payment_method ?: 'n/a')) }} · order ৳ {{ number_format($domain['order']->total, 2) }}</em>
-                </div>
-            </div>
+    <div class="store-facts">
+        <div class="store-fact">
+            <small>REGISTERED</small>
+            <strong>{{ $domain['registered_at'] ? $domain['registered_at']->format('d M Y') : '—' }}</strong>
+        </div>
+        <div class="store-fact">
+            <small>EXPIRES</small>
+            <strong>{{ $domain['expires_at'] ? $domain['expires_at']->format('d M Y') : '—' }}</strong>
+        </div>
+        <div class="store-fact">
+            <small>RENEWAL </small>
+            <strong>৳ {{ number_format($domain['renewal_price'], 2) }}<i>/year</i></strong>
+        </div>
+    </div>
 
-        </article>
-    @endforeach
+</article>
+@endforeach
 
-    @if($domains->isEmpty() && $transfers->isEmpty())
-        @include('store.partials.empty', ['section' => $section])
-    @endif
+@if($domains->isEmpty() && $transfers->isEmpty())
+@include('store.partials.empty', ['section' => $section])
+@endif
 @endsection

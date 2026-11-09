@@ -130,32 +130,29 @@
     margin-left: auto;
 }
 
-/* ── The control: a small "+", and a plain "−" once the group is open ────
-   No circle, no border, no background — only two thin bars, like the
-   reference. The flat bar is ::before, the upright one ::after; on open the
-   upright bar collapses (scaleX 0), leaving the single flat "−" bar. */
+/* ── Compact circular expand/collapse control ─────────────────────────── */
 #clientSidebar nav > a .nav-toggle {
     position: relative;
     display: grid;
     place-items: center;
     flex: none;
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-    min-height: 24px;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
     margin-left: auto;
     padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
+    border: 1px solid #c8d5e4;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(32, 75, 120, .08);
     color: #3f5d7d;
     font-size: 0;              /* the old text glyph is no longer used */
     font-style: normal;
     line-height: 0;
     transform: none;
     transform-origin: 50% 50%;
-    transition: color .18s ease;
+    transition: color .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
 }
 
 #clientSidebar nav > a .nav-toggle::before,
@@ -179,6 +176,9 @@
 
 #clientSidebar nav > a:hover .nav-toggle {
     color: #21548f;
+    border-color: #8fb5df;
+    background: #f5faff;
+    box-shadow: 0 4px 10px rgba(32, 75, 120, .13);
 }
 
 /* ── The navy pill: which rows get it ───────────────────────────────────
@@ -208,6 +208,9 @@
 #clientSidebar nav > a.open .nav-toggle,
 #clientSidebar nav > a.active .nav-toggle {
     color: #ffffff;
+    border-color: rgba(255,255,255,.55);
+    background: rgba(255,255,255,.12);
+    box-shadow: none;
 }
 
 #clientSidebar nav > a.open .nav-toggle::after {
@@ -439,5 +442,4 @@
     -webkit-mask-image: none;
     mask-image: none;
 }
-
 
