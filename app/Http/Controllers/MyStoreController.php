@@ -187,7 +187,7 @@ class MyStoreController extends Controller
         $providerMessage = $this->providerErrorMessage($response);
 
         return $providerMessage
-            ? 'Cloud Technology: ' . $providerMessage
+            ? 'Cloud Technology Detects : ' . $providerMessage
             : 'Cloud Technology was unable to update nameservers. Please check the nameservers and try again.';
     }
 
