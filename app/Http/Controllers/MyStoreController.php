@@ -172,7 +172,7 @@ class MyStoreController extends Controller
             ]);
 
             return redirect()->route('mystore.domains.details', $item)
-                ->withErrors(['nameservers' => 'Cloud Technology unable to update nameservers. Please check correct nameserver and try again.'])
+                ->withErrors(['nameservers' => $this->nameserverUpdateError($response)])
                 ->withInput(['nameservers' => $nameserverInput])
                 ->with('manage_domain_item', $item->id);
         }
@@ -180,6 +180,58 @@ class MyStoreController extends Controller
         return redirect()->route('mystore.domains.details', $item)
             ->with('success', 'Nameserver updated successfully')
             ->with('manage_domain_item', $item->id);
+    }
+
+    private function nameserverUpdateError($response)
+    {
+        $providerMessage = $this->providerErrorMessage($response);
+
+        return $providerMessage
+            ? 'Cloud Technology: ' . $providerMessage
+            : 'Cloud Technology was unable to update nameservers. Please check the nameservers and try again.';
+    }
+
+    private function providerErrorMessage($response)
+    {
+        if (is_scalar($response)) {
+            return $this->cleanProviderMessage((string) $response);
+        }
+
+        if (!is_array($response)) {
+            return null;
+        }
+
+        foreach (['message', 'error_description', 'error', 'description', 'details'] as $key) {
+            if (!array_key_exists($key, $response)) {
+                continue;
+            }
+
+            $message = $response[$key];
+            if (is_array($message)) {
+                $message = $message['message'] ?? $message['description'] ?? null;
+            }
+
+            if (is_scalar($message)) {
+                $message = $this->cleanProviderMessage((string) $message);
+                if ($message) {
+                    return $message;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function cleanProviderMessage($message)
+    {
+        $message = html_entity_decode(strip_tags($message), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $message = preg_replace('/[\r\n\t ]+/', ' ', trim($message));
+        $message = preg_replace('/\b(api[-_ ]?key|auth(?:orization)?[-_ ]?code|access[-_ ]?token|token|password)\s*[:=]\s*\S+/i', '$1=[redacted]', $message);
+        $message = trim(substr($message, 0, 500));
+
+        return $message && !in_array(strtoupper($message), ['SUCCESS', 'OK', 'ERROR', 'FAILED', 'FAILURE'], true)
+            ? $message
+            : null;
     }
 
     public function hosting(Request $request)
