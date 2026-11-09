@@ -113,21 +113,6 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                                             <span class="store-ns-alert-text">{{ session('success') }}</span>
                                         </div>
                                         @endif
-                                        <div class="store-child-note store-ns-modal-note">
-                                            <p>Not sure which nameserver option is right for this domain?</p>
-                                            <button type="button" class="store-child-info-trigger store-ns-info-button"
-                                                aria-haspopup="dialog"
-                                                aria-controls="nameserver-details-{{ $item->id }}">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
-                                                    aria-hidden="true">
-                                                    <circle cx="12" cy="12" r="9"></circle>
-                                                    <path d="M12 11v5"></path>
-                                                    <path d="M12 8h.01"></path>
-                                                </svg>
-                                                <span>View details</span>
-                                            </button>
-                                        </div>
                                         <div class="store-ns-view">
                                             @if(!empty($nameservers))
                                             <p class="store-ns-view-title">You are currently using these Nameservers</p>
@@ -205,6 +190,31 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                                             @endforeach
                                         </div>
                                         <button type="button" class="store-ns-add">+ Add Nameservers</button>
+                                        <div class="store-ns-help">
+                                            <span class="store-ns-help-badge" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+                                                    stroke-linecap="round" stroke-linejoin="round">
+                                                    <circle cx="12" cy="12" r="9"></circle>
+                                                    <path d="M12 11v5"></path>
+                                                    <path d="M12 8h.01"></path>
+                                                </svg>
+                                            </span>
+                                            <div class="store-ns-help-copy">
+                                                <strong>Not sure which nameservers to use?</strong>
+                                                <p>Your hosting provider gives you these. Pick the option that matches where your
+                                                    site lives &mdash; we explain both.</p>
+                                            </div>
+                                            <button type="button" class="store-ns-help-link store-ns-info-button"
+                                                aria-haspopup="dialog"
+                                                aria-controls="nameserver-details-{{ $item->id }}">
+                                                <span>View details</span>
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+                                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="M5 12h13"></path>
+                                                    <path d="m12.5 6 6 6-6 6"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
                                         <div class="store-ns-form-actions">
                                             <button class="store-primary store-ns-submit" type="submit" disabled>Update
                                                 Nameservers</button>
@@ -359,20 +369,6 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
             </div>
         </div>
         <div class="store-child-body">
-            <div class="store-child-note">
-                <p>Child nameservers let this domain run its own DNS and answer queries under
-                    <strong>{{ $item->domain }}</strong>.</p>
-                <button type="button" class="store-child-info-trigger" aria-haspopup="dialog"
-                    aria-controls="child-ns-details-{{ $item->id }}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
-                        stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="9"></circle>
-                        <path d="M12 11v5"></path>
-                        <path d="M12 8h.01"></path>
-                    </svg>
-                    <span>View details</span>
-                </button>
-            </div>
             <div class="store-child-rows">
                 <div class="store-child-row">
                     <label class="store-child-field">
@@ -399,6 +395,30 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                 </svg>
                 <span>Add another server</span>
             </button>
+            <div class="store-child-help">
+                <span class="store-child-help-badge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 11v5"></path>
+                        <path d="M12 8h.01"></path>
+                    </svg>
+                </span>
+                <div class="store-child-help-copy">
+                    <strong>What is a child nameserver?</strong>
+                    <p>It is your own nameserver such as <code>ns1.{{ $item->domain }}</code>, registered so this
+                        domain can answer DNS queries itself.</p>
+                </div>
+                <button type="button" class="store-child-help-link store-child-info-trigger" aria-haspopup="dialog"
+                    aria-controls="child-ns-details-{{ $item->id }}">
+                    <span>View details</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 12h13"></path>
+                        <path d="m12.5 6 6 6-6 6"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
         <div class="store-child-foot">
             <button type="button" class="store-child-cancel store-child-close">Cancel</button>

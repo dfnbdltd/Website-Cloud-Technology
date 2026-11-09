@@ -253,7 +253,6 @@
 .store-ns-empty-row .store-ns-pencil:focus-visible{outline:2px solid #1d63d6;outline-offset:2px}
 .store-ns-modal .store-nameserver-form{display:none}
 .store-ns-edit.is-editing .store-ns-view{display:none}
-.store-ns-edit.is-editing .store-ns-modal-note{display:none}
 .store-ns-edit.is-editing .store-nameserver-form{display:block}
 .store-ns-modal-main .store-ns-recommendation{margin:0 0 22px;color:#5d7691;font:600 13.5px/1.5 'DM Sans'}
 .store-ns-input-list{display:grid;gap:14px;max-width:600px;margin:0 auto}
@@ -282,7 +281,22 @@
 .store-ns-field.is-invalid .store-ns-field-msg{display:block}
 .store-ns-add{display:inline-flex;align-items:center;gap:6px;margin:20px auto 0;padding:11px 18px;border:1px dashed #b9d3ef;border-radius:11px;background:#f8fbff;color:#2470d8;font:700 13.5px 'DM Sans';cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease}
 .store-ns-add:hover{background:#eff6ff;border-color:#a9cdf6;color:#175ab8}
-.store-ns-form-actions{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:28px}
+/* --- Help card underneath a form -------------------------------------------
+   Sits directly below the input rows it explains, matches the width of the
+   form column and reads left-to-right: icon, copy, one clear action. */
+.store-ns-help,.store-child-help{display:flex;align-items:center;gap:15px;margin:22px auto 0;padding:15px 17px;border:1px solid #d8e8f8;border-radius:14px;background:linear-gradient(135deg,#f4f9ff,#f1fbf7);text-align:left;box-shadow:inset 0 1px 0 #fff}
+.store-ns-help{max-width:600px}
+.store-ns-help-badge,.store-child-help-badge{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:11px;background:#fff;color:#2470d8;box-shadow:inset 0 0 0 1px #d7e7fa,0 6px 14px -12px #2470d8}
+.store-ns-help-badge svg,.store-child-help-badge svg{width:19px;height:19px}
+.store-ns-help-copy,.store-child-help-copy{min-width:0;flex:1}
+.store-nameserver-form .store-ns-help-copy>strong,.store-child-help-copy>strong{display:block;color:#22456b;font:800 13.5px/1.4 'DM Sans'}
+.store-nameserver-form .store-ns-help-copy>p,.store-child-help-copy>p{margin:3px 0 0;color:#5b7593;font:500 12.5px/1.55 'DM Sans'}
+.store-child-help-copy code{padding:1px 5px;border-radius:5px;background:#eef5ff;color:#2470d8;font:600 12px ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+.store-ns-help-link,.store-child-help-link{display:inline-flex;align-items:center;gap:6px;flex:none;padding:9px 13px;border:1px solid #c6ddf6;border-radius:10px;background:#fff;color:#1f6fd8;font:700 12.5px 'DM Sans';white-space:nowrap;cursor:pointer;box-shadow:0 6px 14px -12px #2470d8;transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}
+.store-ns-help-link svg,.store-child-help-link svg{flex:none;width:14px;height:14px}
+.store-ns-help-link:hover,.store-child-help-link:hover{background:#eff6ff;border-color:#8fbfef;color:#175ab8;text-decoration:none;box-shadow:0 8px 16px -12px #2470d8;transform:translateY(-1px)}
+.store-ns-help-link:focus-visible,.store-child-help-link:focus-visible{outline:2px solid #1d63d6;outline-offset:2px}
+.store-ns-form-actions{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:22px}
 .store-ns-form-actions .store-primary{min-height:46px;padding:13px 26px;border-radius:11px;font-size:13.5px;text-transform:uppercase;letter-spacing:.2px}
 .store-ns-submit:disabled{background:#dfe1e5;color:#98a1ad;box-shadow:none;cursor:not-allowed}
 .store-ns-submit.is-loading{pointer-events:none;display:inline-flex;align-items:center;justify-content:center;gap:10px}
@@ -327,24 +341,6 @@
 .store-child-domain{margin:8px 0 0;color:#7d90a7;font:500 12.5px 'DM Sans'}
 .store-child-domain strong{color:#2470d8;font-weight:700;overflow-wrap:anywhere}
 .store-child-body{padding:0 36px 30px}
-.store-child-note{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;border:1px solid #d8e8f8;border-radius:14px;background:linear-gradient(135deg,#f3f8ff,#f2fbf7)}
-.store-child-card .store-child-note{flex-direction:column;justify-content:center;text-align:center}
-.store-child-card .store-child-note p{font-size:15px}
-.store-child-card .store-child-info-trigger{padding:10px 18px;border:1px solid #b9d7f5;border-radius:9px;background:#fff;color:#1f6fd8;font-size:14px;box-shadow:0 5px 12px -10px #2470d8}
-.store-child-card .store-child-info-trigger svg{width:17px;height:17px}
-.store-child-card .store-child-info-trigger:hover{background:#eff6ff;border-color:#8fbfef;text-decoration:none}
-.store-ns-modal-note{flex-direction:column;justify-content:center;text-align:center}
-.store-ns-modal-note p{font-size:15px}
-.store-ns-modal-note .store-ns-info-button{padding:10px 18px;border:1px solid #b9d7f5;border-radius:9px;background:#fff;color:#1f6fd8;font-size:14px;box-shadow:0 5px 12px -10px #2470d8}
-.store-ns-modal-note .store-ns-info-button svg{width:17px;height:17px}
-.store-ns-modal-note .store-ns-info-button:hover{background:#eff6ff;border-color:#8fbfef;text-decoration:none}
-.store-child-note p{margin:0;color:#5b7593;font:500 12.5px/1.5 'DM Sans'}
-.store-child-note p strong{color:#2a4c74;font-weight:700}
-.store-ns-modal-note{margin:0 0 22px;text-align:left}
-.store-child-info-trigger{display:inline-flex;align-items:center;gap:6px;flex:none;padding:0;border:0;background:transparent;color:#2470d8;font:700 12px 'DM Sans';white-space:nowrap;cursor:pointer;transition:color .16s ease}
-.store-child-info-trigger svg{flex:none;width:14px;height:14px}
-.store-child-info-trigger:hover{color:#175ab8;text-decoration:underline}
-.store-child-info-trigger:focus-visible{outline:2px solid #1d63d6;outline-offset:3px;border-radius:4px}
 .store-child-rows{display:flex;flex-direction:column;gap:14px;margin-top:26px}
 .store-child-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 48px;align-items:end;gap:14px}
 .store-child-field{display:block;min-width:0}
@@ -417,7 +413,7 @@
 @media(max-width:700px){.store-action-row{grid-template-columns:36px minmax(0,1fr);padding-right:14px}.store-action-meta{grid-column:2}.store-action-main h3{font-size:13px}}
 @media(max-width:1100px) and (min-width:901px){.store-ns-row{column-gap:22px}.store-ns-heading{padding-right:4px}.store-ns-btn{padding:0 14px;font-size:13px}}
 @media(max-width:900px){.store-domain-detail-grid{grid-template-columns:1fr}.store-ns-row{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:start;row-gap:20px}.store-ns-divider{display:none}.store-ns-values{grid-column:2;width:100%;padding-left:0;margin-top:4px}.store-ns-values>span{width:100%}.store-ns-modal-card{grid-template-columns:1fr}}
-@media(max-width:640px){.store-domain-detail-head{display:block}.store-domain-detail-status{margin-top:16px;justify-content:space-between}.store-detail-facts{grid-template-columns:1fr 1fr}.store-detail-panel{padding:18px}.store-ns-panel{padding:24px 18px}.store-ns-row{grid-template-columns:52px minmax(0,1fr);column-gap:14px}.store-detail-icon{width:50px;height:50px;border-radius:14px}.store-detail-icon svg{width:24px;height:24px}.store-ns-heading{min-width:0}.store-ns-actions{width:100%;gap:10px}.store-ns-btn{flex:1 1 100%;height:44px}.store-ns-values{padding-left:0}.store-ns-edit .store-nameserver-form{left:-45px;max-width:calc(100vw - 72px)}.store-ns-modal-card{width:calc(100vw - 24px);border-radius:14px}.store-ns-modal-main{padding:26px 20px 28px}.store-ns-modal-main .store-ns-view>p{white-space:normal}.store-child-modal,.store-child-details{padding:12px}.store-child-card,.store-child-details-card{max-height:calc(100vh - 24px);border-radius:14px}.store-child-head,.store-child-details-head{padding:22px 20px 16px}.store-child-body,.store-child-details-body{padding:0 20px 20px}.store-child-note{flex-direction:column;align-items:flex-start;gap:8px}.store-child-row{grid-template-columns:minmax(0,1fr) 38px}.store-child-row .store-child-field{grid-column:1}.store-child-remove{grid-column:2;grid-row:1 / span 2;align-self:center}.store-child-foot,.store-child-details-foot{padding:14px 20px 20px}.store-child-foot .store-child-save{flex:1}.store-child-details-body{font-size:15px}.store-child-details-head h3{font-size:23px}.store-ns-error-section{padding:16px}.store-ns-error-section p,.store-ns-error-section ul,.store-ns-error-support-copy{font-size:14px}.store-child-details-foot .store-ns-error-support-button{min-width:0;flex:1}}
+@media(max-width:640px){.store-domain-detail-head{display:block}.store-domain-detail-status{margin-top:16px;justify-content:space-between}.store-detail-facts{grid-template-columns:1fr 1fr}.store-detail-panel{padding:18px}.store-ns-panel{padding:24px 18px}.store-ns-row{grid-template-columns:52px minmax(0,1fr);column-gap:14px}.store-detail-icon{width:50px;height:50px;border-radius:14px}.store-detail-icon svg{width:24px;height:24px}.store-ns-heading{min-width:0}.store-ns-actions{width:100%;gap:10px}.store-ns-btn{flex:1 1 100%;height:44px}.store-ns-values{padding-left:0}.store-ns-edit .store-nameserver-form{left:-45px;max-width:calc(100vw - 72px)}.store-ns-modal-card{width:calc(100vw - 24px);border-radius:14px}.store-ns-modal-main{padding:26px 20px 28px}.store-ns-modal-main .store-ns-view>p{white-space:normal}.store-child-modal,.store-child-details{padding:12px}.store-child-card,.store-child-details-card{max-height:calc(100vh - 24px);border-radius:14px}.store-child-head,.store-child-details-head{padding:22px 20px 16px}.store-child-body,.store-child-details-body{padding:0 20px 20px}.store-child-row{grid-template-columns:minmax(0,1fr) 38px}.store-child-row .store-child-field{grid-column:1}.store-child-remove{grid-column:2;grid-row:1 / span 2;align-self:center}.store-child-foot,.store-child-details-foot{padding:14px 20px 20px}.store-child-foot .store-child-save{flex:1}.store-child-details-body{font-size:15px}.store-child-details-head h3{font-size:23px}.store-ns-error-section{padding:16px}.store-ns-error-section p,.store-ns-error-section ul,.store-ns-error-support-copy{font-size:14px}.store-child-details-foot .store-ns-error-support-button{min-width:0;flex:1}}
 .store-item-links{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
 .store-item-links a{color:#2f6fc4;font:800 11px 'DM Sans';text-decoration:none}
 .store-item-links a:hover{text-decoration:underline}
@@ -582,4 +578,13 @@
   margin-left:-1px;
   color:#7d93a8;
   font:500 12px 'DM Sans';
+}
+
+/* Help cards on phones: icon stays beside the copy, the button drops onto its
+   own full-width row so it never crowds the text. */
+@media(max-width:640px){
+  .store-ns-help,.store-child-help{flex-wrap:wrap;align-items:flex-start;gap:10px 12px;padding:14px 15px}
+  .store-ns-help-badge,.store-child-help-badge{order:1;margin-top:1px}
+  .store-ns-help-copy,.store-child-help-copy{flex:1 1 180px;order:2}
+  .store-ns-help-link,.store-child-help-link{order:3;flex:1 1 100%;justify-content:center}
 }
