@@ -394,6 +394,33 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
     function updateSubmitState() {
         submit.disabled = JSON.stringify(currentValues()) === JSON.stringify(initialValues);
     }
+    function validateNameserverInput(input, index) {
+        var field = input.closest('.store-ns-field');
+        var value = input.value.trim();
+        var hostnamePattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
+        var message = '';
+
+        if (!value && index < 2) {
+            message = 'Nameserver is required. Please enter a nameserver like ns1.example.com.';
+        } else if (value && !hostnamePattern.test(value)) {
+            message = '"' + value + '" is not a valid nameserver hostname. Use a format like ns1.example.com.';
+        }
+
+        field.classList.toggle('is-invalid', Boolean(message));
+        field.classList.toggle('is-valid', Boolean(value) && !message);
+        field.querySelector('.store-ns-field-msg').textContent = message;
+        return !message;
+    }
+    function validateNameservers() {
+        var valid = true;
+        var inputs = form.querySelectorAll('.store-ns-input-row input');
+        Array.prototype.forEach.call(inputs, function (input, index) {
+            if (!validateNameserverInput(input, index)) {
+                valid = false;
+            }
+        });
+        return valid;
+    }
     function clearFeedback() {
         panel.querySelectorAll('.store-ns-error-trigger').forEach(function (trigger) {
             var details = document.getElementById(trigger.getAttribute('aria-controls'));
@@ -416,6 +443,12 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
     }
     pencils.forEach(function (button) { button.addEventListener('click', showEdit); });
     form.addEventListener('input', updateSubmitState);
+    inputList.addEventListener('input', function (event) {
+        if (event.target.matches('input')) {
+            var inputs = inputList.querySelectorAll('.store-ns-input-row input');
+            validateNameserverInput(event.target, Array.prototype.indexOf.call(inputs, event.target));
+        }
+    });
     close.addEventListener('click', closePanel);
     cancel.addEventListener('click', function () {
         resetForm();
@@ -442,6 +475,15 @@ document.querySelectorAll('.store-ns-edit').forEach(function (panel) {
     form.addEventListener('submit', function (event) {
         if (form.dataset.submitting === '1') {
             event.preventDefault();
+            return;
+        }
+        if (!validateNameservers()) {
+            event.preventDefault();
+            form.dataset.submitting = '0';
+            var firstInvalid = form.querySelector('.store-ns-field.is-invalid input');
+            if (firstInvalid) {
+                firstInvalid.focus();
+            }
             return;
         }
         form.dataset.submitting = '1';
