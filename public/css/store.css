@@ -280,9 +280,6 @@
 .store-ns-field.is-invalid input:focus{border-color:#dd4444;box-shadow:0 0 0 4px #dd444426}
 .store-ns-field-msg{display:none;margin:8px 2px 0;color:#c23b3b;font:600 12.5px/1.45 'DM Sans'}
 .store-ns-field.is-invalid .store-ns-field-msg{display:block}
-.store-ns-form-status{display:none;margin:16px auto 0;max-width:440px;font:700 12.5px/1.5 'DM Sans';text-align:center}
-.store-ns-form-status.is-ok{display:block;color:#12855a}
-.store-ns-form-status.is-bad{display:block;color:#c23b3b}
 .store-ns-add{display:inline-flex;align-items:center;gap:6px;margin:20px auto 0;padding:11px 18px;border:1px dashed #b9d3ef;border-radius:11px;background:#f8fbff;color:#2470d8;font:700 13.5px 'DM Sans';cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease}
 .store-ns-add:hover{background:#eff6ff;border-color:#a9cdf6;color:#175ab8}
 .store-ns-form-actions{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:28px}

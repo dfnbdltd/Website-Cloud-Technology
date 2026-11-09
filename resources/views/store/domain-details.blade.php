@@ -204,7 +204,6 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                                             </div>
                                             @endforeach
                                         </div>
-                                        <p class="store-ns-form-status" role="status" aria-live="polite"></p>
                                         <button type="button" class="store-ns-add">+ Add Nameservers</button>
                                         <div class="store-ns-form-actions">
                                             <button class="store-primary store-ns-submit" type="submit" disabled>Update
@@ -502,24 +501,88 @@ document.querySelectorAll('.store-ns-edit').forEach(function(panel) {
 
     function currentValues() {
         return Array.prototype.map.call(form.querySelectorAll('.store-ns-input-row input'), function(input) {
-            return input.value;
+            return input.value.trim();
         });
     }
 
+    /* Shared by the field validation and the button state, so a value can never
+       be "red" on screen yet still look savable. */
+    var hostnamePattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
+
+    /* Lower-case + trimmed + sorted, so re-ordering rows or only changing the
+       case of a hostname is not mistaken for a real change. */
+    function normalise(list) {
+        return list.map(function(value) {
+            return String(value || '').trim().toLowerCase();
+        }).filter(Boolean).sort();
+    }
+
+    function emptyInputs() {
+        return Array.prototype.filter.call(
+            form.querySelectorAll('.store-ns-input-row input'),
+            function(input) {
+                return !input.value.trim();
+            }
+        );
+    }
+
+    function hasDuplicates(values) {
+        var filled = values.filter(Boolean);
+        return new Set(normalise(filled)).size !== filled.length;
+    }
+
+    /* True while something makes the update unsavable. The offending row is
+       already marked red, so the button only has to stay inactive. */
+    function submissionBlocked() {
+        var values = currentValues();
+
+        if (!values.length) {
+            return true;
+        }
+
+        if (emptyInputs().length) {
+            return true;
+        }
+
+        if (values.filter(Boolean).length < 2) {
+            return true;
+        }
+
+        if (values.some(function(value) {
+                return !hostnamePattern.test(value);
+            })) {
+            return true;
+        }
+
+        if (hasDuplicates(values)) {
+            return true;
+        }
+
+        /* Re-ordering rows, or only changing letter case, is not a change. */
+        return normalise(values).join('\n') === normalise(initialValues).join('\n');
+    }
+
+    /* The button simply stays inactive while something blocks saving. The row
+       that is wrong is already marked red, so nothing is printed under it. */
     function updateSubmitState() {
-        submit.disabled = JSON.stringify(currentValues()) === JSON.stringify(initialValues);
+        submit.disabled = submissionBlocked();
     }
 
     function validateNameserverInput(input, index) {
         var field = input.closest('.store-ns-field');
         var value = input.value.trim();
-        var hostnamePattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
         var message = '';
 
-        if (!value && index < 2) {
+        if (!value) {
+            // Any empty box blocks saving, so flag every row — including the one
+            // "+ Add Nameservers" just created, not only the first two.
             message = 'Nameserver is required. Please enter a nameserver like ns1.example.com';
-        } else if (value && !hostnamePattern.test(value)) {
+        } else if (!hostnamePattern.test(value)) {
             message = '"' + value + '" is not a valid nameserver hostname. Use a format like ns1.example.com';
+        } else if (currentValues().filter(function(other) {
+                return other.toLowerCase() === value.toLowerCase();
+            }).length > 1) {
+            message = 'This nameserver is already listed above.';
         }
 
         field.classList.toggle('is-invalid', Boolean(message));
@@ -563,7 +626,19 @@ document.querySelectorAll('.store-ns-edit').forEach(function(panel) {
     pencils.forEach(function(button) {
         button.addEventListener('click', showEdit);
     });
-    form.addEventListener('input', updateSubmitState);
+    /* Re-run row validation for every row so the red marks always match the
+       disabled button (adding an empty row must paint that row red too). */
+    function refreshAllValidation() {
+        var inputs = inputList.querySelectorAll('.store-ns-input-row input');
+        Array.prototype.forEach.call(inputs, function(input, index) {
+            validateNameserverInput(input, index);
+        });
+    }
+
+    form.addEventListener('input', function() {
+        updateSubmitState();
+        refreshAllValidation();
+    });
     inputList.addEventListener('input', function(event) {
         if (event.target.matches('input')) {
             var inputs = inputList.querySelectorAll('.store-ns-input-row input');
@@ -581,6 +656,8 @@ document.querySelectorAll('.store-ns-edit').forEach(function(panel) {
         inputList.appendChild(row);
         row.querySelector('input').addEventListener('input', updateSubmitState);
         updateSubmitState();
+        refreshAllValidation();
+        row.querySelector('input').focus();
     });
     inputList.addEventListener('click', function(event) {
         var remove = event.target.closest('.store-ns-remove');
@@ -591,6 +668,7 @@ document.querySelectorAll('.store-ns-edit').forEach(function(panel) {
         if (row) {
             row.remove();
             updateSubmitState();
+            refreshAllValidation();
         }
     });
     form.addEventListener('submit', function(event) {
