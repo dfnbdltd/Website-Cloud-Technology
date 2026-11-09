@@ -7,6 +7,7 @@
 </head>
 
 <body class="site">
+    @include('partials.spinner-overlay')
     @include('partials.site-navbar', ['navActive' => 'home'])
 
     <main>

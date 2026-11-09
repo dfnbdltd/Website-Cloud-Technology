@@ -1,15 +1,14 @@
 {{--
     Shared branded loading spinner (site-spinner).
-    Brand palette: navy #17365e · accent #2168c1 · light blues #6ea8ff/#cfe4ff.
-    Fullscreen overlay with animated 0-100% counter, "Searching…" / "Loading…"
-    states and a progress bar. Loaded once via partials/head on every page, so
+    Fullscreen dark overlay containing a single dot loader — no card, no
+    counter, no progress bar. Loaded once via partials/head on every page, so
     any form can opt in with a data-spinner attribute:
 
         <form method="POST" action="…" data-spinner="search">…</form>
 
     Programmatic use (AJAX / fetch):
         SiteSpinner.show({ title: 'Loading…' });
-        SiteSpinner.progress(42);          // manual 0-100 value
+        SiteSpinner.progress(42);          // tracks progress internally
         SiteSpinner.finish();              // animate to 100%, then fade out
     CSS: public/css/site-spinner.css · JS: public/js/site-spinner.js
 --}}

@@ -45,6 +45,7 @@
     </style>
 </head>
 <body class="{{ session('customer') ? 'domain-app' : 'site domain-registration-guest' }}">
+    @include('partials.spinner-overlay')
     @if(session('customer'))
         @include('partials.sidebar', ['active' => 'domains', 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
     @else

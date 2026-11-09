@@ -1,8 +1,9 @@
 /* ==========================================================================
  * CloudTech — shared loading spinner (site-spinner)
- * Reusable fullscreen / inline progress overlay with a 0–100% counter and
- * "Searching…" / "Loading…" status states, styled to the site brand
- * (navy #17365e, accent #2168c1). See public/css/site-spinner.css.
+ * Fullscreen dark overlay containing a single dot loader. There is no card,
+ * no percentage and no progress bar on screen; the counter still runs
+ * internally so progress()/finish() keep their exact behaviour.
+ * See public/css/site-spinner.css.
  *
  * API:
  *   SiteSpinner.show({ title, theme, inline, host }) -> void
@@ -42,38 +43,36 @@
             overlay.setAttribute('aria-live', 'assertive');
             overlay.setAttribute('aria-busy', 'true');
             overlay.hidden = true;
+            // Only the loader is visible. The status text is a screen-reader
+            // only live region, so nothing is drawn next to the loader.
             overlay.innerHTML =
-                '<div class="sspin-card">' +
-                '  <div class="sspin-orbit">' +
-                '    <span class="sspin-ring" aria-hidden="true"></span>' +
-                '    <span class="sspin-core"><span class="sspin-pct"><span class="sspin-num">0</span><i>%</i></span></span>' +
-                '  </div>' +
-                '  <p class="sspin-status">Loading…</p>' +
-                '  <span class="sspin-bar" aria-hidden="true"><span class="sspin-bar-fill"></span></span>' +
-                '  <span class="sspin-sr" aria-live="polite">0 percent</span>' +
-                '</div>';
+                '<div class="loader" aria-hidden="true"></div>' +
+                '<span class="sspin-status"></span>' +
+                '<span class="sspin-sr" aria-live="polite">0 percent</span>';
             (document.body || document.documentElement).appendChild(overlay);
+        } else if (!overlay.querySelector('.loader')) {
+            // An overlay found in the DOM may predate the loader markup (stale
+            // page, cached partial). Rebuild its contents so the animation
+            // always exists instead of silently showing an empty box.
+            overlay.innerHTML =
+                '<div class="loader" aria-hidden="true"></div>' +
+                '<span class="sspin-status"></span>' +
+                '<span class="sspin-sr" aria-live="polite">0 percent</span>';
         }
         els = {
             status: overlay.querySelector('.sspin-status'),
-
-            num: overlay.querySelector('.sspin-num'),
-            fill: overlay.querySelector('.sspin-bar-fill'),
-            sr: overlay.querySelector('.sspin-sr'),
-            card: overlay.querySelector('.sspin-card')
+            sr: overlay.querySelector('.sspin-sr')
         };
         return overlay;
     }
 
     function paint(pct) {
-        if (!els || !els.num) {
+        if (!els) {
             return;
         }
         var shown = Math.max(0, Math.min(100, Math.round(pct)));
-        els.num.textContent = String(shown);
-        if (els.fill) {
-            els.fill.style.width = shown + '%';
-        }
+        // No visual counter any more — only the polite live region is updated,
+        // so assistive tech still hears the progress of the handoff.
         if (els.sr) {
             els.sr.textContent = shown + ' percent';
         }
@@ -132,10 +131,12 @@
         auto = opts.progress !== false;
         paint(value);
 
-        if (opts.title) {
-            els.status.textContent = opts.title;
-        } else if (typeof opts.title !== 'string') {
-            els.status.textContent = 'Loading…';
+        if (els && els.status) {
+            if (opts.title) {
+                els.status.textContent = opts.title;
+            } else if (typeof opts.title !== 'string') {
+                els.status.textContent = 'Loading…';
+            }
         }
         overlay.classList.toggle('sspin--light', opts.theme === 'light');
         overlay.classList.toggle('sspin--inline', !!opts.inline);
@@ -211,6 +212,9 @@
             return;
         }
         overlay.classList.remove('is-active');
+        // Drop the no-transition flag added by the early-paint script, so a
+        // later show() fades in normally again.
+        overlay.classList.remove('sspin-early');
         document.body.classList.remove('sspin-lock');
         overlay.setAttribute('aria-busy', 'false');
         // Track this timer: an untracked one used to fire *after* a new show()
@@ -270,15 +274,27 @@
         booted = true;
 
         // 1) Resume after a navigation handoff.
+        //    The overlay is painted by partials/spinner-overlay as soon as the
+        //    new document's <body> opens, so there is no white gap between the
+        //    old page and this one.
         var handoff = consumeHandoff();
         if (handoff) {
-            value = 86;
-            show({
-                title: handoff.label || 'Loading…',
-                progress: false,
-                startAt: 86
-            });
-            finish(350);
+            // Only touch the overlay when this page actually pre-rendered it.
+            // Pages without the include would otherwise flash an overlay that
+            // was created here and dismissed straight away.
+            var preRendered = document.getElementById(OVERLAY_ID);
+            if (preRendered && !preRendered.hidden) {
+                ensureOverlay();
+                if (els && els.status) {
+                    els.status.textContent = handoff.label || 'Loading…';
+                }
+                // There is no visible percentage to animate any more, so the
+                // old 450ms count-to-100 ramp only kept a blocking overlay over
+                // a finished page. Release immediately instead.
+                value = 100;
+                paint(value);
+                hide();
+            }
             // Fall through: still wire this page's own forms so a second
             // search straight from the results page gets the spinner too.
         }
