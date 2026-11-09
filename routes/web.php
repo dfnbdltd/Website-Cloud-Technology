@@ -13,6 +13,19 @@ use App\Http\Controllers\HostingController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyStoreController;
 
+// TEMP-PROBE: local-only sign-in for the My Domains visual check.
+Route::get('/__probe-rowcheck', function () {
+    Auth::loginUsingId(App\User::where('email', 'rowcheck.check@example.test')->value('id'));
+    $user = Auth::user();
+    session([
+        'customer' => [
+            'id' => $user->id, 'name' => $user->name, 'email' => $user->email,
+            'initials' => 'RC', 'customer_code' => 'CT-' . $user->id, 'status' => 'active', 'balance' => 0,
+        ],
+        'domain_cart' => [],
+    ]);
+    return redirect('/mystore/domains');
+});
 // TEMP-PROBE: local-only session seed for coming-soon verification.
 Route::get('/__probe-login', function () {
     session(['customer' => [

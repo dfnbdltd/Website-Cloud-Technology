@@ -498,3 +498,91 @@
   .store-coming{min-height:0;padding:42px 20px;border-radius:15px}
   .store-coming-title{max-width:18ch;letter-spacing:-.6px}
 }
+
+/* --- Inline fact strip: one "LABEL → value" line per cell ---------------
+   The domain and transfer cards hold a single value per cell, so the label and
+   the value sit on one baseline ("REGISTERED on 06 Nov 2026") instead of the
+   stacked label/value look used where a cell also carries a note.
+   Layout is content-sized flex: each cell takes exactly the width its line
+   needs and shares whatever is left over, so nothing ever wraps mid-cell on a
+   narrow card — the strip reflows a whole cell at a time instead. The 1px
+   gap over a tinted background keeps the hairline dividers of .store-facts. */
+.store-facts--inline{
+  display:flex;
+  flex-wrap:wrap;
+}
+.store-facts--inline .store-fact{
+  display:flex;
+  flex:1 1 auto;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:0 8px;
+  min-width:max-content;
+  padding:15px 24px 16px;
+}
+.store-facts--inline .store-fact small{
+  flex:none;
+  color:#5f768c;
+  font-size:10.5px;
+  font-weight:800;
+  letter-spacing:1.15px;
+}
+.store-facts--inline .store-fact-join{
+  flex:none;
+  margin-left:-2px;
+  color:#63798f;
+  font:500 13px 'DM Sans';
+  letter-spacing:.1px;
+}
+.store-facts--inline .store-fact strong{
+  margin:0;
+  font:800 17px 'Manrope';
+  letter-spacing:-.25px;
+  white-space:nowrap;
+}
+.store-facts--inline .store-fact strong i{
+  margin-left:1px;
+  font-size:11.5px;
+  font-weight:700;
+}
+@media(max-width:1000px){
+  .store-facts--inline .store-fact{padding:14px 18px 15px;gap:0 7px}
+  .store-facts--inline .store-fact small{font-size:10px;letter-spacing:1px}
+  .store-facts--inline .store-fact strong{font-size:16px}
+  .store-facts--inline .store-fact strong i{font-size:11px}
+}
+@media(max-width:420px){
+  .store-facts--inline .store-fact{padding:13px 16px 14px}
+}
+
+/* Manage page: same inline rhythm on the four-fact strip. */
+.store-detail-facts--inline{display:flex;flex-wrap:wrap}
+.store-detail-facts--inline > div{
+  display:flex;
+  flex:1 1 auto;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:0 7px;
+  min-width:max-content;
+  padding-right:14px;
+}
+.store-detail-facts--inline small{
+  flex:none;
+  color:#5f768c;
+  font-size:9.5px;
+  font-weight:800;
+  letter-spacing:1px;
+}
+.store-detail-facts--inline strong{
+  margin:0;
+  color:#1a3150;
+  font:800 14px 'Manrope';
+  letter-spacing:-.15px;
+  white-space:nowrap;
+}
+.store-detail-facts--inline i{font-size:10px;color:#7d93a8}
+.store-detail-facts--inline .store-fact-join{
+  margin-left:-1px;
+  color:#7d93a8;
+  font:500 12px 'DM Sans';
+}

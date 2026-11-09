@@ -139,7 +139,7 @@ class MyStoreController extends Controller
         ], [
             'nameservers.min' => 'Enter at least two nameservers, one per line.',
             'nameservers.max' => 'Enter no more than 13 nameservers.',
-            'nameservers.*.regex' => 'That is not a valid nameserver hostname. Use a format like ns1.example.com.',
+            'nameservers.*.regex' => 'That is not a valid nameserver hostname. Use a format like ns1.example.com',
             'nameservers.*.distinct' => 'Each nameserver must be unique.',
         ]);
 

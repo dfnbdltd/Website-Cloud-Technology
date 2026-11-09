@@ -13,7 +13,7 @@
         </div>
         <span class="table-status {{ $transfer['status'] }}">{{ $transfer['status_label'] }}</span>
     </header>
-    <div class="store-facts store-facts--transfer">
+    <div class="store-facts store-facts--transfer store-facts--inline">
         <div class="store-fact">
             <small>TRANSFER</small>
             <strong>{{ $transfer['status_label'] }}</strong>
@@ -54,17 +54,23 @@
         </div>
     </header>
 
-    <div class="store-facts">
+    <div class="store-facts store-facts--inline">
         <div class="store-fact">
             <small>REGISTERED</small>
+            @if($domain['registered_at'])
+            <span class="store-fact-join">on</span>
+            @endif
             <strong>{{ $domain['registered_at'] ? $domain['registered_at']->format('d M Y') : '—' }}</strong>
         </div>
         <div class="store-fact">
             <small>EXPIRES</small>
+            @if($domain['expires_at'])
+            <span class="store-fact-join">on</span>
+            @endif
             <strong>{{ $domain['expires_at'] ? $domain['expires_at']->format('d M Y') : '—' }}</strong>
         </div>
         <div class="store-fact">
-            <small>RENEWAL </small>
+            <small>RENEWAL</small>
             <strong>৳ {{ number_format($domain['renewal_price'], 2) }}<i>/year</i></strong>
         </div>
     </div>
