@@ -20,11 +20,17 @@
    single icon + one line of copy. A four-card row needs the full width, so the
    page wrapper is re-tasked here: still the flex child between navbar and
    footer, but block-flow with symmetric gutters instead of place-items:center. */
+/* The banner is full-bleed across the viewport while the cards stay in a
+   1240px column, so padding lives on the banner and on the card container
+   rather than on .ssl-page itself. */
 .cs-main.ssl-main,
 .ssl-public .cs-main {
     display: block;
     place-items: initial;
-    padding: clamp(30px, 5vw, 56px) clamp(18px, 4vw, 40px) clamp(38px, 6vw, 64px);
+    /* NB: the site footer is rendered INSIDE .cs-main on this template, so a
+       bottom padding here would land after the footer, not before it. The
+       breathing room between the cards and the footer lives on .ssl-page. */
+    padding: 0;
 }
 
 .ssl-page {
@@ -34,12 +40,12 @@
     --ssl-blue: #1f6fe5;
     --ssl-blue-deep: #175ac4;
     --ssl-accent: var(--cs-accent, #0f9d76);
+    --ssl-gutter: clamp(18px, 4vw, 40px);
 
     position: relative;
     width: 100%;
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 0;
+    margin: 0;
+    padding: 0 0 clamp(48px, 7vw, 84px);
     color: var(--ssl-ink);
     text-align: center;
 }
@@ -59,11 +65,114 @@
     border: 0;
 }
 
-/* ---------------------------------------------------------------- heading -- */
+/* ---------------------------------------------------------------- banner -- */
 
-.ssl-head {
-    max-width: 760px;
-    margin: 0 auto clamp(30px, 4.5vw, 46px);
+/* A quiet band above the cards: flat tint, one hairline, no gradient or glow.
+   The hosting pages use a navy→indigo animated gradient with a lime kicker;
+   this is the plain sibling of that, so the SSL page reads as part of the same
+   family without competing with the prices below it.
+
+   The single piece of motion is two concentric rings that breathe and drift
+   very slowly behind the heading. They are hairline strokes in the service
+   accent at low alpha, so at any moment the band still reads as a plain tint —
+   the animation is felt more than watched. `overflow:hidden` keeps them clipped
+   to the band and `pointer-events:none` keeps them out of the way. */
+.ssl-banner {
+    position: relative;
+    overflow: hidden;
+    margin: 0 0 clamp(30px, 4vw, 44px);
+    padding: clamp(34px, 4.6vw, 52px) clamp(18px, 3vw, 32px);
+    border-bottom: 1px solid var(--ssl-line);
+    background: linear-gradient(180deg, #f7fafd, #fbfdff);
+}
+
+/* Ring 1 — the wide outer halo, drifting diagonally. */
+.ssl-banner::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: clamp(340px, 46vw, 620px);
+    height: clamp(340px, 46vw, 620px);
+    margin: calc(clamp(340px, 46vw, 620px) / -2) 0 0 calc(clamp(340px, 46vw, 620px) / -2);
+    border: 1px solid color-mix(in srgb, var(--ssl-accent) 16%, transparent);
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 clamp(26px, 3vw, 42px) color-mix(in srgb, var(--ssl-accent) 5%, transparent),
+        0 0 0 calc(clamp(26px, 3vw, 42px) * 2) color-mix(in srgb, var(--ssl-accent) 2.5%, transparent);
+    content: "";
+    pointer-events: none;
+    animation: sslRingDrift 26s ease-in-out infinite alternate;
+}
+
+/* Ring 2 — the tight inner ring, breathing against it in counter-phase so the
+   pair never pulses as one flat blob. */
+.ssl-banner::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: clamp(180px, 24vw, 320px);
+    height: clamp(180px, 24vw, 320px);
+    margin: calc(clamp(180px, 24vw, 320px) / -2) 0 0 calc(clamp(180px, 24vw, 320px) / -2);
+    border: 1px solid color-mix(in srgb, var(--ssl-accent) 11%, transparent);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    animation: sslRingBreathe 18s ease-in-out infinite;
+}
+
+@keyframes sslRingDrift {
+    from { transform: translate3d(-3%, 2%, 0) scale(1); }
+    to   { transform: translate3d(3%, -2%, 0) scale(1.06); }
+}
+
+@keyframes sslRingBreathe {
+    0%, 100% { transform: scale(.94); opacity: .55; }
+    50%      { transform: scale(1.08); opacity: 1; }
+}
+
+/* Anyone who has asked for less motion gets the rings frozen in place — the
+   band still gets its depth, minus the movement. */
+@media (prefers-reduced-motion: reduce) {
+    .ssl-banner::before,
+    .ssl-banner::after { animation: none; }
+    .ssl-banner::before { transform: scale(1); }
+    .ssl-banner::after { opacity: .8; transform: scale(1); }
+}
+
+/* The rings live on the banner's own pseudo-elements, so the content needs to
+   be lifted above them. */
+.ssl-banner-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1240px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.ssl-crumbs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-bottom: clamp(16px, 2.2vw, 22px);
+    color: #8b9bb0;
+    font-size: 12.5px;
+    letter-spacing: .1px;
+}
+
+.ssl-crumbs a {
+    color: #6d829c;
+    text-decoration: none;
+    transition: color .16s ease;
+}
+
+.ssl-crumbs a:hover { color: var(--ssl-blue); }
+
+.ssl-crumbs span { color: #b6c3d3; }
+
+.ssl-crumbs strong {
+    color: #4a5f7a;
+    font-weight: 600;
 }
 
 .ssl-kicker {
@@ -76,43 +185,15 @@
     text-transform: uppercase;
 }
 
+/* The subtitle and the "longer terms" pill are gone by request, so the title is
+   the last element in the band — no bottom margin, the banner's padding carries
+   the space to the cards. */
 .ssl-title {
-    margin: 0 0 12px;
+    margin: 0;
     color: var(--ssl-ink);
     font: 800 clamp(30px, 4.6vw, 46px)/1.1 'Manrope', sans-serif;
     letter-spacing: -1.4px;
     text-wrap: balance;
-}
-
-.ssl-subtitle {
-    max-width: 60ch;
-    margin: 0 auto;
-    color: var(--ssl-body);
-    font-size: clamp(14.5px, 1.35vw, 16px);
-    line-height: 1.62;
-    text-wrap: pretty;
-}
-
-/* "Longer terms save up to 10%" — a quiet pill, not a loud promo badge. */
-.ssl-note {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin: 20px 0 0;
-    padding: 8px 15px 8px 12px;
-    border: 1px solid color-mix(in srgb, var(--ssl-accent) 22%, #ffffff);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--ssl-accent) 7%, #ffffff);
-    color: color-mix(in srgb, var(--ssl-accent) 78%, #10233d);
-    font-size: 12.5px;
-    font-weight: 700;
-    letter-spacing: .1px;
-}
-
-.ssl-note svg {
-    flex: none;
-    width: 14px;
-    height: 14px;
 }
 
 /* ------------------------------------------------------------------ grid -- */
@@ -122,6 +203,9 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 18px;
     align-items: start;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 var(--ssl-gutter);
     text-align: left;
 }
 
@@ -189,24 +273,44 @@
 
 /* ---------------------------------------------------------------- pricing -- */
 
-/* The ৳ glyph is a unit: smaller, lighter, baseline-aligned under the number's
-   cap height so the pair reads as one figure instead of a symbol + a number. */
+/* The ৳ is set as a currency chip beside the figure — not on its baseline.
+   Reference art: the glyph gets its own tinted tile, optically centred against
+   the digit block, in the service accent while the digits stay near-black. That
+   contrast (small coloured glyph + large dark number) is what makes the price
+   read as money instead of a number with a stray symbol attached.
+
+   Alignment (matching the reference art):
+   * the ৳ is a SUPERSCRIPT — it hangs above the digits' cap height, teal, in a
+     lighter weight than the figure, so the eye lands on the number first.
+   * `align-items: flex-start` plus a negative top offset lifts it clear of the
+     cap line; the digits keep `line-height: 1` so the offset is predictable.
+   * a small negative left margin pulls it back over the glyph's side bearing so
+     the visual gap reads the same as the box gap. */
+/* The row reserves headroom above the figure so the superscript ৳ can rise
+   clear of the tagline without spilling out of the card. */
 .ssl-price {
     display: flex;
-    align-items: baseline;
-    gap: 1px;
+    align-items: flex-start;
+    gap: 0;
     margin: 0 0 8px;
+    padding-top: .5em;
     color: var(--ssl-ink);
     font-family: 'Manrope', sans-serif;
 }
 
+/* -0.62em lifts the glyph so it clears the digits but overlaps their upper
+   third — a superscript that still belongs to the number, rather than floating
+   fully above it. (At -0.95em its foot sat exactly on the cap line, which read
+   as too detached.) */
 .ssl-taka {
-    align-self: flex-start;
-    margin-top: .38em;
-    color: var(--ssl-ink);
-    font-size: clamp(17px, 1.6vw, 20px);
+    flex: none;
+    margin: -0.62em 0.1em 0 0;
+    color: color-mix(in srgb, var(--ssl-accent) 92%, #0b2a22);
+    font-family: 'Manrope', sans-serif;
+    font-size: clamp(17px, 1.9vw, 22px);
     font-weight: 600;
     line-height: 1;
+    letter-spacing: 0;
 }
 
 .ssl-amount {
@@ -217,8 +321,11 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* "/mo" rides the baseline of the figure (as in the reference), not the box
+   bottom — `align-self: flex-end` would drop it under the descender line. */
 .ssl-per {
-    margin-left: 3px;
+    align-self: flex-end;
+    margin: 0 0 .26em 4px;
     color: var(--ssl-body);
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
@@ -356,22 +463,8 @@
 
 /* ------------------------------------------------------------------ foot -- */
 
-.ssl-foot {
-    margin: clamp(26px, 3.5vw, 38px) auto 0;
-    max-width: 62ch;
-    color: #8496a9;
-    font-size: 13px;
-    line-height: 1.65;
-}
-
-.ssl-foot a {
-    color: var(--ssl-blue);
-    font-weight: 600;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.ssl-foot a:hover { color: var(--ssl-blue-deep); }
+/* The closing price/help note was removed from the markup, so there is no
+   .ssl-foot rule any more — the cards are the last thing on the page. */
 
 /* =============================== responsive =============================== */
 
@@ -383,10 +476,13 @@
 
 /* One-up on phones: the select + button stay full width and thumb-sized. */
 @media (max-width: 620px) {
-    .ssl-page { padding: 6px 0 18px; }
+    /* Keep the bottom gap (the footer follows the cards inside .cs-main) —
+       only the top needs trimming on phones. */
+    .ssl-page { padding: 6px 0 clamp(40px, 12vw, 56px); }
     .ssl-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
     .ssl-card { padding: 22px 18px 20px; border-radius: 14px; }
-    .ssl-head { margin-bottom: 26px; }
+    .ssl-banner { margin-bottom: 24px; padding: 22px 16px 24px; }
+    .ssl-crumbs { margin-bottom: 14px; font-size: 12px; }
     .ssl-title { letter-spacing: -.9px; }
     .ssl-badge { left: 18px; }
     .ssl-amount { font-size: 36px; letter-spacing: -1.2px; }
@@ -396,14 +492,33 @@
 
 /* ------------------------------------------------- client-area variant ---- */
 
-/* Inside the workspace the page already sits on a light band, so the cards drop
-   the outer padding and pick up the smaller workspace heading scale. */
-.ssl-page--client { max-width: none; padding-top: 0; text-align: left; }
+/* Inside the workspace the page already sits on a light band and has its own
+   topbar, so the banner loses the tint and the rule (a bordered box inside a
+   bordered box reads as a mistake) and just carries the heading, left-aligned. */
+.ssl-page--client {
+    --ssl-gutter: 0px;
 
-.ssl-page--client .ssl-head {
     max-width: none;
-    margin: 0 0 22px;
+    /* .domain-content already carries the workspace's bottom padding. */
+    padding: 0;
     text-align: left;
+}
+
+.ssl-page--client .ssl-banner {
+    margin: 0 0 22px;
+    padding: 0 0 18px;
+    border-bottom: 1px solid var(--ssl-line);
+    background: none;
+}
+
+.ssl-page--client .ssl-banner-inner {
+    max-width: none;
+    text-align: left;
+}
+
+.ssl-page--client .ssl-crumbs {
+    justify-content: flex-start;
+    margin-bottom: 14px;
 }
 
 .ssl-page--client .ssl-title {
@@ -411,20 +526,17 @@
     letter-spacing: -.9px;
 }
 
-.ssl-page--client .ssl-subtitle {
-    margin: 0;
-    font-size: 14px;
-}
-
-.ssl-page--client .ssl-note { margin-top: 14px; }
+/* The rings are an ornament for the roomy public band. Inside the workspace the
+   banner is a single flush line of text, so the rings are switched off rather
+   than crowded in behind it. */
+.ssl-page--client .ssl-banner::before,
+.ssl-page--client .ssl-banner::after { display: none; }
 
 .ssl-page--client .ssl-grid { gap: 14px; }
 
 .ssl-page--client .ssl-card { padding: 22px 20px 20px; }
 
 .ssl-page--client .ssl-amount { font-size: clamp(30px, 2.9vw, 36px); }
-
-.ssl-page--client .ssl-foot { margin-left: 0; text-align: left; }
 
 @media (max-width: 1080px) and (min-width: 621px) {
     .ssl-page--client .ssl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

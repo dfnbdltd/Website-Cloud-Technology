@@ -14,22 +14,25 @@
 --}}
 @php($sslPlans = \App\Support\SslPricing::plans())
 @php($sslVariant = $sslVariant ?? 'public')
-@php($sslHasDiscounts = \App\Support\SslPricing::hasTermDiscounts($sslPlans))
 @php($sslDefaultTerm = (int) config('ssl_plans.default_term', 1))
 
 <div class="ssl-page ssl-page--{{ $sslVariant }}">
 
-    <header class="ssl-head">
-        <span class="ssl-kicker">Secure your website</span>
-        <h1 class="ssl-title">SSL Certificates</h1>
-        <p class="ssl-subtitle">Security, trust and credibility for your website — priced in taka, no hidden conversion.</p>
+    {{-- Banner: same anatomy as the hosting pages (breadcrumb → kicker → title)
+         but deliberately plain — a flat tinted band with one hairline rule. The
+         only ornament is the pair of slow concentric rings painted by CSS
+         (.ssl-banner::before / ::after), which clip to the band. --}}
+    <header class="ssl-banner">
+        <div class="ssl-banner-inner">
+            <nav class="ssl-crumbs" aria-label="Breadcrumb">
+                <a href="{{ route('landing') }}">Home</a>
+                <span aria-hidden="true">/</span>
+                <strong>SSL Certificates</strong>
+            </nav>
 
-        @if($sslHasDiscounts)
-            <p class="ssl-note">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.2l5.9-.9z"/></svg>
-                Longer terms save up to 10%
-            </p>
-        @endif
+            <span class="ssl-kicker">Secure your website</span>
+            <h1 class="ssl-title">SSL Certificates</h1>
+        </div>
     </header>
 
     <div class="ssl-grid">
@@ -45,6 +48,9 @@
                 <h2 class="ssl-card-name">{{ $sslPlan['name'] }}</h2>
                 <p class="ssl-card-tagline">{{ $sslPlan['tagline'] }}</p>
 
+                {{-- The ৳ is a currency chip standing beside the figure, the way
+                     the reference art sets it: its own tinted tile, vertically
+                     centred on the digits rather than sitting on the baseline. --}}
                 <p class="ssl-price">
                     <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>{{ \App\Support\SslPricing::perMonth($sslDefault['per_month']) }}</span><span class="ssl-per">/mo</span>
                 </p>
@@ -89,10 +95,6 @@
         @endforeach
     </div>
 
-    <p class="ssl-foot">
-        All prices are in Bangladeshi Taka (BDT) and include VAT. Need help choosing?
-        <a href="{{ route('support') }}">Talk to our team</a>.
-    </p>
 </div>
 
 <script>
