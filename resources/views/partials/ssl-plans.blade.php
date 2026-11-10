@@ -14,7 +14,6 @@
 --}}
 @php($sslPlans = $sslPlans ?? app(\App\Services\SslPlanService::class)->plans())
 @php($sslVariant = $sslVariant ?? 'public')
-@php($sslDefaultTerm = (int) config('ssl_plans.default_term', 1))
 
 <div class="ssl-page ssl-page--{{ $sslVariant }}">
 
@@ -38,13 +37,10 @@
     <div class="ssl-grid">
         @foreach($sslPlans as $sslPlan)
             @php($sslTermId = 'sslTerm-' . $sslPlan['key'])
-            @php($sslDefault = $sslPlan['terms'][$sslDefaultTerm] ?? $sslPlan['default'])
+            {{-- `default` is resolved by SslPlanService: always the 1-year term. --}}
+            @php($sslDefault = $sslPlan['default'])
 
-            <article class="ssl-card{{ !empty($sslPlan['badge']) ? ' is-featured' : '' }}">
-                @if(!empty($sslPlan['badge']))
-                    <span class="ssl-badge">{{ $sslPlan['badge'] }}</span>
-                @endif
-
+            <article class="ssl-card">
                 <h2 class="ssl-card-name">{{ $sslPlan['name'] }}</h2>
                 <p class="ssl-card-tagline">{{ $sslPlan['tagline'] }}</p>
 
@@ -65,8 +61,7 @@
                                     data-per-month="{{ \App\Support\SslPricing::perMonth($sslTerm['per_month']) }}"
                                     data-total="{{ \App\Support\SslPricing::money($sslTerm['total']) }}"
                                     data-savings="{{ \App\Support\SslPricing::money($sslTerm['savings']) }}"
-                                            {!! (!$sslPlan['active'][$sslTerm['years']] || !$sslPlan['visible'][$sslTerm['years']]) ? 'disabled' : '' !!}
-                                            @if($sslTerm['years'] === $sslDefault['years']) selected @endif>
+                                    @if($sslTerm['years'] === $sslDefault['years']) selected @endif>
                                 {{ $sslTerm['label'] }}
                             </option>
                         @endforeach
@@ -108,9 +103,8 @@
             var total = card.querySelector('[data-ssl-total]');
             if (!select || !amount || !total) { return; }
 
-            select.addEventListener('change', function () {
-                var option = select.options[select.selectedIndex];
-                if (!option) { return; }
+            function apply(option) {
+                if (!option || option.disabled) { return; }
 
                 amount.textContent = option.getAttribute('data-per-month');
 
@@ -119,6 +113,21 @@
 
                 total.textContent = TAKA + option.getAttribute('data-total') + ' ';
                 total.appendChild(span);
+            }
+
+            // Belt-and-braces: if the selected option is a term the admin has
+            // switched off, move the select to the first one that can be bought
+            // before the values are ever shown.
+            if (select.selectedOptions[0] && select.selectedOptions[0].disabled) {
+                var firstUsable = [].slice.call(select.options).filter(function (o) { return !o.disabled; })[0];
+                if (firstUsable) {
+                    select.value = firstUsable.value;
+                    apply(firstUsable);
+                }
+            }
+
+            select.addEventListener('change', function () {
+                apply(select.options[select.selectedIndex]);
             });
         });
     }());

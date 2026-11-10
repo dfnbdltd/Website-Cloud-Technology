@@ -4,13 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * One SSL certificate plan.
+ *
+ * All three billing terms (1, 2 and 3 years) are always offered; the only
+ * per-term setting is a discount percentage. Term totals are derived, never
+ * stored — see App\Services\SslPlanService::resolve().
+ */
 class SslPlan extends Model
 {
     protected $fillable = [
         'plan_key', 'name', 'tagline', 'badge', 'monthly_price', 'renewal_price',
         'discount_one_year', 'discount_two_year', 'discount_three_year',
-        'term_one_year_active', 'term_two_year_active', 'term_three_year_active',
-        'term_one_year_visible', 'term_two_year_visible', 'term_three_year_visible',
         'is_visible', 'sort',
     ];
 
@@ -20,12 +25,6 @@ class SslPlan extends Model
         'discount_one_year' => 'float',
         'discount_two_year' => 'float',
         'discount_three_year' => 'float',
-        'term_one_year_active' => 'boolean',
-        'term_two_year_active' => 'boolean',
-        'term_three_year_active' => 'boolean',
-        'term_one_year_visible' => 'boolean',
-        'term_two_year_visible' => 'boolean',
-        'term_three_year_visible' => 'boolean',
         'is_visible' => 'boolean',
         'sort' => 'integer',
     ];
@@ -35,27 +34,18 @@ class SslPlan extends Model
         return $this->hasMany(SslPlanFeature::class)->orderBy('sort')->orderBy('id');
     }
 
-    public function termActive($years)
-    {
-        return (bool) $this->{'term_' . $this->termSlug($years) . '_active'};
-    }
-
-    public function termVisible($years)
-    {
-        return (bool) $this->{'term_' . $this->termSlug($years) . '_visible'};
-    }
-
+    /**
+     * Discount percentage for a term. Unknown terms fall back to the 1-year
+     * value so a bad number can never produce a negative price.
+     */
     public function discountFor($years)
     {
-        return (float) $this->{'discount_' . $this->termSlug($years)};
-    }
+        $column = [
+            1 => 'discount_one_year',
+            2 => 'discount_two_year',
+            3 => 'discount_three_year',
+        ][(int) $years] ?? 'discount_one_year';
 
-    private function termSlug($years)
-    {
-        return [
-            1 => 'one_year',
-            2 => 'two_year',
-            3 => 'three_year',
-        ][(int) $years] ?? 'one_year';
+        return (float) $this->{$column};
     }
 }

@@ -5,8 +5,18 @@ namespace App\Services;
 use App\Models\SslPlan;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Reads SSL plans for the public / client cards.
+ *
+ * Source of truth: the ssl_plans / ssl_plan_features tables. When those are
+ * absent or empty (e.g. a fresh checkout before `php artisan migrate`) this
+ * falls back to config/ssl_plans.php so the page is never blank.
+ */
 class SslPlanService
 {
+    /** Billing terms offered for every plan, in display order. */
+    const TERMS = [1 => '1 Year', 2 => '2 Years', 3 => '3 Years'];
+
     private static $tablesMissing;
 
     public function plans()
@@ -36,13 +46,21 @@ class SslPlanService
         return !self::$tablesMissing && SslPlan::query()->exists();
     }
 
+    /**
+     * Resolve one plan into the array the Blade partial consumes.
+     *
+     * Every plan offers all three terms; only the discount varies. `total` is
+     * rounded to whole taka so a BDT price never reads ৳2,559.60, and
+     * `per_month` is the effective monthly for that term.
+     */
     public function resolve(SslPlan $plan)
     {
         $terms = [];
-        foreach ([1 => '1 Year', 2 => '2 Years', 3 => '3 Years'] as $years => $label) {
+        foreach (self::TERMS as $years => $label) {
             $full = (float) $plan->monthly_price * 12 * $years;
             $discount = $plan->discountFor($years);
             $total = round($full * (1 - ($discount / 100)));
+
             $terms[$years] = [
                 'years' => $years,
                 'label' => $label,
@@ -69,27 +87,19 @@ class SslPlanService
                 ];
             })->values()->all(),
             'terms' => $terms,
-            'active' => [1 => $plan->termActive(1), 2 => $plan->termActive(2), 3 => $plan->termActive(3)],
-            'visible' => [1 => $plan->termVisible(1), 2 => $plan->termVisible(2), 3 => $plan->termVisible(3)],
-            'default' => $this->defaultTerm($plan, $terms),
+            // 1 year is what the card quotes by default.
+            'default' => $terms[1],
         ];
     }
 
-    private function defaultTerm(SslPlan $plan, array $terms)
-    {
-        foreach ([1, 2, 3] as $years) {
-            if ($plan->termActive($years) && $plan->termVisible($years)) {
-                return $terms[$years];
-            }
-        }
-
-        return $terms[1];
-    }
-
+    /**
+     * Config fallback for an unmigrated install.
+     */
     private function legacy()
     {
         $config = config('ssl_plans', []);
         $plans = [];
+
         foreach ((array) ($config['plans'] ?? []) as $key => $plan) {
             $row = new SslPlan([
                 'id' => null,
@@ -103,9 +113,11 @@ class SslPlanService
                 'discount_two_year' => $config['term_discount'][2] ?? 5,
                 'discount_three_year' => $config['term_discount'][3] ?? 10,
             ]);
+
             $row->setRelation('features', collect(array_map(function ($feature) {
                 return (object) ['feature' => $feature, 'is_available' => true];
             }, (array) ($plan['features'] ?? []))));
+
             $plans[] = $this->resolve($row);
         }
 

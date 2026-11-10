@@ -8,16 +8,35 @@ class AddDomainTransferFields extends Migration
 {
     public function up()
     {
-        Schema::table('domain_order_items', function (Blueprint $table) {
-            $table->string('order_type')->default('registration');
-            $table->text('transfer_auth_code')->nullable();
-        });
+        if (!Schema::hasTable('domain_order_items')) {
+            return;
+        }
+
+        if (!Schema::hasColumn('domain_order_items', 'order_type')) {
+            Schema::table('domain_order_items', function (Blueprint $table) {
+                $table->string('order_type')->default('registration');
+            });
+        }
+
+        if (!Schema::hasColumn('domain_order_items', 'transfer_auth_code')) {
+            Schema::table('domain_order_items', function (Blueprint $table) {
+                $table->text('transfer_auth_code')->nullable();
+            });
+        }
     }
 
     public function down()
     {
-        Schema::table('domain_order_items', function (Blueprint $table) {
-            $table->dropColumn(['order_type', 'transfer_auth_code']);
-        });
+        if (!Schema::hasTable('domain_order_items')) {
+            return;
+        }
+
+        foreach (['order_type', 'transfer_auth_code'] as $column) {
+            if (Schema::hasColumn('domain_order_items', $column)) {
+                Schema::table('domain_order_items', function (Blueprint $table) use ($column) {
+                    $table->dropColumn($column);
+                });
+            }
+        }
     }
 }

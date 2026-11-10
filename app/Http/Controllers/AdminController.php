@@ -880,14 +880,25 @@ class AdminController extends Controller
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
+        if (!$this->sslCmsAvailable()) {
+            return view('admin.ssl-plans', [
+                'plans' => collect(),
+                'cmsUnavailable' => 'SSL CMS tables are not available. Run the SSL migration before managing plans.',
+            ]);
+        }
+
         return view('admin.ssl-plans', [
             'plans' => SslPlan::with('features')->orderBy('sort')->orderBy('id')->get(),
+            'cmsUnavailable' => null,
         ]);
     }
 
     public function createSslPlan(Request $request)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$this->sslCmsAvailable()) {
+            return redirect()->route('admin.ssl.plans')->withErrors(['ssl_cms' => 'SSL CMS tables are not available. Run the SSL migration before creating plans.']);
+        }
 
         return view('admin.ssl-plan-form', ['plan' => null]);
     }
@@ -895,6 +906,9 @@ class AdminController extends Controller
     public function editSslPlan(Request $request, SslPlan $plan)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$this->sslCmsAvailable()) {
+            return redirect()->route('admin.ssl.plans')->withErrors(['ssl_cms' => 'SSL CMS tables are not available. Run the SSL migration before editing plans.']);
+        }
 
         $plan->load('features');
         return view('admin.ssl-plan-form', ['plan' => $plan]);
@@ -903,6 +917,9 @@ class AdminController extends Controller
     public function storeSslPlan(Request $request)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$this->sslCmsAvailable()) {
+            return redirect()->route('admin.ssl.plans')->withErrors(['ssl_cms' => 'SSL CMS tables are not available. Run the SSL migration before creating plans.']);
+        }
 
         [$data, $features] = $this->validatedSslPlan($request);
         $plan = DB::transaction(function () use ($data, $features) {
@@ -917,6 +934,9 @@ class AdminController extends Controller
     public function updateSslPlan(Request $request, SslPlan $plan)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$this->sslCmsAvailable()) {
+            return redirect()->route('admin.ssl.plans')->withErrors(['ssl_cms' => 'SSL CMS tables are not available. Run the SSL migration before updating plans.']);
+        }
 
         [$data, $features] = $this->validatedSslPlan($request, $plan);
         DB::transaction(function () use ($plan, $data, $features) {
@@ -930,6 +950,9 @@ class AdminController extends Controller
     public function toggleSslPlanVisibility(Request $request, SslPlan $plan)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$this->sslCmsAvailable()) {
+            return redirect()->route('admin.ssl.plans')->withErrors(['ssl_cms' => 'SSL CMS tables are not available. Run the SSL migration before changing visibility.']);
+        }
 
         $plan->update(['is_visible' => !$plan->is_visible]);
         return redirect()->route('admin.ssl.plans')->with('success', 'SSL plan "' . $plan->name . '" is now ' . ($plan->is_visible ? 'visible' : 'hidden') . '.');
@@ -938,6 +961,9 @@ class AdminController extends Controller
     public function deleteSslPlan(Request $request, SslPlan $plan)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+        if (!$this->sslCmsAvailable()) {
+            return redirect()->route('admin.ssl.plans')->withErrors(['ssl_cms' => 'SSL CMS tables are not available. Run the SSL migration before deleting plans.']);
+        }
 
         $name = $plan->name;
         DB::transaction(function () use ($plan) {
@@ -948,60 +974,147 @@ class AdminController extends Controller
         return redirect()->route('admin.ssl.plans')->with('success', 'SSL plan "' . $name . '" deleted.');
     }
 
-    private function validatedSslPlan(Request $request, SslPlan $plan = null)
+    private function sslCmsAvailable()
     {
+        return Schema::hasTable('ssl_plans') && Schema::hasTable('ssl_plan_features');
+    }
+
+    /**
+
+     * Validate an SSL plan submission.
+
+     *
+
+     * All three terms are always offered, so there are no per-term flags to
+
+     * read — only the three discount percentages. Badge and the per-feature
+
+     * "available" flag were dropped from the admin UI, so they are no longer
+
+     * accepted here; every feature is shown as included.
+
+     *
+
+     * @return array [<plan columns>, <feature rows>]
+
+     */
+
+    private function validatedSslPlan(Request $request, SslPlan $plan = null)
+
+    {
+
         $data = $request->validate([
+
             'plan_key' => ['required', 'string', 'max:80', 'regex:/^[a-z0-9][a-z0-9-]*$/i'],
+
             'name' => ['required', 'string', 'max:120'],
+
             'tagline' => ['nullable', 'string', 'max:255'],
-            'badge' => ['nullable', 'string', 'max:80'],
+
             'monthly_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
+
             'renewal_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
+
             'discount_one_year' => ['required', 'numeric', 'min:0', 'max:100'],
+
             'discount_two_year' => ['required', 'numeric', 'min:0', 'max:100'],
+
             'discount_three_year' => ['required', 'numeric', 'min:0', 'max:100'],
+
             'features' => ['nullable', 'array', 'max:60'],
+
+        ], [
+
+            'plan_key.regex' => 'The plan key may only contain letters, numbers and dashes.',
+
         ]);
 
+
+
         $keyQuery = SslPlan::where('plan_key', $data['plan_key']);
-        if ($plan) { $keyQuery->where('id', '!=', $plan->id); }
-        if ($keyQuery->exists()) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['plan_key' => 'That SSL plan key is already in use.']);
+
+        if ($plan) {
+
+            $keyQuery->where('id', '!=', $plan->id);
+
         }
+
+        if ($keyQuery->exists()) {
+
+            throw \Illuminate\Validation\ValidationException::withMessages([
+
+                'plan_key' => 'That SSL plan key is already in use.',
+
+            ]);
+
+        }
+
+
 
         $columns = [
+
             'plan_key' => strtolower($data['plan_key']),
+
             'name' => $data['name'],
+
             'tagline' => $data['tagline'] ?? null,
-            'badge' => $data['badge'] ?? null,
+
             'monthly_price' => $data['monthly_price'],
+
             'renewal_price' => $data['renewal_price'],
+
             'discount_one_year' => $data['discount_one_year'],
+
             'discount_two_year' => $data['discount_two_year'],
+
             'discount_three_year' => $data['discount_three_year'],
-            'term_one_year_active' => $request->boolean('term_one_year_active'),
-            'term_two_year_active' => $request->boolean('term_two_year_active'),
-            'term_three_year_active' => $request->boolean('term_three_year_active'),
-            'term_one_year_visible' => $request->boolean('term_one_year_visible'),
-            'term_two_year_visible' => $request->boolean('term_two_year_visible'),
-            'term_three_year_visible' => $request->boolean('term_three_year_visible'),
+
             'is_visible' => $request->boolean('is_visible'),
+
             'sort' => (int) $request->input('sort', 0),
+
         ];
 
+
+
         $features = [];
-        foreach ((array) $request->input('features', []) as $index => $feature) {
-            if (!is_array($feature)) { continue; }
+
+        foreach ((array) $request->input('features', []) as $feature) {
+
+            if (!is_array($feature)) {
+
+                continue;
+
+            }
+
+
+
             $text = trim((string) ($feature['text'] ?? ''));
-            if ($text === '') { continue; }
+
+            if ($text === '') {
+
+                continue;
+
+            }
+
+
+
             $features[] = [
+
                 'feature' => mb_substr($text, 0, 190),
-                'is_available' => !empty($feature['is_available']),
+
+                'is_available' => true,
+
                 'sort' => count($features) + 1,
+
             ];
+
         }
 
+
+
         return [$columns, $features];
+
     }
 
     private function syncSslPlanFeatures(SslPlan $plan, array $features)

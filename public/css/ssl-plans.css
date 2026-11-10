@@ -198,11 +198,16 @@
 
 /* ------------------------------------------------------------------ grid -- */
 
+/* auto-fit (not repeat(4,...)): plans are admin-managed, so the visible count
+   changes. A fixed 4-track grid left a 334px hole when only 3 were visible;
+   auto-fit collapses the empty tracks and the row centres itself. The
+   max track width keeps four cards from stretching wider than the reference. */
 .ssl-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
     gap: 18px;
     align-items: start;
+    justify-content: center;
     max-width: 1240px;
     margin: 0 auto;
     padding: 0 var(--ssl-gutter);
@@ -468,9 +473,10 @@
 
 /* =============================== responsive =============================== */
 
-/* Two-up before the cards get narrow enough to crush the price line. */
+/* Two-up before the cards get narrow enough to crush the price line. auto-fit
+   again, so 3 visible plans become 2 + 1 rather than 2 + an empty track. */
 @media (max-width: 1080px) {
-    .ssl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .ssl-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
     .ssl-card-tagline { min-height: 0; }
 }
 
@@ -539,7 +545,7 @@
 .ssl-page--client .ssl-amount { font-size: clamp(30px, 2.9vw, 36px); }
 
 @media (max-width: 1080px) and (min-width: 621px) {
-    .ssl-page--client .ssl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ssl-page--client .ssl-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
