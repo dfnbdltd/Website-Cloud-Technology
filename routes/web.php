@@ -81,6 +81,10 @@ Route::get('/services/{service}', function (string $service) {
     abort_unless(is_array($services) && isset($services[$service]), 404);
 
     $back = (string) request()->query('back', '');
+    if ($back === '/') {
+        return redirect()->route('services.coming-soon', ['service' => $service]);
+    }
+
     // Only ever accept a local path: never redirect off-site.
     $back = str_starts_with($back, '/') && ! str_starts_with($back, '//') ? $back : null;
 
