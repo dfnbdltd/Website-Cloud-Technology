@@ -13,6 +13,7 @@
 @php($transferCssVersion = @md5_file(public_path('css/domain-transfer.css')))
 @php($transferJsVersion = @md5_file(public_path('js/domain-transfer.js')))
 @php($sslCssVersion = @md5_file(public_path('css/ssl-plans.css')))
+@php($sslPlanService = app(\App\Services\SslPlanService::class))
 <!doctype html>
 <html lang="en">
 <head>
@@ -34,7 +35,7 @@
     </main>
 @elseif($isSsl)
     <main class="cs-main" @if(!empty($service['accent'])) style="--cs-accent:{{ $service['accent'] }}" @endif>
-        @include('partials.ssl-plans', ['sslVariant' => 'public'])
+        @include('partials.ssl-plans', ['sslVariant' => 'public', 'sslPlans' => $sslPlanService->plans()])
 @else
     <main class="cs-main" @if(!empty($service['accent'])) style="--cs-accent:{{ $service['accent'] }}" @endif>
         <section class="cs-minimal" aria-labelledby="csTitle">

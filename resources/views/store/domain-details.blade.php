@@ -56,6 +56,34 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
             </div>
         </section>
 
+        <section class="store-detail-panel store-org-consent" aria-labelledby="organization-consent-title">
+            <div class="store-detail-panel-head">
+                <div>
+                    <span class="domain-kicker">PUBLIC RDDS / WHOIS</span>
+                    <h2 id="organization-consent-title">Organization Name Consent:</h2>
+                    <p>You've entered a value in the Organization field, which will be treated as the Registered Name Holder. This information is currently not displayed publicly.</p>
+                    <p>By clicking <strong>"Yes, I agree"</strong>, you consent to its publication in the public RDDS (formerly WHOIS). You can withdraw this consent at any time.</p>
+                </div>
+            </div>
+            @if($errors->has('consent'))
+                <div class="store-ns-alert is-error" role="alert">{{ $errors->first('consent') }}</div>
+            @elseif(session('consent_success'))
+                <div class="store-ns-alert is-success" role="status">{{ session('consent_success') }}</div>
+            @endif
+            <div class="store-ns-actions">
+                <form method="POST" action="{{ route('mystore.domains.organization-consent', $item->id) }}">
+                    @csrf
+                    <input type="hidden" name="consent" value="1">
+                    <button class="store-ns-btn store-ns-btn-primary" type="submit">Yes, I agree</button>
+                </form>
+                <form method="POST" action="{{ route('mystore.domains.organization-consent', $item->id) }}">
+                    @csrf
+                    <input type="hidden" name="consent" value="0">
+                    <button class="store-ns-btn store-ns-btn-secondary" type="submit">Cancel</button>
+                </form>
+            </div>
+        </section>
+
         <section class="store-detail-panel store-ns-panel">
             <div class="store-ns-row">
                 <span class="store-detail-icon" aria-hidden="true">

@@ -10,6 +10,8 @@ use App\Models\HostingPlanFeature;
 use App\Models\Invoice;
 use App\Models\Setting;
 use App\Models\SupportTicket;
+use App\Models\SslPlan;
+use App\Models\SslPlanFeature;
 use App\Models\Topup;
 use App\Services\InvoiceService;
 use App\Services\Notifier;
@@ -872,6 +874,142 @@ class AdminController extends Controller
 
         return redirect()->route('admin.hosting.plans', ['type' => $type, 'term' => $this->returnTerm($request)])
             ->with('success', 'Plan card "' . $name . '" deleted.');
+    }
+
+    public function sslPlans(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        return view('admin.ssl-plans', [
+            'plans' => SslPlan::with('features')->orderBy('sort')->orderBy('id')->get(),
+        ]);
+    }
+
+    public function createSslPlan(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        return view('admin.ssl-plan-form', ['plan' => null]);
+    }
+
+    public function editSslPlan(Request $request, SslPlan $plan)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $plan->load('features');
+        return view('admin.ssl-plan-form', ['plan' => $plan]);
+    }
+
+    public function storeSslPlan(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        [$data, $features] = $this->validatedSslPlan($request);
+        $plan = DB::transaction(function () use ($data, $features) {
+            $plan = SslPlan::create($data);
+            $this->syncSslPlanFeatures($plan, $features);
+            return $plan;
+        });
+
+        return redirect()->route('admin.ssl.plans')->with('success', 'SSL plan "' . $plan->name . '" created.');
+    }
+
+    public function updateSslPlan(Request $request, SslPlan $plan)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        [$data, $features] = $this->validatedSslPlan($request, $plan);
+        DB::transaction(function () use ($plan, $data, $features) {
+            $plan->update($data);
+            $this->syncSslPlanFeatures($plan, $features);
+        });
+
+        return redirect()->route('admin.ssl.plans')->with('success', 'SSL plan "' . $plan->name . '" updated.');
+    }
+
+    public function toggleSslPlanVisibility(Request $request, SslPlan $plan)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $plan->update(['is_visible' => !$plan->is_visible]);
+        return redirect()->route('admin.ssl.plans')->with('success', 'SSL plan "' . $plan->name . '" is now ' . ($plan->is_visible ? 'visible' : 'hidden') . '.');
+    }
+
+    public function deleteSslPlan(Request $request, SslPlan $plan)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $name = $plan->name;
+        DB::transaction(function () use ($plan) {
+            SslPlanFeature::where('ssl_plan_id', $plan->id)->delete();
+            $plan->delete();
+        });
+
+        return redirect()->route('admin.ssl.plans')->with('success', 'SSL plan "' . $name . '" deleted.');
+    }
+
+    private function validatedSslPlan(Request $request, SslPlan $plan = null)
+    {
+        $data = $request->validate([
+            'plan_key' => ['required', 'string', 'max:80', 'regex:/^[a-z0-9][a-z0-9-]*$/i'],
+            'name' => ['required', 'string', 'max:120'],
+            'tagline' => ['nullable', 'string', 'max:255'],
+            'badge' => ['nullable', 'string', 'max:80'],
+            'monthly_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
+            'renewal_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
+            'discount_one_year' => ['required', 'numeric', 'min:0', 'max:100'],
+            'discount_two_year' => ['required', 'numeric', 'min:0', 'max:100'],
+            'discount_three_year' => ['required', 'numeric', 'min:0', 'max:100'],
+            'features' => ['nullable', 'array', 'max:60'],
+        ]);
+
+        $keyQuery = SslPlan::where('plan_key', $data['plan_key']);
+        if ($plan) { $keyQuery->where('id', '!=', $plan->id); }
+        if ($keyQuery->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['plan_key' => 'That SSL plan key is already in use.']);
+        }
+
+        $columns = [
+            'plan_key' => strtolower($data['plan_key']),
+            'name' => $data['name'],
+            'tagline' => $data['tagline'] ?? null,
+            'badge' => $data['badge'] ?? null,
+            'monthly_price' => $data['monthly_price'],
+            'renewal_price' => $data['renewal_price'],
+            'discount_one_year' => $data['discount_one_year'],
+            'discount_two_year' => $data['discount_two_year'],
+            'discount_three_year' => $data['discount_three_year'],
+            'term_one_year_active' => $request->boolean('term_one_year_active'),
+            'term_two_year_active' => $request->boolean('term_two_year_active'),
+            'term_three_year_active' => $request->boolean('term_three_year_active'),
+            'term_one_year_visible' => $request->boolean('term_one_year_visible'),
+            'term_two_year_visible' => $request->boolean('term_two_year_visible'),
+            'term_three_year_visible' => $request->boolean('term_three_year_visible'),
+            'is_visible' => $request->boolean('is_visible'),
+            'sort' => (int) $request->input('sort', 0),
+        ];
+
+        $features = [];
+        foreach ((array) $request->input('features', []) as $index => $feature) {
+            if (!is_array($feature)) { continue; }
+            $text = trim((string) ($feature['text'] ?? ''));
+            if ($text === '') { continue; }
+            $features[] = [
+                'feature' => mb_substr($text, 0, 190),
+                'is_available' => !empty($feature['is_available']),
+                'sort' => count($features) + 1,
+            ];
+        }
+
+        return [$columns, $features];
+    }
+
+    private function syncSslPlanFeatures(SslPlan $plan, array $features)
+    {
+        SslPlanFeature::where('ssl_plan_id', $plan->id)->delete();
+        foreach ($features as $feature) {
+            $plan->features()->create($feature);
+        }
     }
 
     /**

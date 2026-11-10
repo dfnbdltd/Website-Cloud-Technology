@@ -182,6 +182,43 @@ class MyStoreController extends Controller
             ->with('manage_domain_item', $item->id);
     }
 
+    public function updateOrganizationConsent(Request $request, $itemId)
+    {
+        $userId = (int) ($request->user()
+            ? $request->user()->id
+            : $request->session()->get('customer.id'));
+        $item = $this->ownedDomainItem($request, $itemId);
+        $consent = $request->input('consent');
+        if (!in_array($consent, ['1', '0', 1, 0, true, false], true)) {
+            return redirect()->route('mystore.domains.details', $item)
+                ->withErrors(['consent' => 'Choose Yes, I agree or Cancel.']);
+        }
+
+        abort_if(isset(config('services.test_domains')[$item->domain]), 404);
+
+        $orderId = $this->resellerClub->domainOrderId($item->domain);
+        $response = $this->resellerClub->modifyRegistrantOrganizationConsent(
+            $item->domain,
+            $orderId,
+            filter_var($consent, FILTER_VALIDATE_BOOLEAN)
+        );
+        if (!is_array($response) || strtoupper((string) ($response['status'] ?? '')) !== 'SUCCESS') {
+            \Log::warning('ResellerClub organization consent update did not succeed', [
+                'domain' => $item->domain,
+                'user_id' => $userId,
+                'response' => $response,
+            ]);
+
+            return redirect()->route('mystore.domains.details', $item)
+                ->withErrors(['consent' => $this->providerErrorMessage($response) ?: 'The organization consent could not be updated. Please contact support.']);
+        }
+
+        return redirect()->route('mystore.domains.details', $item)
+            ->with('consent_success', filter_var($consent, FILTER_VALIDATE_BOOLEAN)
+                ? 'Organization publication consent accepted.'
+                : 'Organization publication consent cancelled.');
+    }
+
     private function nameserverUpdateError($response)
     {
         $providerMessage = $this->providerErrorMessage($response);

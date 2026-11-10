@@ -12,6 +12,7 @@
 @php($transferCssVersion = @md5_file(public_path('css/domain-transfer.css')))
 @php($transferJsVersion = @md5_file(public_path('js/domain-transfer.js')))
 @php($sslCssVersion = @md5_file(public_path('css/ssl-plans.css')))
+@php($sslPlanService = app(\App\Services\SslPlanService::class))
 
 @extends('store.layout', [
     'pageTitle' => $service['title'].($isTransfer ? ' — Transfer your domain' : ' — Coming soon'),
@@ -40,7 +41,7 @@
             @include('partials.domain-transfer', ['dtVariant' => 'client'])
         </div>
     @elseif($isSsl)
-        @include('partials.ssl-plans', ['sslVariant' => 'client'])
+        @include('partials.ssl-plans', ['sslVariant' => 'client', 'sslPlans' => $sslPlanService->plans()])
     @else
         <div class="store-coming tone-{{ $service['tone'] }}">
             <span class="store-coming-icon" aria-hidden="true">

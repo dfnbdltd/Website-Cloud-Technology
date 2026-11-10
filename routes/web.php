@@ -161,6 +161,10 @@ Route::middleware(['web', 'customer'])->group(function () {
         ->where('item', '[0-9]+')
         ->middleware('throttle:5,1')
         ->name('mystore.domains.nameservers');
+    Route::post('/mystore/domains/{item}/organization-consent', [MyStoreController::class, 'updateOrganizationConsent'])
+        ->where('item', '[0-9]+')
+        ->middleware('throttle:5,1')
+        ->name('mystore.domains.organization-consent');
     Route::get('/mystore/hosting', [MyStoreController::class, 'hosting'])->name('mystore.hosting');
     Route::get('/mystore/{service}', [MyStoreController::class, 'service'])
         ->where('service', 'ssl|email|sms')
@@ -233,3 +237,10 @@ Route::get('/admin/hosting-plans/{plan}/edit', [AdminController::class, 'editHos
 Route::post('/admin/hosting-plans/{plan}', [AdminController::class, 'updateHostingPlan'])->name('admin.hosting.plans.update');
 Route::post('/admin/hosting-plans/{plan}/visibility', [AdminController::class, 'toggleHostingPlanVisibility'])->name('admin.hosting.plans.visibility');
 Route::post('/admin/hosting-plans/{plan}/delete', [AdminController::class, 'deleteHostingPlan'])->name('admin.hosting.plans.delete');
+Route::get('/admin/ssl-plans', [AdminController::class, 'sslPlans'])->name('admin.ssl.plans');
+Route::get('/admin/ssl-plans/create', [AdminController::class, 'createSslPlan'])->name('admin.ssl.plans.create');
+Route::post('/admin/ssl-plans', [AdminController::class, 'storeSslPlan'])->name('admin.ssl.plans.store');
+Route::get('/admin/ssl-plans/{plan}/edit', [AdminController::class, 'editSslPlan'])->name('admin.ssl.plans.edit');
+Route::post('/admin/ssl-plans/{plan}', [AdminController::class, 'updateSslPlan'])->name('admin.ssl.plans.update');
+Route::post('/admin/ssl-plans/{plan}/visibility', [AdminController::class, 'toggleSslPlanVisibility'])->name('admin.ssl.plans.visibility');
+Route::post('/admin/ssl-plans/{plan}/delete', [AdminController::class, 'deleteSslPlan'])->name('admin.ssl.plans.delete');

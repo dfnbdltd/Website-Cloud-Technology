@@ -5,14 +5,14 @@
       * .ssl-page--public  under <main class="cs-main"> on /services/ssl-certificate
       * .ssl-page--client  inside the store layout on /client/coming-soon/ssl-certificate
 
-    Data comes from App\Support\SslPricing (config/ssl_plans.php). Prices are
+    Data comes from App\Services\SslPlanService with config fallback. Prices are
     already BDT, so the ৳ glyph is the only currency decoration needed.
 
     The term dropdown swaps the "/mo" price and the term total in place with a
     small inline script — no request. The values ship in data-attributes, so the
     no-JS view already reads correctly for the default term.
 --}}
-@php($sslPlans = \App\Support\SslPricing::plans())
+@php($sslPlans = $sslPlans ?? app(\App\Services\SslPlanService::class)->plans())
 @php($sslVariant = $sslVariant ?? 'public')
 @php($sslDefaultTerm = (int) config('ssl_plans.default_term', 1))
 
@@ -65,7 +65,8 @@
                                     data-per-month="{{ \App\Support\SslPricing::perMonth($sslTerm['per_month']) }}"
                                     data-total="{{ \App\Support\SslPricing::money($sslTerm['total']) }}"
                                     data-savings="{{ \App\Support\SslPricing::money($sslTerm['savings']) }}"
-                                    @if($sslTerm['years'] === $sslDefaultTerm) selected @endif>
+                                            {!! (!$sslPlan['active'][$sslTerm['years']] || !$sslPlan['visible'][$sslTerm['years']]) ? 'disabled' : '' !!}
+                                            @if($sslTerm['years'] === $sslDefault['years']) selected @endif>
                                 {{ $sslTerm['label'] }}
                             </option>
                         @endforeach
@@ -86,8 +87,8 @@
                 <ul class="ssl-features">
                     @foreach($sslPlan['features'] as $sslFeature)
                         <li>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>
-                            <span>{{ $sslFeature }}</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ $sslFeature['available'] ? 'M4.5 12.5l4.5 4.5L19.5 6.5' : 'M6 6l12 12M18 6L6 18' }}"/></svg>
+                            <span class="{{ $sslFeature['available'] ? '' : 'ssl-feature-unavailable' }}">{{ $sslFeature['text'] }}</span>
                         </li>
                     @endforeach
                 </ul>

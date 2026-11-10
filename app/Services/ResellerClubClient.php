@@ -522,6 +522,51 @@ class ResellerClubClient
     }
 
     /**
+     * Publish or revoke publication of the registrant organization in RDDS.
+     *
+     * ResellerClub requires the contact IDs along with the consent attribute.
+     */
+    public function modifyRegistrantOrganizationConsent($domain, $orderId, $consent)
+    {
+        if (!$this->isConfigured()) {
+            \Log::warning('ResellerClub organization consent update skipped because client is not configured', [
+                'order_id' => $orderId,
+            ]);
+
+            return null;
+        }
+
+        if (!is_scalar($orderId) || !ctype_digit((string) $orderId) || (int) $orderId < 1) {
+            \Log::warning('ResellerClub organization consent update skipped because order ID is invalid', [
+                'order_id' => $orderId,
+            ]);
+
+            return null;
+        }
+
+        $contacts = ResellerClubDomainContacts::forDomain($domain, [
+            'reg' => $this->config['reg_contact_id'] ?? null,
+            'admin' => $this->config['admin_contact_id'] ?? null,
+            'tech' => $this->config['tech_contact_id'] ?? null,
+            'billing' => $this->config['billing_contact_id'] ?? null,
+        ]);
+        if ($contacts === null) {
+            \Log::warning('ResellerClub organization consent update skipped because contact IDs are incomplete', [
+                'domain' => $domain,
+                'order_id' => $orderId,
+            ]);
+
+            return null;
+        }
+
+        return $this->request('/domains/modify-contact.json', array_merge([
+            'order-id' => (string) $orderId,
+            'attr-name1' => 'registrant-org-consent',
+            'attr-value1' => $consent ? 'true' : 'false',
+        ], $contacts), 'POST');
+    }
+
+    /**
      * Read the nameservers currently assigned to a domain order.
      * This is intentionally separate from the existing update flow.
      */

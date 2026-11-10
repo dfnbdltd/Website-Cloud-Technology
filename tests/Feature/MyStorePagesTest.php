@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Topup;
 use App\Services\InvoiceService;
+use App\Services\ResellerClubClient;
 use App\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -100,6 +101,30 @@ class MyStorePagesTest extends TestCase
             ->assertSee($order->reference)
             ->assertSee($invoice->invoice_number)
             ->assertSee('DETAIL-ORDER-PAY');
+    }
+
+    public function testDomainOrganizationConsentCanBeAcceptedOrCancelled()
+    {
+        $user = $this->user();
+        $order = $this->paidOrder($user, 'CONSENT-ORDER', 'consent-domain.test');
+        $order->update(['status' => 'active']);
+        $item = $order->items()->first();
+        $item->update(['registration_status' => 'registered']);
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('domainOrderId')->twice()->with('consent-domain.test')->andReturn('127547539');
+        $resellerClub->shouldReceive('modifyRegistrantOrganizationConsent')->once()
+            ->with('consent-domain.test', '127547539', true)->andReturn(['status' => 'SUCCESS']);
+        $resellerClub->shouldReceive('modifyRegistrantOrganizationConsent')->once()
+            ->with('consent-domain.test', '127547539', false)->andReturn(['status' => 'SUCCESS']);
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $this->withSession($this->customerSession($user))
+            ->post("/mystore/domains/{$item->id}/organization-consent", ['consent' => '1'])
+            ->assertRedirect(route('mystore.domains.details', $item));
+
+        $this->withSession($this->customerSession($user))
+            ->post("/mystore/domains/{$item->id}/organization-consent", ['consent' => '0'])
+            ->assertRedirect(route('mystore.domains.details', $item));
     }
 
     public function testDomainPageListsPaidTransferRequestsSeparatelyFromOwnedDomains()
