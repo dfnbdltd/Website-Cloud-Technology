@@ -8,13 +8,15 @@
     Data: $service (config/coming_soon.php), $navActive (sidebar active key).
 --}}
 @php($isTransfer = ($slug ?? '') === 'domain-transfer')
+@php($isSsl = ($slug ?? '') === 'ssl-certificate')
 @php($transferCssVersion = @md5_file(public_path('css/domain-transfer.css')))
 @php($transferJsVersion = @md5_file(public_path('js/domain-transfer.js')))
+@php($sslCssVersion = @md5_file(public_path('css/ssl-plans.css')))
 
 @extends('store.layout', [
     'pageTitle' => $service['title'].($isTransfer ? ' — Transfer your domain' : ' — Coming soon'),
     'navActive' => $navActive,
-    'topbarTitle' => $isTransfer ? 'Domain Transfer' : 'Coming soon',
+    'topbarTitle' => $isTransfer ? 'Domain Transfer' : ($isSsl ? 'SSL Certificate' : 'Coming soon'),
 ])
 
 @if($isTransfer)
@@ -26,11 +28,19 @@
     @endpush
 @endif
 
+@if($isSsl)
+    @push('head')
+        <link rel="stylesheet" href="{{ asset('css/ssl-plans.css') }}?v={{ $sslCssVersion }}">
+    @endpush
+@endif
+
 @section('store')
     @if($isTransfer)
         <div class="dt-page dt-page--client">
             @include('partials.domain-transfer', ['dtVariant' => 'client'])
         </div>
+    @elseif($isSsl)
+        @include('partials.ssl-plans', ['sslVariant' => 'client'])
     @else
         <div class="store-coming tone-{{ $service['tone'] }}">
             <span class="store-coming-icon" aria-hidden="true">

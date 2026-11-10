@@ -1,0 +1,439 @@
+/* ===========================================================================
+   SSL certificate pricing cards — resources/views/partials/ssl-plans.blade.php
+   Loaded by the public /services/ssl-certificate page and the client-area
+   /client/coming-soon/ssl-certificate page.
+
+   Design notes
+   ------------
+   * Four equal cards on one row (the reference layout). The grid is
+     `repeat(4, minmax(0, 1fr))`; minmax(0,·) is what stops a long feature
+     string from blowing the track wider than 1/4 of the container.
+   * Prices are BDT, so the ৳ glyph gets the display treatment: smaller than
+     the number (it is a unit, not a digit) but optically aligned to the cap
+     height via its own line-height — the "৳ 79" pair reads as one object.
+   * The whole block is scoped under .ssl-page so it cannot leak into the
+     coming-soon screen or the store. Public and client variants only differ in
+     the surrounding band, never in the card itself.
+   =========================================================================== */
+
+/* The public coming-soon <main class="cs-main"> is a centered grid built for a
+   single icon + one line of copy. A four-card row needs the full width, so the
+   page wrapper is re-tasked here: still the flex child between navbar and
+   footer, but block-flow with symmetric gutters instead of place-items:center. */
+.cs-main.ssl-main,
+.ssl-public .cs-main {
+    display: block;
+    place-items: initial;
+    padding: clamp(30px, 5vw, 56px) clamp(18px, 4vw, 40px) clamp(38px, 6vw, 64px);
+}
+
+.ssl-page {
+    --ssl-ink: #0f2340;
+    --ssl-body: #5c7590;
+    --ssl-line: #e4ebf4;
+    --ssl-blue: #1f6fe5;
+    --ssl-blue-deep: #175ac4;
+    --ssl-accent: var(--cs-accent, #0f9d76);
+
+    position: relative;
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0;
+    color: var(--ssl-ink);
+    text-align: center;
+}
+
+.ssl-page *,
+.ssl-page *::before,
+.ssl-page *::after { box-sizing: border-box; }
+
+/* Screen-reader only label for the term select. */
+.ssl-sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------------------------------------------------------------- heading -- */
+
+.ssl-head {
+    max-width: 760px;
+    margin: 0 auto clamp(30px, 4.5vw, 46px);
+}
+
+.ssl-kicker {
+    display: inline-block;
+    margin-bottom: 12px;
+    color: var(--ssl-accent);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.9px;
+    text-transform: uppercase;
+}
+
+.ssl-title {
+    margin: 0 0 12px;
+    color: var(--ssl-ink);
+    font: 800 clamp(30px, 4.6vw, 46px)/1.1 'Manrope', sans-serif;
+    letter-spacing: -1.4px;
+    text-wrap: balance;
+}
+
+.ssl-subtitle {
+    max-width: 60ch;
+    margin: 0 auto;
+    color: var(--ssl-body);
+    font-size: clamp(14.5px, 1.35vw, 16px);
+    line-height: 1.62;
+    text-wrap: pretty;
+}
+
+/* "Longer terms save up to 10%" — a quiet pill, not a loud promo badge. */
+.ssl-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0 0;
+    padding: 8px 15px 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--ssl-accent) 22%, #ffffff);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ssl-accent) 7%, #ffffff);
+    color: color-mix(in srgb, var(--ssl-accent) 78%, #10233d);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: .1px;
+}
+
+.ssl-note svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+}
+
+/* ------------------------------------------------------------------ grid -- */
+
+.ssl-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+    text-align: left;
+}
+
+/* ------------------------------------------------------------------ card -- */
+
+.ssl-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 26px 24px 24px;
+    border: 1px solid var(--ssl-line);
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 35, 64, .04);
+    transition: border-color .2s ease, box-shadow .22s ease, transform .22s ease;
+}
+
+.ssl-card:hover,
+.ssl-card:focus-within {
+    border-color: color-mix(in srgb, var(--ssl-blue) 34%, #ffffff);
+    box-shadow: 0 18px 40px -26px rgba(15, 35, 64, .45), 0 2px 6px rgba(15, 35, 64, .05);
+    transform: translateY(-2px);
+}
+
+/* The recommended plan: blue hairline + tint, never a heavy fill. */
+.ssl-card.is-featured {
+    border-color: color-mix(in srgb, var(--ssl-blue) 46%, #ffffff);
+    box-shadow: 0 20px 46px -30px rgba(31, 111, 229, .55), 0 1px 2px rgba(15, 35, 64, .05);
+}
+
+.ssl-badge {
+    position: absolute;
+    top: -11px;
+    left: 24px;
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 11px;
+    border-radius: 999px;
+    background: var(--ssl-blue);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .55px;
+    text-transform: uppercase;
+    box-shadow: 0 8px 16px -8px rgba(31, 111, 229, .9);
+}
+
+.ssl-card-name {
+    margin: 0 0 6px;
+    color: var(--ssl-ink);
+    font: 700 18px/1.3 'Manrope', sans-serif;
+    letter-spacing: -.25px;
+}
+
+.ssl-card-tagline {
+    margin: 0 0 22px;
+    min-height: 2.7em;
+    color: var(--ssl-body);
+    font-size: 13.5px;
+    line-height: 1.5;
+    text-wrap: pretty;
+}
+
+/* ---------------------------------------------------------------- pricing -- */
+
+/* The ৳ glyph is a unit: smaller, lighter, baseline-aligned under the number's
+   cap height so the pair reads as one figure instead of a symbol + a number. */
+.ssl-price {
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    margin: 0 0 8px;
+    color: var(--ssl-ink);
+    font-family: 'Manrope', sans-serif;
+}
+
+.ssl-taka {
+    align-self: flex-start;
+    margin-top: .38em;
+    color: var(--ssl-ink);
+    font-size: clamp(17px, 1.6vw, 20px);
+    font-weight: 600;
+    line-height: 1;
+}
+
+.ssl-amount {
+    font-size: clamp(34px, 3.6vw, 42px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -1.6px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ssl-per {
+    margin-left: 3px;
+    color: var(--ssl-body);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.ssl-renew {
+    margin: 0 0 20px;
+    color: #7d8fa4;
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
+/* ------------------------------------------------------------------ term -- */
+
+.ssl-term {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+/* Native select, restyled — keeps the mobile OS picker (better than a custom
+   dropdown at 390px) while matching the card's input look. */
+.ssl-term select {
+    width: 100%;
+    height: 44px;
+    padding: 0 38px 0 14px;
+    border: 1px solid #d8e2ee;
+    border-radius: 9px;
+    background: #fff;
+    color: #33445c;
+    font: 500 14px/1 'DM Sans', sans-serif;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.ssl-term::after {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    width: 8px;
+    height: 8px;
+    margin-top: -6px;
+    border-right: 1.8px solid #7e8fa5;
+    border-bottom: 1.8px solid #7e8fa5;
+    transform: rotate(45deg);
+    content: "";
+    pointer-events: none;
+}
+
+.ssl-term select:hover { border-color: #b9c9db; }
+
+.ssl-term select:focus-visible {
+    border-color: var(--ssl-blue);
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(31, 111, 229, .16);
+}
+
+/* ------------------------------------------------------------------- buy -- */
+
+.ssl-buy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--ssl-blue);
+    color: #fff;
+    font: 700 14.5px/1 'DM Sans', sans-serif;
+    letter-spacing: .1px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.ssl-buy:hover {
+    background: var(--ssl-blue-deep);
+    box-shadow: 0 10px 22px -12px rgba(31, 111, 229, .85);
+}
+
+.ssl-buy:active { transform: translateY(1px); }
+
+.ssl-buy:focus-visible {
+    outline: 3px solid rgba(31, 111, 229, .3);
+    outline-offset: 2px;
+}
+
+/* Term total under the button — present but quiet. */
+.ssl-total {
+    margin: 11px 0 20px;
+    color: var(--ssl-ink);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.ssl-total span {
+    color: #8496a9;
+    font-weight: 500;
+}
+
+/* -------------------------------------------------------------- features -- */
+
+.ssl-features {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    margin: 0;
+    padding: 20px 0 0;
+    border-top: 1px solid var(--ssl-line);
+    list-style: none;
+}
+
+.ssl-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #44546b;
+    font-size: 13.5px;
+    line-height: 1.48;
+}
+
+.ssl-features svg {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    margin-top: .28em;
+    color: #22a06b;
+}
+
+/* ------------------------------------------------------------------ foot -- */
+
+.ssl-foot {
+    margin: clamp(26px, 3.5vw, 38px) auto 0;
+    max-width: 62ch;
+    color: #8496a9;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.ssl-foot a {
+    color: var(--ssl-blue);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.ssl-foot a:hover { color: var(--ssl-blue-deep); }
+
+/* =============================== responsive =============================== */
+
+/* Two-up before the cards get narrow enough to crush the price line. */
+@media (max-width: 1080px) {
+    .ssl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .ssl-card-tagline { min-height: 0; }
+}
+
+/* One-up on phones: the select + button stay full width and thumb-sized. */
+@media (max-width: 620px) {
+    .ssl-page { padding: 6px 0 18px; }
+    .ssl-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .ssl-card { padding: 22px 18px 20px; border-radius: 14px; }
+    .ssl-head { margin-bottom: 26px; }
+    .ssl-title { letter-spacing: -.9px; }
+    .ssl-badge { left: 18px; }
+    .ssl-amount { font-size: 36px; letter-spacing: -1.2px; }
+    .ssl-features { gap: 11px; padding-top: 17px; }
+    .ssl-features li { font-size: 13px; }
+}
+
+/* ------------------------------------------------- client-area variant ---- */
+
+/* Inside the workspace the page already sits on a light band, so the cards drop
+   the outer padding and pick up the smaller workspace heading scale. */
+.ssl-page--client { max-width: none; padding-top: 0; text-align: left; }
+
+.ssl-page--client .ssl-head {
+    max-width: none;
+    margin: 0 0 22px;
+    text-align: left;
+}
+
+.ssl-page--client .ssl-title {
+    font-size: clamp(25px, 2.6vw, 32px);
+    letter-spacing: -.9px;
+}
+
+.ssl-page--client .ssl-subtitle {
+    margin: 0;
+    font-size: 14px;
+}
+
+.ssl-page--client .ssl-note { margin-top: 14px; }
+
+.ssl-page--client .ssl-grid { gap: 14px; }
+
+.ssl-page--client .ssl-card { padding: 22px 20px 20px; }
+
+.ssl-page--client .ssl-amount { font-size: clamp(30px, 2.9vw, 36px); }
+
+.ssl-page--client .ssl-foot { margin-left: 0; text-align: left; }
+
+@media (max-width: 1080px) and (min-width: 621px) {
+    .ssl-page--client .ssl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ssl-card,
+    .ssl-buy,
+    .ssl-term select { transition: none; }
+    .ssl-card:hover,
+    .ssl-card:focus-within { transform: none; }
+}

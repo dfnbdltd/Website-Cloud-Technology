@@ -8,9 +8,11 @@
     Title, icon and accent still come from config/coming_soon.php.
 --}}
 @php($isTransfer = ($slug ?? '') === 'domain-transfer')
+@php($isSsl = ($slug ?? '') === 'ssl-certificate')
 @php($comingCssVersion = @md5_file(public_path('css/coming-soon.css')))
 @php($transferCssVersion = @md5_file(public_path('css/domain-transfer.css')))
 @php($transferJsVersion = @md5_file(public_path('js/domain-transfer.js')))
+@php($sslCssVersion = @md5_file(public_path('css/ssl-plans.css')))
 <!doctype html>
 <html lang="en">
 <head>
@@ -19,14 +21,20 @@
     @if($isTransfer)
         <link rel="stylesheet" href="{{ asset('css/domain-transfer.css') }}?v={{ $transferCssVersion }}">
     @endif
+    @if($isSsl)
+        <link rel="stylesheet" href="{{ asset('css/ssl-plans.css') }}?v={{ $sslCssVersion }}">
+    @endif
 </head>
-<body class="cs-page{{ $isTransfer ? ' dt-public' : '' }}">
+<body class="cs-page{{ $isTransfer ? ' dt-public' : '' }}{{ $isSsl ? ' ssl-public' : '' }}">
 @include('partials.site-navbar', ['navActive' => null])
 
 @if($isTransfer)
     <main class="dt-page dt-page--public">
         @include('partials.domain-transfer', ['dtVariant' => 'public'])
     </main>
+@elseif($isSsl)
+    <main class="cs-main" @if(!empty($service['accent'])) style="--cs-accent:{{ $service['accent'] }}" @endif>
+        @include('partials.ssl-plans', ['sslVariant' => 'public'])
 @else
     <main class="cs-main" @if(!empty($service['accent'])) style="--cs-accent:{{ $service['accent'] }}" @endif>
         <section class="cs-minimal" aria-labelledby="csTitle">
