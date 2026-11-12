@@ -1239,8 +1239,23 @@ class AdminController extends Controller
 
 
 
-            // The eye toggle posts 1 when checked and nothing when unchecked.
-            $shown = !empty($feature['shown']);
+            // A checkbox posts only when checked, so a lone "shown" key cannot
+            // tell "unchecked" apart from "not posted at all". The editor sends
+            // a `shown_marker` sentinel beside it:
+            //   shown=1                     -> visible
+            //   shown_marker=1, no shown    -> explicitly hidden
+            //   neither                     -> no visibility info (an older
+            //                                  form, or a script): keep it
+            //                                  visible, which is the behaviour
+            //                                  every feature had before this
+            //                                  column existed.
+            if (array_key_exists('shown', $feature)) {
+                $shown = !empty($feature['shown']);
+            } elseif (!empty($feature['shown_marker'])) {
+                $shown = false;
+            } else {
+                $shown = true;
+            }
 
 
 

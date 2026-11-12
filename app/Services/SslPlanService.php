@@ -126,6 +126,20 @@ class SslPlanService
         }
     }
 
+    /**
+     * Forget the memoised "are the SSL tables there?" answer.
+     *
+     * It is static so a page does not re-query the schema per plan, but that
+     * makes it survive across calls in one process: a worker, a seeder or a
+     * test that drops the tables once would otherwise keep the whole app on the
+     * config fallback for the rest of the process, silently ignoring real rows.
+     * Anything that changes the schema (migrations, tests) should call this.
+     */
+    public static function resetSchemaCache()
+    {
+        self::$tablesMissing = null;
+    }
+
     private function isManaged()
     {
         if (self::$tablesMissing === null) {

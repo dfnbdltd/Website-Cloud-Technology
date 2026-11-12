@@ -32,6 +32,17 @@ class SslPlanFeatureVisibilityTest extends TestCase
 
         config(['services.resellerclub.ssl_live_pricing' => true]);
 
+        // The ResellerClub price list is cached for 5 minutes and the cache is
+        // NOT reset by RefreshDatabase, so a stub from an earlier test would
+        // leak into this one and quietly drive the page from stale prices.
+        cache()->forget('resellerclub.pricing.v2');
+        cache()->forget('resellerclub.reseller_cost_pricing.v1');
+
+        // Same idea for the service's static "are the tables there?" memo:
+        // a test that drops the tables must not leave later tests on the
+        // config fallback.
+        \App\Services\SslPlanService::resetSchemaCache();
+
         $this->app->instance(ExchangeRateService::class, new class extends ExchangeRateService {
             public function usdToBdt()
             {
@@ -104,8 +115,8 @@ class SslPlanFeatureVisibilityTest extends TestCase
         // Use text unique to this plan: the seed shares feature wording across
         // plans, so asserting on "1 Sub-domain" would also match other cards.
         $this->admin()->post("/admin/ssl-plans/{$plan->id}", $this->payload($plan, [
-            ['text' => 'UNIQUE-KEEP-ME', 'shown' => '1'],
-            ['text' => 'UNIQUE-HIDE-ME'],
+            ['text' => 'UNIQUE-KEEP-ME', 'shown' => '1', 'shown_marker' => '1'],
+            ['text' => 'UNIQUE-HIDE-ME', 'shown_marker' => '1'],
         ]))->assertRedirect('/admin/ssl-plans');
 
         // Row still stored (hiding is not deleting) but flagged both ways.
@@ -190,19 +201,39 @@ class SslPlanFeatureVisibilityTest extends TestCase
     }
 
     /** @test */
-    public function a_feature_saved_without_the_shown_flag_is_hidden()
+    public function an_explicitly_unchecked_eye_hides_the_feature()
     {
         $plan = $this->positiveSsl();
 
+        // The editor always posts the marker; an unchecked eye posts no `shown`.
         $this->admin()->post("/admin/ssl-plans/{$plan->id}", $this->payload($plan, [
-            ['text' => 'No flag posted'],
+            ['text' => 'MARKER-ONLY-HIDDEN', 'shown_marker' => '1'],
         ]))->assertRedirect('/admin/ssl-plans');
 
         $row = $plan->fresh()->features()->first();
-        $this->assertSame('No flag posted', $row->feature);
+        $this->assertSame('MARKER-ONLY-HIDDEN', $row->feature);
         $this->assertFalse($row->isShownToCustomers());
 
-        $this->get('/services/ssl-certificate')->assertDontSee('No flag posted');
+        $this->get('/services/ssl-certificate')->assertDontSee('MARKER-ONLY-HIDDEN');
+    }
+
+    /** @test */
+    public function a_feature_posted_without_any_visibility_info_stays_visible()
+    {
+        $plan = $this->positiveSsl();
+
+        // No `shown` and no marker: an older form or a script. This has to keep
+        // working, because before the visibility column every feature showed.
+        $this->admin()->post("/admin/ssl-plans/{$plan->id}", $this->payload($plan, [
+            ['text' => 'NO-FLAG-KEEP-VISIBLE'],
+        ]))->assertRedirect('/admin/ssl-plans');
+
+        $row = $plan->fresh()->features()->first();
+        $this->assertSame('NO-FLAG-KEEP-VISIBLE', $row->feature);
+        $this->assertTrue($row->isShownToCustomers());
+        $this->assertTrue((bool) $row->is_available);
+
+        $this->get('/services/ssl-certificate')->assertSee('NO-FLAG-KEEP-VISIBLE');
     }
 
     /** @test */
@@ -211,8 +242,9 @@ class SslPlanFeatureVisibilityTest extends TestCase
         $plan = $this->positiveSsl();
 
         $this->admin()->post("/admin/ssl-plans/{$plan->id}", $this->payload($plan, [
-            ['text' => 'Shown included', 'shown' => '1'],
-            ['text' => 'Shown excluded'],
+            ['text' => 'Shown included', 'shown' => '1', 'shown_marker' => '1'],
+            // Marker without `shown` = the eye was switched off.
+            ['text' => 'Shown excluded', 'shown_marker' => '1'],
         ]));
 
         $cards = collect(app(\App\Services\SslPlanService::class)->plans())->keyBy('key');
@@ -247,23 +279,25 @@ class SslPlanFeatureVisibilityTest extends TestCase
     public function the_legacy_config_fallback_treats_every_feature_as_shown()
     {
         // Drop both SSL tables so SslPlanService takes the config/ssl_plans.php
-        // path. The service memoises that schema check, so reset it or the
-        // already-managed result would be reused.
+        // path, and reset its memoised schema answer so the drop is noticed.
         Schema::drop('ssl_plan_features');
         Schema::drop('ssl_plans');
+        \App\Services\SslPlanService::resetSchemaCache();
 
-        $property = (new \ReflectionClass(\App\Services\SslPlanService::class))->getProperty('tablesMissing');
-        $property->setAccessible(true);
-        $property->setValue(null, null);
+        try {
+            $cards = app(\App\Services\SslPlanService::class)->plans();
+            $this->assertNotEmpty($cards, 'the config fallback must still return plans');
 
-        $cards = app(\App\Services\SslPlanService::class)->plans();
-        $this->assertNotEmpty($cards, 'the config fallback must still return plans');
-
-        foreach ($cards as $card) {
-            $this->assertNotEmpty($card['features']);
-            foreach ($card['features'] as $feature) {
-                $this->assertTrue($feature['shown'], 'fallback features must default to shown');
+            foreach ($cards as $card) {
+                $this->assertNotEmpty($card['features']);
+                foreach ($card['features'] as $feature) {
+                    $this->assertTrue($feature['shown'], 'fallback features must default to shown');
+                }
             }
+        } finally {
+            // Leave the memo clean even if an assertion above failed, so this
+            // test cannot poison the rest of the suite.
+            \App\Services\SslPlanService::resetSchemaCache();
         }
     }
 
@@ -301,25 +335,28 @@ class SslPlanFeatureVisibilityTest extends TestCase
     {
         $this->admin()->post('/admin/ssl-plans', [
             'plan_key' => 'mixed-ssl',
-            'name' => 'Mixed SSL',
+            'name' => 'UNIQUE-MIXED-PLAN',
             'resellerclub_plan_id' => '301',
             'sort' => '9',
             'is_visible' => '1',
             'features' => [
-                ['text' => 'Visible one', 'shown' => '1'],
-                ['text' => 'Hidden one'],
+                ['text' => 'UNIQUE-VISIBLE-ONE', 'shown' => '1', 'shown_marker' => '1'],
+                ['text' => 'UNIQUE-HIDDEN-ONE', 'shown_marker' => '1'],
             ],
         ])->assertRedirect('/admin/ssl-plans');
 
         $plan = SslPlan::where('plan_key', 'mixed-ssl')->firstOrFail();
         $rows = $plan->features()->get()->keyBy('feature');
 
-        $this->assertTrue($rows['Visible one']->isShownToCustomers());
-        $this->assertFalse($rows['Hidden one']->isShownToCustomers());
+        $this->assertTrue($rows['UNIQUE-VISIBLE-ONE']->isShownToCustomers());
+        $this->assertFalse($rows['UNIQUE-HIDDEN-ONE']->isShownToCustomers());
 
+        // The plan name is the reliable proof the card rendered: feature text
+        // can also appear on a plan sharing the same ResellerClub ID.
         $this->get('/services/ssl-certificate')
-            ->assertSee('Visible one')
-            ->assertDontSee('Hidden one');
+            ->assertSee('UNIQUE-MIXED-PLAN')
+            ->assertSee('UNIQUE-VISIBLE-ONE')
+            ->assertDontSee('UNIQUE-HIDDEN-ONE');
     }
 
     /** @test */
@@ -334,6 +371,10 @@ class SslPlanFeatureVisibilityTest extends TestCase
         $this->admin()->post("/admin/ssl-plans/{$plan->id}", $this->payload($plan->fresh(), [
             ['text' => 'UNIQUE-PLAN-FEATURE', 'shown' => '1'],
         ]))->assertRedirect('/admin/ssl-plans');
+
+        // Sanity: the save really took effect before the visibility assertion.
+        $this->assertSame('UNIQUE-PLAN-NAME', $plan->fresh()->name);
+        $this->assertSame(1, $plan->fresh()->features()->count());
 
         $this->get('/services/ssl-certificate')
             ->assertSee('UNIQUE-PLAN-NAME')

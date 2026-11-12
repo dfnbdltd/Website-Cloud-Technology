@@ -1,2 +1,0 @@
-[0] tests/Feature/SslPlanFeatureVisibilityTest.php  OK  (13142 -> 13206 bytes)
-[1] tests/Feature/SslPlanFeatureVisibilityTest.php  OK  (13206 -> 13204 bytes)

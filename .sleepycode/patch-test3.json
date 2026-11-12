@@ -1,7 +1,0 @@
-[
-  {
-    "file": "tests/Feature/SslPlanFeatureVisibilityTest.php",
-    "old": "        // Included: shown + available.\n        $this->assertTrue($features['Shown included']['shown']);\n        $this->assertTrue($features['Shown included']['available']);\n\n        // Missing the eye: hidden, and the card drops it entirely rather than\n        // drawing a cross.\n        $this->assertFalse(isset($features['Shown excluded']));",
-    "new": "        // Included: shown + available.\n        $this->assertTrue($features['Shown included']['shown']);\n        $this->assertTrue($features['Shown included']['available']);\n\n        // Missing the eye: the card drops it entirely rather than drawing a\n        // cross. (The row itself is still stored: see the admin test below.)\n        $this->assertFalse(isset($features['Shown excluded']));\n        $this->assertSame(1, $plan->fresh()->features()->where('shown_to_customers', false)->count());"
-  }
-]
