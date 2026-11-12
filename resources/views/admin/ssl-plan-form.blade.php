@@ -44,14 +44,31 @@
 
         /* Feature rows */
         .ssl-rows{display:flex;flex-direction:column;gap:9px}
-        .ssl-row{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:9px;align-items:center}
+        /* Each row: the feature text, a Show/Hide eye toggle, then Delete. */
+        .ssl-row{display:grid;grid-template-columns:minmax(0,1fr) 40px 40px;gap:9px;align-items:center}
         .ssl-row input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d8e2ee;border-radius:8px;font:14px 'DM Sans',sans-serif}
         .ssl-row input:focus{border-color:#1f6fe5;outline:0;box-shadow:0 0 0 3px rgba(31,111,229,.15)}
         .ssl-row button{display:grid;place-items:center;width:38px;height:38px;border:1px solid #dfe6ee;border-radius:8px;background:#fff;color:#8496a9;font-size:17px;line-height:1;cursor:pointer;transition:border-color .16s ease,color .16s ease,background .16s ease}
-        .ssl-row button:hover{border-color:#fca5a5;color:#b91c1c;background:#fff5f5}
+        .ssl-row .ssl-remove:hover{border-color:#fca5a5;color:#b91c1c;background:#fff5f5}
+
+        /* Show/hide toggle. Unchecked (hidden) is the visually distinct state:
+           the text greys out and strikes through, so a hidden row is obvious in
+           a long list without reading the icon. */
+        .ssl-toggle{position:relative}
+        .ssl-toggle input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:2}
+        .ssl-toggle span{display:grid;place-items:center;width:38px;height:38px;border:1px solid #dfe6ee;border-radius:8px;background:#fff;color:#8496a9;transition:border-color .16s ease,color .16s ease,background .16s ease}
+        .ssl-toggle span svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+        .ssl-toggle input:checked + span{border-color:#bfe0cf;background:#f2fbf6;color:#12805c}
+        .ssl-toggle input:hover + span{border-color:#1f6fe5;color:#1f6fe5}
+        .ssl-toggle input:checked:hover + span{border-color:#12805c;color:#12805c}
+        .ssl-toggle input:focus-visible + span{box-shadow:0 0 0 3px rgba(31,111,229,.25)}
+        .ssl-row.is-hidden-feature input[type=text]{color:#a8b6c4;text-decoration:line-through;background:#fbfcfe}
+
         .ssl-add{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:9px 15px;border:1px dashed #c3d3e5;border-radius:9px;background:#fbfdff;color:#1f6fe5;font:700 13px 'DM Sans',sans-serif;cursor:pointer;transition:border-color .16s ease,background .16s ease}
         .ssl-add:hover{border-color:#1f6fe5;background:#f4f9ff}
         .ssl-rows-empty{padding:14px;border:1px dashed #dbe5f0;border-radius:9px;color:#93a2b3;font-size:13px;text-align:center}
+        .ssl-rows-help{margin:0 0 12px;color:#8496a9;font-size:12.5px;line-height:1.55}
+        .ssl-rows-help b{color:#5d7491}
 
         /* Right rail */
         .ssl-aside{position:sticky;top:18px}
@@ -163,10 +180,28 @@
                             <span class="ssl-panel-num">3</span>
                             <div><h2>Features</h2><p>Shown as a tick list on the card. Order is top to bottom.</p></div>
                         </div>
+
+                        <p class="ssl-rows-help">
+                            Use the <b>eye</b> to hide a feature from customers without deleting it —
+                            hidden rows stay saved here so you can bring them back later. The
+                            <b>×</b> removes the row for good when you save.
+                        </p>
+
                         <div class="ssl-rows" id="sslRows">
                             @foreach($features as $feature)
-                                <div class="ssl-row">
+                                @php($shown = $feature->isShownToCustomers())
+                                <div class="ssl-row{{ $shown ? '' : ' is-hidden-feature' }}">
                                     <input type="text" name="features[{{ $loop->index }}][text]" value="{{ $feature->feature }}" placeholder="Domain Validation">
+
+                                    <label class="ssl-toggle" title="{{ $shown ? 'Showing on the card — click to hide' : 'Hidden from customers — click to show' }}">
+                                        <input type="checkbox" name="features[{{ $loop->index }}][shown]" value="1" class="ssl-shown" @if($shown) checked @endif>
+                                        <span aria-hidden="true">
+                                            {{-- Open eye when shown, crossed eye when hidden. --}}
+                                            <svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        </span>
+                                        <span class="ssl-sr">{{ $shown ? 'Hide this feature from customers' : 'Show this feature to customers' }}</span>
+                                    </label>
+
                                     <button type="button" class="ssl-remove" aria-label="Remove feature">×</button>
                                 </div>
                             @endforeach
@@ -216,8 +251,29 @@
         var add = document.getElementById('sslAdd');
         var index = {{ $features->count() }};
 
+        /* Mirror the server: an unchecked eye greys out and strikes the text,
+           so a hidden row is obvious without reading the icon. */
+        function paint(row) {
+            var toggle = row.querySelector('.ssl-shown');
+            if (!toggle) { return; }
+            row.classList.toggle('is-hidden-feature', !toggle.checked);
+
+            var label = toggle.closest('.ssl-toggle');
+            if (label) {
+                label.title = toggle.checked
+                    ? 'Showing on the card — click to hide'
+                    : 'Hidden from customers — click to show';
+            }
+        }
+
         function wire(row) {
             row.querySelector('.ssl-remove').addEventListener('click', function () { row.remove(); });
+
+            var toggle = row.querySelector('.ssl-shown');
+            if (toggle) {
+                toggle.addEventListener('change', function () { paint(row); });
+                paint(row);
+            }
         }
 
         document.querySelectorAll('.ssl-row').forEach(wire);
@@ -226,10 +282,15 @@
             var row = document.createElement('div');
             row.className = 'ssl-row';
             row.innerHTML = '<input type="text" name="features[' + index + '][text]" placeholder="Domain Validation">'
+                + '<label class="ssl-toggle" title="Showing on the card — click to hide">'
+                + '<input type="checkbox" name="features[' + index + '][shown]" value="1" class="ssl-shown" checked>'
+                + '<span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>'
+                + '<span class="ssl-sr">Hide this feature from customers</span>'
+                + '</label>'
                 + '<button type="button" class="ssl-remove" aria-label="Remove feature">×</button>';
             rows.appendChild(row);
             wire(row);
-            row.querySelector('input').focus();
+            row.querySelector('input[type=text]').focus();
             index++;
         });
 

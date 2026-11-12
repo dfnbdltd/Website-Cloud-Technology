@@ -300,16 +300,39 @@ class SslPlanService
     /**
      * The feature tick list, shaped for the card partial.
      *
+     * `shown` is whether the admin wants the row on the card at all; `available`
+     * is whether it gets a tick or a cross. They are deliberately separate:
+     * hiding a feature must not be confused with marking it unavailable.
+     *
+     * Hidden rows are dropped HERE rather than in the Blade partial, because a
+     * `@php` block inside the card loop makes the Blade compiler emit raw
+     * markup instead of a loop (the file mixes inline @php(...) statements with
+     * the multi-line tags). This array only ever feeds a customer card, so the
+     * service is the right place — the admin editor reads the model directly.
+     *
      * @return array
      */
     private function features(SslPlan $plan)
     {
-        return $plan->features->map(function ($feature) {
-            return [
+        $features = [];
+
+        foreach ($plan->features as $feature) {
+            $shown = method_exists($feature, 'isShownToCustomers')
+                ? $feature->isShownToCustomers()
+                : (bool) $feature->is_available;
+
+            if (!$shown) {
+                continue;
+            }
+
+            $features[] = [
                 'text' => $feature->feature,
                 'available' => (bool) $feature->is_available,
+                'shown' => true,
             ];
-        })->values()->all();
+        }
+
+        return $features;
     }
 
     /**
@@ -335,7 +358,8 @@ class SslPlanService
             ]);
 
             $row->setRelation('features', collect(array_map(function ($feature) {
-                return (object) ['feature' => $feature, 'is_available' => true];
+                // The config fallback has no visibility column: every row shows.
+                return (object) ['feature' => $feature, 'is_available' => true, 'shown_to_customers' => true];
             }, (array) ($plan['features'] ?? []))));
 
             $plans[] = $this->resolve($row);

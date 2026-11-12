@@ -1,0 +1,12 @@
+[
+  {
+    "file": "resources/views/partials/ssl-plans.blade.php",
+    "old": "                @php\n                    // The admin can hide individual features per plan. `shown`\n                    // defaults to true, so an install whose rows predate the\n                    // column (or the config fallback) renders exactly as before.\n                    // A hidden row is not printed at all — it is not the same as\n                    // an \"unavailable\" row, which still shows with a red cross.\n                    $sslFeatures = array_values(array_filter($sslPlan['features'], function ($sslFeature) {\n                        return !isset($sslFeature['shown']) || $sslFeature['shown'];\n                    }));\n                @endphp\n                @if($sslFeatures)\n                <ul class=\"ssl-features\">\n                    @foreach($sslFeatures as $sslFeature)",
+    "new": "                {{-- SslPlanService already drops features the admin hid for this\n                     plan, so every row reaching here is meant to be printed. A\n                     hidden row is different from an \"unavailable\" one, which\n                     still shows with a red cross. --}}\n                <ul class=\"ssl-features\">\n                    @foreach($sslPlan['features'] as $sslFeature)"
+  },
+  {
+    "file": "resources/views/partials/ssl-plans.blade.php",
+    "old": "                    @endforeach\n                </ul>\n                @endif\n            </article>",
+    "new": "                    @endforeach\n                </ul>\n            </article>"
+  }
+]

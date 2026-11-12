@@ -1211,6 +1211,12 @@ class AdminController extends Controller
 
         $features = [];
 
+        // Per-row visibility. `is_available` and the visibility flag move
+        // together so the two meanings cannot drift apart: a hidden row is also
+        // not "available", which is what every older reader of this table
+        // (and the config fallback) understands.
+        $hasVisibilityColumn = Schema::hasColumn('ssl_plan_features', 'shown_to_customers');
+
         foreach ((array) $request->input('features', []) as $feature) {
 
             if (!is_array($feature)) {
@@ -1225,21 +1231,40 @@ class AdminController extends Controller
 
             if ($text === '') {
 
+                // Deleting a row in the editor simply removes it from the POST,
+                // so a blank row is a delete: it is not carried over.
                 continue;
 
             }
 
 
 
-            $features[] = [
+            // The eye toggle posts 1 when checked and nothing when unchecked.
+            $shown = !empty($feature['shown']);
+
+
+
+            $row = [
 
                 'feature' => mb_substr($text, 0, 190),
 
-                'is_available' => true,
+                'is_available' => $shown,
 
                 'sort' => count($features) + 1,
 
             ];
+
+
+
+            if ($hasVisibilityColumn) {
+
+                $row['shown_to_customers'] = $shown;
+
+            }
+
+
+
+            $features[] = $row;
 
         }
 

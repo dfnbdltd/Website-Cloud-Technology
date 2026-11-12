@@ -1,0 +1,7 @@
+[
+  {
+    "file": "app/Models/SslPlanFeature.php",
+    "old": "    /**\n     * Slack for the payload entries that are temporarily keyed by payload\n     * position. See SslPlanFeature::applyVisibility().\n     */\n    const PENDING_KEY_PREFIX = 'payload:';\n\n    protected $fillable",
+    "new": "    protected $fillable"
+  }
+]

@@ -79,6 +79,10 @@
                     <span>total for {{ strtolower($sslDefault['label']) }}</span>
                 </p>
 
+                {{-- SslPlanService already drops features the admin hid for this
+                     plan, so every row reaching here is meant to be printed. A
+                     hidden row is different from an "unavailable" one, which
+                     still shows with a red cross. --}}
                 <ul class="ssl-features">
                     @foreach($sslPlan['features'] as $sslFeature)
                         <li>

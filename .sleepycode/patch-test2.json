@@ -1,0 +1,12 @@
+[
+  {
+    "file": "tests/Feature/SslPlanFeatureVisibilityTest.php",
+    "old": "    /** @test */\n    public function the_service_still_returns_hidden_rows_so_the_admin_can_see_them()\n    {\n        $plan = $this->positiveSsl();\n        $plan->features()->first()->forceFill(['shown_to_customers' => false])->save();\n\n        $card = collect(app(\\App\\Services\\SslPlanService::class)->plans())->keyBy('key')['positive-ssl'];\n\n        // The card array is not pre-filtered: the partial decides, and the\n        // admin editor needs the row to render its unchecked eye.\n        $this->assertCount($plan->fresh()->features()->count(), $card['features']);\n        $this->assertFalse(collect($card['features'])->first()['shown']);\n    }",
+    "new": "    /** @test */\n    public function the_service_drops_hidden_rows_from_the_card_array()\n    {\n        $plan = $this->positiveSsl();\n        $hidden = $plan->features()->orderBy('sort')->first();\n        $hidden->forceFill(['shown_to_customers' => false])->save();\n\n        $card = collect(app(\\App\\Services\\SslPlanService::class)->plans())->keyBy('key')['positive-ssl'];\n\n        // The card array carries only what should print, so the partial stays\n        // a plain loop. The admin editor reads the model, not this array.\n        $this->assertCount($plan->fresh()->features()->count() - 1, $card['features']);\n        $this->assertNotContains($hidden->feature, array_column($card['features'], 'text'));\n    }"
+  },
+  {
+    "file": "tests/Feature/SslPlanFeatureVisibilityTest.php",
+    "old": "        // Missing the eye: hidden, and the card drops it entirely rather than\n        // drawing a cross.\n        $this->assertFalse($features['Shown excluded']['shown']);",
+    "new": "        // Missing the eye: hidden, and the card drops it entirely rather than\n        // drawing a cross.\n        $this->assertFalse(isset($features['Shown excluded']));"
+  }
+]

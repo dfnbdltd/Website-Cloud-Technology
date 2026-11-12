@@ -1,0 +1,1207 @@
+PHPUnit 9.6.37 by Sebastian Bergmann and contributors.
+
+Warning:       Your XML configuration validates against a deprecated schema.
+Suggestion:    Migrate your XML configuration using "--migrate-configuration"!
+
+..........FF.                                                     13 / 13 (100%)
+
+Time: 00:03.269, Memory: 32.00 MB
+
+There were 2 failures:
+
+1) Tests\Feature\SslPlanFeatureVisibilityTest::a_new_plan_can_be_created_with_a_mix_of_shown_and_hidden_features
+Failed asserting that '<!doctype html>\r\n
+<html lang="en">\r\n
+<head>\r\n
+    <meta charset="utf-8">\n
+<meta name="viewport" content="width=device-width, initial-scale=1">\n
+<meta name="csrf-token" content="JeHKLZ1uxOSYEUHYGtzzdhgo2ATASkqH7Gdvrz0M">\n
+<title>Cloud Technology | SSL Certificate — Coming soon</title>\n
+<link rel="preconnect" href="https://fonts.googleapis.com">\n
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">\n
+<link rel="stylesheet" href="http://localhost/css/app.css?v=1794461190">\n
+<link rel="icon" href="http://localhost/favicon.ico" sizes="16x16 32x32 48x48 64x64">\n
+<link rel="icon" type="image/svg+xml" href="http://localhost/favicon.svg">\n
+<link rel="apple-touch-icon" sizes="180x180" href="http://localhost/favicon-180.png">\n
+<link rel="mask-icon" href="http://localhost/favicon.svg" color="#2563eb">\n
+<link rel="stylesheet" href="http://localhost/css/workspace.css?v=1794461190">\n
+<link rel="stylesheet" href="http://localhost/css/coming-soon.css?v=1794461190">\n
+<script src="http://localhost/js/password-strength.js?v=1794461190" defer></script>\n
+<link rel="stylesheet" href="http://localhost/css/site-spinner.css?v=1794461190">\n
+<script src="http://localhost/js/site-spinner.js?v=1794461190" defer></script>\n
+    <link rel="stylesheet" href="http://localhost/css/coming-soon.css?v=feddb38f72ce381f7ab533d54ad82c4c">\r\n
+                <link rel="stylesheet" href="http://localhost/css/ssl-plans.css?v=e438f371d10498db2023da13522f72af">\r\n
+    </head>\r\n
+<body class="cs-page ssl-public">\r\n
+<link rel="stylesheet" href="http://localhost/css/site-navbar.css?v=c20555294d11f3247af1edcc94970bcf">\r\n
+<div class="site-navbar" id="site-navbar">\r\n
+<header class="site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="http://localhost"><span class="ct-logo"><img class="ct-logo-img" src="http://localhost/image/logo.png" alt="Cloud Technology" width="480" height="433"></span>\r\n
+</a>\r\n
+\r\n
+<button class="site-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="siteNavPanel">\r\n
+<span class="site-nav-toggle-bar" aria-hidden="true"></span>\r\n
+<span class="site-nav-toggle-bar" aria-hidden="true"></span>\r\n
+<span class="site-nav-toggle-bar" aria-hidden="true"></span>\r\n
+</button>\r\n
+<nav class="site-nav" id="siteNavPanel"><a href="http://localhost">Home</a><div class="site-nav-dropdown"><a href="http://localhost/domains">Domains</a><div class="site-submenu"><a href="http://localhost/domains">Domain Registration</a><a class="coming-soon-link" href="http://localhost/services/domain-transfer?back=%2Fservices%2Fssl-certificate">Domain Transfer</a></div></div><div class="site-nav-dropdown"><a href="http://localhost/hosting/shared">Web Hosting</a><div class="site-submenu"><a href="http://localhost/hosting/shared">Shared Hosting</a><a href="http://localhost/hosting/vps">VPS Hosting</a><a href="http://localhost/hosting/dedicated">Dedicated Hosting</a></div></div><a class="coming-soon-link" href="http://localhost/services/ssl-certificate?back=%2Fservices%2Fssl-certificate">SSL Certificate</a><a class="coming-soon-link" href="http://localhost/services/business-email?back=%2Fservices%2Fssl-certificate">Business Email</a><a class="coming-soon-link" href="http://localhost/services/sms-service?back=%2Fservices%2Fssl-certificate">SMS Service</a><a href="http://localhost/support">Support</a></nav><div class="site-account"><a class="site-phone" href="tel:+8809613003001" aria-label="Call +880 9613 003 001">☎ <span>+880 9613 003 001</span></a><a class="site-btn-ghost" href="http://localhost/login">Log in</a></div></div></header>\r\n
+</div>\r\n
+<link rel="stylesheet" href="http://localhost/css/coming-soon.css?v=feddb38f72ce381f7ab533d54ad82c4c">\r\n
+<div class="coming-soon-modal" id="comingSoonModal" role="dialog" aria-modal="true" aria-labelledby="comingSoonTitle" aria-describedby="comingSoonMessage" hidden>\r\n
+    <div class="coming-soon-dialog" role="document">\r\n
+        <button class="coming-soon-close" type="button" aria-label="Close dialog" data-coming-soon-close>×</button>\r\n
+        <div class="coming-soon-icon" aria-hidden="true">\r\n
+            <span class="ct-logo"><img class="ct-logo-img" src="http://localhost/image/logo.png" alt="Cloud Technology" width="480" height="433"></span>\r\n
+        </div>\r\n
+        <span class="coming-soon-eyebrow">Coming soon</span>\r\n
+        <h2 id="comingSoonTitle">A better experience is on the way</h2>\r\n
+        <p id="comingSoonMessage">We are carefully preparing this service for you. It will be available soon.</p>\r\n
+        <button class="coming-soon-action" type="button" data-coming-soon-close>Got it</button>\r\n
+    </div>\r\n
+</div>\r\n
+<script>\r\n
+    (function(){\r\n
+        var modals=document.querySelectorAll('.coming-soon-modal');\r\n
+        var modal=modals[0];\r\n
+        if(!modal){return;}\r\n
+        for(var i=1;i<modals.length;i++){modals[i].remove();}\r\n
+        if(modal.getAttribute('data-coming-soon-initialized')==='true'){return;}\r\n
+        modal.setAttribute('data-coming-soon-initialized','true');\r\n
+        var title=document.getElementById('comingSoonTitle');\r\n
+        var message=document.getElementById('comingSoonMessage');\r\n
+        var lastTrigger=null;\r\n
+        function closeModal(){\r\n
+            modal.hidden=true;\r\n
+            document.body.classList.remove('coming-soon-open');\r\n
+            if(lastTrigger){lastTrigger.focus();}\r\n
+        }\r\n
+        document.addEventListener('click',function(event){\r\n
+            var trigger=event.target.closest('.coming-soon-trigger');\r\n
+            if(!trigger){return;}\r\n
+            // .coming-soon-trigger is reserved for the client dashboard\r\n
+            // (sidebar rows and empty store sections). The public navbar\r\n
+            // uses .coming-soon-link for its real /services pages, so it\r\n
+            // never matches this selector and keeps navigating normally.\r\n
+            event.preventDefault();\r\n
+            lastTrigger=trigger;\r\n
+            var service=trigger.getAttribute('data-service')||'This service';\r\n
+            title.textContent=service+' is coming soon';\r\n
+            message.textContent='We are carefully preparing '+service+' for you. It will be available soon.';\r\n
+            modal.hidden=false;\r\n
+            document.body.classList.add('coming-soon-open');\r\n
+            modal.querySelector('[data-coming-soon-close]').focus();\r\n
+        });\r\n
+        modal.querySelectorAll('[data-coming-soon-close]').forEach(function(button){\r\n
+            button.addEventListener('click',closeModal);\r\n
+        });\r\n
+        modal.addEventListener('click',function(event){\r\n
+            if(event.target===modal){closeModal();}\r\n
+        });\r\n
+        document.addEventListener('keydown',function(event){\r\n
+            if(event.key==='Escape'&&!modal.hidden){closeModal();}\r\n
+        });\r\n
+    }());\r\n
+</script>\r\n
+<script>\r\n
+(function(){\r\n
+var root=document.getElementById('site-navbar');\r\n
+if(!root){return;}\r\n
+var toggle=root.querySelector('.site-nav-toggle');\r\n
+var nav=root.querySelector('#siteNavPanel');\r\n
+\r\n
+/* Account menu (existing behaviour, kept). */\r\n
+document.addEventListener('click',function(e){var m=document.getElementById('accountMenu');if(m&&!m.contains(e.target)){m.classList.remove('open');}});\r\n
+\r\n
+if(!toggle||!nav){return;}\r\n
+\r\n
+function setOpen(open){\r\n
+  root.classList.toggle('nav-open',open);\r\n
+  toggle.setAttribute('aria-expanded',open?'true':'false');\r\n
+  toggle.setAttribute('aria-label',open?'Close menu':'Open menu');\r\n
+  document.body.classList.toggle('nav-menu-open',open);\r\n
+}\r\n
+\r\n
+toggle.addEventListener('click',function(e){\r\n
+  e.stopPropagation();\r\n
+  setOpen(!root.classList.contains('nav-open'));\r\n
+});\r\n
+\r\n
+/* On the collapsed panel, a tap on "Domains"/"Web Hosting" expands its\r\n
+   submenu instead of leaving the page. Only applies while the panel is open\r\n
+   (small screens); on desktop the same links navigate as before. */\r\n
+nav.addEventListener('click',function(e){\r\n
+  if(!root.classList.contains('nav-open')){return;}\r\n
+  var parent=e.target.closest('.site-nav-dropdown');\r\n
+  if(!parent){return;}\r\n
+  var link=e.target.closest('a');\r\n
+  if(!link||link.parentNode!==parent){return;}\r\n
+  e.preventDefault();\r\n
+  var wasOpen=parent.classList.contains('open');\r\n
+  /* accordion: close siblings so the panel never grows into a wall of text */\r\n
+  nav.querySelectorAll('.site-nav-dropdown.open').forEach(function(d){\r\n
+    if(d!==parent){d.classList.remove('open');}\r\n
+  });\r\n
+  parent.classList.toggle('open',!wasOpen);\r\n
+});\r\n
+\r\n
+/* Tapping a real destination closes the panel. Coming-soon services are now\r\n
+   real pages (/services/...), so they close it like any other link. */\r\n
+nav.addEventListener('click',function(e){\r\n
+  var link=e.target.closest('a');\r\n
+  if(link&&!link.parentNode.classList.contains('site-nav-dropdown')){\r\n
+    setOpen(false);\r\n
+  }\r\n
+});\r\n
+\r\n
+/* Escape closes, and clicking the page behind the panel closes too. */\r\n
+document.addEventListener('keydown',function(e){\r\n
+  if(e.key==='Escape'&&root.classList.contains('nav-open')){\r\n
+    setOpen(false);\r\n
+    toggle.focus();\r\n
+  }\r\n
+});\r\n
+document.addEventListener('click',function(e){\r\n
+  if(root.classList.contains('nav-open')&&!root.contains(e.target)){setOpen(false);}\r\n
+});\r\n
+\r\n
+/* Leaving small-screen sizes must never strand the page in the locked state. */\r\n
+var mq=window.matchMedia('(max-width: 960px)');\r\n
+function sync(e){ if(!e.matches){ setOpen(false); } }\r\n
+if(mq.addEventListener){mq.addEventListener('change',sync);}else if(mq.addListener){mq.addListener(sync);}\r\n
+})();\r\n
+</script>\r\n
+\r\n
+    <main class="cs-main"  style="--cs-accent:#0f9d76" >\r\n
+        <div class="ssl-page ssl-page--public">\r\n
+\r\n
+    \r\n
+    <header class="ssl-banner">\r\n
+        <div class="ssl-banner-inner">\r\n
+            <nav class="ssl-crumbs" aria-label="Breadcrumb">\r\n
+                <a href="http://localhost">Home</a>\r\n
+                <span aria-hidden="true">/</span>\r\n
+                <strong>SSL Certificates</strong>\r\n
+            </nav>\r\n
+\r\n
+            <span class="ssl-kicker">Secure your website</span>\r\n
+            <h1 class="ssl-title">SSL Certificates</h1>\r\n
+        </div>\r\n
+    </header>\r\n
+\r\n
+    <div class="ssl-grid">\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">Positive SSL</h2>\r\n
+                <p class="ssl-card-tagline">Validation &amp; encryption on a budget</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>79</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳199/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-positive-ssl">Positive SSL billing term</label>\r\n
+                    <select id="sslTerm-positive-ssl" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="79"\r\n
+                                    data-total="948"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="75"\r\n
+                                    data-total="1,801"\r\n
+                                    data-savings="95"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="71"\r\n
+                                    data-total="2,560"\r\n
+                                    data-savings="284"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="Positive SSL">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳948\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Domain Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">1 Sub-domain</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 128/256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Trust Logo Supported</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 2 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$10,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">Comodo SSL</h2>\r\n
+                <p class="ssl-card-tagline">For businesses &amp; enterprise</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>399</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳399/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-comodo-ssl">Comodo SSL billing term</label>\r\n
+                    <select id="sslTerm-comodo-ssl" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="399"\r\n
+                                    data-total="4,788"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="379"\r\n
+                                    data-total="9,097"\r\n
+                                    data-savings="479"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="359"\r\n
+                                    data-total="12,928"\r\n
+                                    data-savings="1,436"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="Comodo SSL">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳4,788\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Domain Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">1 Sub-domain</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 128/256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Trust Logo Supported</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 2 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$500,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">Positive SSL Wildcard</h2>\r\n
+                <p class="ssl-card-tagline">1 SSL for all your subdomains</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>599</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳599/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-positive-ssl-wildcard">Positive SSL Wildcard billing term</label>\r\n
+                    <select id="sslTerm-positive-ssl-wildcard" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="599"\r\n
+                                    data-total="7,188"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="569"\r\n
+                                    data-total="13,657"\r\n
+                                    data-savings="719"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="539"\r\n
+                                    data-total="19,408"\r\n
+                                    data-savings="2,156"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="Positive SSL Wildcard">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳7,188\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Domain Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Unlimited Sub-domains</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 128/256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Trust Logo Supported</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 2 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$10,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">EV SSL</h2>\r\n
+                <p class="ssl-card-tagline">Complete validation for businesses</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>1,299</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳1,699/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-ev-ssl">EV SSL billing term</label>\r\n
+                    <select id="sslTerm-ev-ssl" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="1,299"\r\n
+                                    data-total="15,588"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="1,234"\r\n
+                                    data-total="29,617"\r\n
+                                    data-savings="1,559"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="1,169"\r\n
+                                    data-total="42,088"\r\n
+                                    data-savings="4,676"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="EV SSL">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳15,588\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Full Organization Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">1 Domain + Unlimited Sub-domains</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Green Address Bar</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 5–7 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$1,000,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+            </div>\r\n
+\r\n
+</div>\r\n
+\r\n
+<script>\r\n
+    (function () {\r\n
+        var TAKA = '\u09F3';\r\n
+\r\n
+        document.querySelectorAll('.ssl-page .ssl-card').forEach(function (card) {\r\n
+            var select = card.querySelector('[data-ssl-term]');\r\n
+            var amount = card.querySelector('[data-ssl-amount]');\r\n
+            var total = card.querySelector('[data-ssl-total]');\r\n
+            if (!select || !amount || !total) { return; }\r\n
+\r\n
+            function apply(option) {\r\n
+                if (!option || option.disabled) { return; }\r\n
+\r\n
+                amount.textContent = option.getAttribute('data-per-month');\r\n
+\r\n
+                var span = document.createElement('span');\r\n
+                span.textContent = 'total for ' + option.textContent.trim().toLowerCase();\r\n
+\r\n
+                total.textContent = TAKA + option.getAttribute('data-total') + ' ';\r\n
+                total.appendChild(span);\r\n
+            }\r\n
+\r\n
+            // Belt-and-braces: if the selected option is a term the admin has\r\n
+            // switched off, move the select to the first one that can be bought\r\n
+            // before the values are ever shown.\r\n
+            if (select.selectedOptions[0] && select.selectedOptions[0].disabled) {\r\n
+                var firstUsable = [].slice.call(select.options).filter(function (o) { return !o.disabled; })[0];\r\n
+                if (firstUsable) {\r\n
+                    select.value = firstUsable.value;\r\n
+                    apply(firstUsable);\r\n
+                }\r\n
+            }\r\n
+\r\n
+            select.addEventListener('change', function () {\r\n
+                apply(select.options[select.selectedIndex]);\r\n
+            });\r\n
+        });\r\n
+    }());\r\n
+</script>\r\n
+\r\n
+<footer class="site-footer">\r\n
+    <div class="site-wrap site-footer-inner">\r\n
+        <a class="site-logo" href="http://localhost"><span class="ct-logo"><img class="ct-logo-img" src="http://localhost/image/logo.png" alt="Cloud Technology" width="480" height="433"></span>\r\n
+</a>\r\n
+        <span>© 2026 CloudTech. All rights reserved.</span>\r\n
+        <span>+880 9613 003 001 · support@cloudtechnologybd.net</span>\r\n
+        <a href="http://localhost/admin/login">Admin login</a>\r\n
+    </div>\r\n
+</footer>\r\n
+<link rel="stylesheet" href="http://localhost/css/revechat.css?v=1794461190">\r\n
+<button\r\n
+  type="button"\r\n
+  class="revechat-fab"\r\n
+  id="reveChatFab"\r\n
+  aria-label="Chat with us"\r\n
+  aria-haspopup="dialog"\r\n
+  data-revechat-account="7494338"\r\n
+>\r\n
+  <span class="revechat-fab-icon" aria-hidden="true">\r\n
+    <svg viewBox="0 0 24 24" focusable="false"><path d="M20 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3v3l4.5-3H20a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm0 16h-9.1L9 19.3V18H4V4h16v14Zm-13-9h10v2H7V9Zm0 4h7v2H7v-2Z"/></svg>\r\n
+  </span>\r\n
+  <span>Chat with us</span>\r\n
+</button>\r\n
+<button\r\n
+  type="button"\r\n
+  class="revechat-minimize"\r\n
+  id="reveChatMinimize"\r\n
+  aria-label="Minimize chat"\r\n
+  title="Minimize chat"\r\n
+  hidden\r\n
+>\r\n
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7z"/></svg>\r\n
+</button>\r\n
+<script src="http://localhost/js/revechat.js?v=1794461190" defer></script>\r\n
+</body>\r\n
+</html>\r\n
+' contains "Visible one".
+
+D:\Herd\cloudtechnologybd\vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestResponse.php:399
+D:\Herd\cloudtechnologybd\tests\Feature\SslPlanFeatureVisibilityTest.php:321
+
+2) Tests\Feature\SslPlanFeatureVisibilityTest::hiding_the_whole_plan_still_hides_it_regardless_of_its_features
+Failed asserting that '<!doctype html>\r\n
+<html lang="en">\r\n
+<head>\r\n
+    <meta charset="utf-8">\n
+<meta name="viewport" content="width=device-width, initial-scale=1">\n
+<meta name="csrf-token" content="xSE1JeRMT8OveIfcWILDJHCXrKogFwe9N7iAY76W">\n
+<title>Cloud Technology | SSL Certificate — Coming soon</title>\n
+<link rel="preconnect" href="https://fonts.googleapis.com">\n
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">\n
+<link rel="stylesheet" href="http://localhost/css/app.css?v=1794461190">\n
+<link rel="icon" href="http://localhost/favicon.ico" sizes="16x16 32x32 48x48 64x64">\n
+<link rel="icon" type="image/svg+xml" href="http://localhost/favicon.svg">\n
+<link rel="apple-touch-icon" sizes="180x180" href="http://localhost/favicon-180.png">\n
+<link rel="mask-icon" href="http://localhost/favicon.svg" color="#2563eb">\n
+<link rel="stylesheet" href="http://localhost/css/workspace.css?v=1794461190">\n
+<link rel="stylesheet" href="http://localhost/css/coming-soon.css?v=1794461190">\n
+<script src="http://localhost/js/password-strength.js?v=1794461190" defer></script>\n
+<link rel="stylesheet" href="http://localhost/css/site-spinner.css?v=1794461190">\n
+<script src="http://localhost/js/site-spinner.js?v=1794461190" defer></script>\n
+    <link rel="stylesheet" href="http://localhost/css/coming-soon.css?v=feddb38f72ce381f7ab533d54ad82c4c">\r\n
+                <link rel="stylesheet" href="http://localhost/css/ssl-plans.css?v=e438f371d10498db2023da13522f72af">\r\n
+    </head>\r\n
+<body class="cs-page ssl-public">\r\n
+<link rel="stylesheet" href="http://localhost/css/site-navbar.css?v=c20555294d11f3247af1edcc94970bcf">\r\n
+<div class="site-navbar" id="site-navbar">\r\n
+<header class="site-header"><div class="site-wrap site-header-inner"><a class="site-logo" href="http://localhost"><span class="ct-logo"><img class="ct-logo-img" src="http://localhost/image/logo.png" alt="Cloud Technology" width="480" height="433"></span>\r\n
+</a>\r\n
+\r\n
+<button class="site-nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="siteNavPanel">\r\n
+<span class="site-nav-toggle-bar" aria-hidden="true"></span>\r\n
+<span class="site-nav-toggle-bar" aria-hidden="true"></span>\r\n
+<span class="site-nav-toggle-bar" aria-hidden="true"></span>\r\n
+</button>\r\n
+<nav class="site-nav" id="siteNavPanel"><a href="http://localhost">Home</a><div class="site-nav-dropdown"><a href="http://localhost/domains">Domains</a><div class="site-submenu"><a href="http://localhost/domains">Domain Registration</a><a class="coming-soon-link" href="http://localhost/services/domain-transfer?back=%2Fservices%2Fssl-certificate">Domain Transfer</a></div></div><div class="site-nav-dropdown"><a href="http://localhost/hosting/shared">Web Hosting</a><div class="site-submenu"><a href="http://localhost/hosting/shared">Shared Hosting</a><a href="http://localhost/hosting/vps">VPS Hosting</a><a href="http://localhost/hosting/dedicated">Dedicated Hosting</a></div></div><a class="coming-soon-link" href="http://localhost/services/ssl-certificate?back=%2Fservices%2Fssl-certificate">SSL Certificate</a><a class="coming-soon-link" href="http://localhost/services/business-email?back=%2Fservices%2Fssl-certificate">Business Email</a><a class="coming-soon-link" href="http://localhost/services/sms-service?back=%2Fservices%2Fssl-certificate">SMS Service</a><a href="http://localhost/support">Support</a></nav><div class="site-account"><a class="site-phone" href="tel:+8809613003001" aria-label="Call +880 9613 003 001">☎ <span>+880 9613 003 001</span></a><a class="site-btn-ghost" href="http://localhost/login">Log in</a></div></div></header>\r\n
+</div>\r\n
+<link rel="stylesheet" href="http://localhost/css/coming-soon.css?v=feddb38f72ce381f7ab533d54ad82c4c">\r\n
+<div class="coming-soon-modal" id="comingSoonModal" role="dialog" aria-modal="true" aria-labelledby="comingSoonTitle" aria-describedby="comingSoonMessage" hidden>\r\n
+    <div class="coming-soon-dialog" role="document">\r\n
+        <button class="coming-soon-close" type="button" aria-label="Close dialog" data-coming-soon-close>×</button>\r\n
+        <div class="coming-soon-icon" aria-hidden="true">\r\n
+            <span class="ct-logo"><img class="ct-logo-img" src="http://localhost/image/logo.png" alt="Cloud Technology" width="480" height="433"></span>\r\n
+        </div>\r\n
+        <span class="coming-soon-eyebrow">Coming soon</span>\r\n
+        <h2 id="comingSoonTitle">A better experience is on the way</h2>\r\n
+        <p id="comingSoonMessage">We are carefully preparing this service for you. It will be available soon.</p>\r\n
+        <button class="coming-soon-action" type="button" data-coming-soon-close>Got it</button>\r\n
+    </div>\r\n
+</div>\r\n
+<script>\r\n
+    (function(){\r\n
+        var modals=document.querySelectorAll('.coming-soon-modal');\r\n
+        var modal=modals[0];\r\n
+        if(!modal){return;}\r\n
+        for(var i=1;i<modals.length;i++){modals[i].remove();}\r\n
+        if(modal.getAttribute('data-coming-soon-initialized')==='true'){return;}\r\n
+        modal.setAttribute('data-coming-soon-initialized','true');\r\n
+        var title=document.getElementById('comingSoonTitle');\r\n
+        var message=document.getElementById('comingSoonMessage');\r\n
+        var lastTrigger=null;\r\n
+        function closeModal(){\r\n
+            modal.hidden=true;\r\n
+            document.body.classList.remove('coming-soon-open');\r\n
+            if(lastTrigger){lastTrigger.focus();}\r\n
+        }\r\n
+        document.addEventListener('click',function(event){\r\n
+            var trigger=event.target.closest('.coming-soon-trigger');\r\n
+            if(!trigger){return;}\r\n
+            // .coming-soon-trigger is reserved for the client dashboard\r\n
+            // (sidebar rows and empty store sections). The public navbar\r\n
+            // uses .coming-soon-link for its real /services pages, so it\r\n
+            // never matches this selector and keeps navigating normally.\r\n
+            event.preventDefault();\r\n
+            lastTrigger=trigger;\r\n
+            var service=trigger.getAttribute('data-service')||'This service';\r\n
+            title.textContent=service+' is coming soon';\r\n
+            message.textContent='We are carefully preparing '+service+' for you. It will be available soon.';\r\n
+            modal.hidden=false;\r\n
+            document.body.classList.add('coming-soon-open');\r\n
+            modal.querySelector('[data-coming-soon-close]').focus();\r\n
+        });\r\n
+        modal.querySelectorAll('[data-coming-soon-close]').forEach(function(button){\r\n
+            button.addEventListener('click',closeModal);\r\n
+        });\r\n
+        modal.addEventListener('click',function(event){\r\n
+            if(event.target===modal){closeModal();}\r\n
+        });\r\n
+        document.addEventListener('keydown',function(event){\r\n
+            if(event.key==='Escape'&&!modal.hidden){closeModal();}\r\n
+        });\r\n
+    }());\r\n
+</script>\r\n
+<script>\r\n
+(function(){\r\n
+var root=document.getElementById('site-navbar');\r\n
+if(!root){return;}\r\n
+var toggle=root.querySelector('.site-nav-toggle');\r\n
+var nav=root.querySelector('#siteNavPanel');\r\n
+\r\n
+/* Account menu (existing behaviour, kept). */\r\n
+document.addEventListener('click',function(e){var m=document.getElementById('accountMenu');if(m&&!m.contains(e.target)){m.classList.remove('open');}});\r\n
+\r\n
+if(!toggle||!nav){return;}\r\n
+\r\n
+function setOpen(open){\r\n
+  root.classList.toggle('nav-open',open);\r\n
+  toggle.setAttribute('aria-expanded',open?'true':'false');\r\n
+  toggle.setAttribute('aria-label',open?'Close menu':'Open menu');\r\n
+  document.body.classList.toggle('nav-menu-open',open);\r\n
+}\r\n
+\r\n
+toggle.addEventListener('click',function(e){\r\n
+  e.stopPropagation();\r\n
+  setOpen(!root.classList.contains('nav-open'));\r\n
+});\r\n
+\r\n
+/* On the collapsed panel, a tap on "Domains"/"Web Hosting" expands its\r\n
+   submenu instead of leaving the page. Only applies while the panel is open\r\n
+   (small screens); on desktop the same links navigate as before. */\r\n
+nav.addEventListener('click',function(e){\r\n
+  if(!root.classList.contains('nav-open')){return;}\r\n
+  var parent=e.target.closest('.site-nav-dropdown');\r\n
+  if(!parent){return;}\r\n
+  var link=e.target.closest('a');\r\n
+  if(!link||link.parentNode!==parent){return;}\r\n
+  e.preventDefault();\r\n
+  var wasOpen=parent.classList.contains('open');\r\n
+  /* accordion: close siblings so the panel never grows into a wall of text */\r\n
+  nav.querySelectorAll('.site-nav-dropdown.open').forEach(function(d){\r\n
+    if(d!==parent){d.classList.remove('open');}\r\n
+  });\r\n
+  parent.classList.toggle('open',!wasOpen);\r\n
+});\r\n
+\r\n
+/* Tapping a real destination closes the panel. Coming-soon services are now\r\n
+   real pages (/services/...), so they close it like any other link. */\r\n
+nav.addEventListener('click',function(e){\r\n
+  var link=e.target.closest('a');\r\n
+  if(link&&!link.parentNode.classList.contains('site-nav-dropdown')){\r\n
+    setOpen(false);\r\n
+  }\r\n
+});\r\n
+\r\n
+/* Escape closes, and clicking the page behind the panel closes too. */\r\n
+document.addEventListener('keydown',function(e){\r\n
+  if(e.key==='Escape'&&root.classList.contains('nav-open')){\r\n
+    setOpen(false);\r\n
+    toggle.focus();\r\n
+  }\r\n
+});\r\n
+document.addEventListener('click',function(e){\r\n
+  if(root.classList.contains('nav-open')&&!root.contains(e.target)){setOpen(false);}\r\n
+});\r\n
+\r\n
+/* Leaving small-screen sizes must never strand the page in the locked state. */\r\n
+var mq=window.matchMedia('(max-width: 960px)');\r\n
+function sync(e){ if(!e.matches){ setOpen(false); } }\r\n
+if(mq.addEventListener){mq.addEventListener('change',sync);}else if(mq.addListener){mq.addListener(sync);}\r\n
+})();\r\n
+</script>\r\n
+\r\n
+    <main class="cs-main"  style="--cs-accent:#0f9d76" >\r\n
+        <div class="ssl-page ssl-page--public">\r\n
+\r\n
+    \r\n
+    <header class="ssl-banner">\r\n
+        <div class="ssl-banner-inner">\r\n
+            <nav class="ssl-crumbs" aria-label="Breadcrumb">\r\n
+                <a href="http://localhost">Home</a>\r\n
+                <span aria-hidden="true">/</span>\r\n
+                <strong>SSL Certificates</strong>\r\n
+            </nav>\r\n
+\r\n
+            <span class="ssl-kicker">Secure your website</span>\r\n
+            <h1 class="ssl-title">SSL Certificates</h1>\r\n
+        </div>\r\n
+    </header>\r\n
+\r\n
+    <div class="ssl-grid">\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">Positive SSL</h2>\r\n
+                <p class="ssl-card-tagline">Validation &amp; encryption on a budget</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>79</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳199/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-positive-ssl">Positive SSL billing term</label>\r\n
+                    <select id="sslTerm-positive-ssl" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="79"\r\n
+                                    data-total="948"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="75"\r\n
+                                    data-total="1,801"\r\n
+                                    data-savings="95"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="71"\r\n
+                                    data-total="2,560"\r\n
+                                    data-savings="284"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="Positive SSL">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳948\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Domain Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">1 Sub-domain</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 128/256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Trust Logo Supported</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 2 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$10,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">Comodo SSL</h2>\r\n
+                <p class="ssl-card-tagline">For businesses &amp; enterprise</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>399</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳399/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-comodo-ssl">Comodo SSL billing term</label>\r\n
+                    <select id="sslTerm-comodo-ssl" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="399"\r\n
+                                    data-total="4,788"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="379"\r\n
+                                    data-total="9,097"\r\n
+                                    data-savings="479"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="359"\r\n
+                                    data-total="12,928"\r\n
+                                    data-savings="1,436"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="Comodo SSL">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳4,788\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Domain Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">1 Sub-domain</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 128/256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Trust Logo Supported</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 2 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$500,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">Positive SSL Wildcard</h2>\r\n
+                <p class="ssl-card-tagline">1 SSL for all your subdomains</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>599</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳599/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-positive-ssl-wildcard">Positive SSL Wildcard billing term</label>\r\n
+                    <select id="sslTerm-positive-ssl-wildcard" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="599"\r\n
+                                    data-total="7,188"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="569"\r\n
+                                    data-total="13,657"\r\n
+                                    data-savings="719"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="539"\r\n
+                                    data-total="19,408"\r\n
+                                    data-savings="2,156"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="Positive SSL Wildcard">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳7,188\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Domain Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Unlimited Sub-domains</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 128/256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Trust Logo Supported</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 2 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$10,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+                                \r\n
+            \r\n
+            <article class="ssl-card">\r\n
+                <h2 class="ssl-card-name">EV SSL</h2>\r\n
+                <p class="ssl-card-tagline">Complete validation for businesses</p>\r\n
+\r\n
+                \r\n
+                <p class="ssl-price">\r\n
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>1,299</span><span class="ssl-per">/mo</span>\r\n
+                </p>\r\n
+\r\n
+                <p class="ssl-renew">Renews at ৳1,699/mo</p>\r\n
+\r\n
+                <div class="ssl-term">\r\n
+                    <label class="ssl-sr" for="sslTerm-ev-ssl">EV SSL billing term</label>\r\n
+                    <select id="sslTerm-ev-ssl" data-ssl-term>\r\n
+                                                    <option value="1"\r\n
+                                    data-per-month="1,299"\r\n
+                                    data-total="15,588"\r\n
+                                    data-savings="0"\r\n
+                                     selected >\r\n
+                                1 Year\r\n
+                            </option>\r\n
+                                                    <option value="2"\r\n
+                                    data-per-month="1,234"\r\n
+                                    data-total="29,617"\r\n
+                                    data-savings="1,559"\r\n
+                                    >\r\n
+                                2 Years\r\n
+                            </option>\r\n
+                                                    <option value="3"\r\n
+                                    data-per-month="1,169"\r\n
+                                    data-total="42,088"\r\n
+                                    data-savings="4,676"\r\n
+                                    >\r\n
+                                3 Years\r\n
+                            </option>\r\n
+                                            </select>\r\n
+                </div>\r\n
+\r\n
+                                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="EV SSL">Buy Now</button>\r\n
+                \r\n
+                <p class="ssl-total" data-ssl-total>\r\n
+                    ৳15,588\r\n
+                    <span>total for 1 year</span>\r\n
+                </p>\r\n
+\r\n
+                \r\n
+                <ul class="ssl-features">\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Full Organization Validation</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">1 Domain + Unlimited Sub-domains</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">SHA2 &amp; ECC 256-bit Encryption</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Green Address Bar</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Issued within 5–7 days</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">Free Reissuance</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">$1,000,000 Warranty</span>\r\n
+                        </li>\r\n
+                                            <li>\r\n
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></svg>\r\n
+                            <span class="">30-day Money Back</span>\r\n
+                        </li>\r\n
+                                    </ul>\r\n
+            </article>\r\n
+            </div>\r\n
+\r\n
+</div>\r\n
+\r\n
+<script>\r\n
+    (function () {\r\n
+        var TAKA = '\u09F3';\r\n
+\r\n
+        document.querySelectorAll('.ssl-page .ssl-card').forEach(function (card) {\r\n
+            var select = card.querySelector('[data-ssl-term]');\r\n
+            var amount = card.querySelector('[data-ssl-amount]');\r\n
+            var total = card.querySelector('[data-ssl-total]');\r\n
+            if (!select || !amount || !total) { return; }\r\n
+\r\n
+            function apply(option) {\r\n
+                if (!option || option.disabled) { return; }\r\n
+\r\n
+                amount.textContent = option.getAttribute('data-per-month');\r\n
+\r\n
+                var span = document.createElement('span');\r\n
+                span.textContent = 'total for ' + option.textContent.trim().toLowerCase();\r\n
+\r\n
+                total.textContent = TAKA + option.getAttribute('data-total') + ' ';\r\n
+                total.appendChild(span);\r\n
+            }\r\n
+\r\n
+            // Belt-and-braces: if the selected option is a term the admin has\r\n
+            // switched off, move the select to the first one that can be bought\r\n
+            // before the values are ever shown.\r\n
+            if (select.selectedOptions[0] && select.selectedOptions[0].disabled) {\r\n
+                var firstUsable = [].slice.call(select.options).filter(function (o) { return !o.disabled; })[0];\r\n
+                if (firstUsable) {\r\n
+                    select.value = firstUsable.value;\r\n
+                    apply(firstUsable);\r\n
+                }\r\n
+            }\r\n
+\r\n
+            select.addEventListener('change', function () {\r\n
+                apply(select.options[select.selectedIndex]);\r\n
+            });\r\n
+        });\r\n
+    }());\r\n
+</script>\r\n
+\r\n
+<footer class="site-footer">\r\n
+    <div class="site-wrap site-footer-inner">\r\n
+        <a class="site-logo" href="http://localhost"><span class="ct-logo"><img class="ct-logo-img" src="http://localhost/image/logo.png" alt="Cloud Technology" width="480" height="433"></span>\r\n
+</a>\r\n
+        <span>© 2026 CloudTech. All rights reserved.</span>\r\n
+        <span>+880 9613 003 001 · support@cloudtechnologybd.net</span>\r\n
+        <a href="http://localhost/admin/login">Admin login</a>\r\n
+    </div>\r\n
+</footer>\r\n
+<link rel="stylesheet" href="http://localhost/css/revechat.css?v=1794461190">\r\n
+<button\r\n
+  type="button"\r\n
+  class="revechat-fab"\r\n
+  id="reveChatFab"\r\n
+  aria-label="Chat with us"\r\n
+  aria-haspopup="dialog"\r\n
+  data-revechat-account="7494338"\r\n
+>\r\n
+  <span class="revechat-fab-icon" aria-hidden="true">\r\n
+    <svg viewBox="0 0 24 24" focusable="false"><path d="M20 2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3v3l4.5-3H20a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm0 16h-9.1L9 19.3V18H4V4h16v14Zm-13-9h10v2H7V9Zm0 4h7v2H7v-2Z"/></svg>\r\n
+  </span>\r\n
+  <span>Chat with us</span>\r\n
+</button>\r\n
+<button\r\n
+  type="button"\r\n
+  class="revechat-minimize"\r\n
+  id="reveChatMinimize"\r\n
+  aria-label="Minimize chat"\r\n
+  title="Minimize chat"\r\n
+  hidden\r\n
+>\r\n
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.7 9.3 12 14.6l5.3-5.3 1.4 1.4-6.7 6.7-6.7-6.7z"/></svg>\r\n
+</button>\r\n
+<script src="http://localhost/js/revechat.js?v=1794461190" defer></script>\r\n
+</body>\r\n
+</html>\r\n
+' contains "UNIQUE-PLAN-NAME".
+
+D:\Herd\cloudtechnologybd\vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestResponse.php:399
+D:\Herd\cloudtechnologybd\tests\Feature\SslPlanFeatureVisibilityTest.php:339
+
+FAILURES!
+Tests: 13, Assertions: 96, Failures: 2.

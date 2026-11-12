@@ -1,0 +1,2 @@
+[0] resources/views/partials/ssl-plans.blade.php  OK  (7480 -> 7075 bytes)
+[1] resources/views/partials/ssl-plans.blade.php  OK  (7075 -> 7051 bytes)
