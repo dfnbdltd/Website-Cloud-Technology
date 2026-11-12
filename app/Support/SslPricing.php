@@ -59,6 +59,7 @@ class SslPricing
                     // Effective monthly for this term, rounded to a whole taka
                     // so the big price line stays short and calm.
                     'per_month' => round($total / ($years * self::MONTHS_PER_YEAR)),
+                    'per_year' => round($total / $years),
                 ];
             }
 
@@ -72,6 +73,8 @@ class SslPricing
                 'buy_route' => isset($plan['buy_route']) ? $plan['buy_route'] : null,
                 'monthly' => $monthly,
                 'renewal' => $renewal,
+                'per_year' => $default['per_year'],
+                'renewal_year' => round($renewal * self::MONTHS_PER_YEAR),
                 'features' => array_values((array) ($plan['features'] ?? [])),
                 'terms' => $terms,
                 'default' => $default,

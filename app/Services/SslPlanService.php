@@ -22,6 +22,20 @@ use Illuminate\Support\Facades\Schema;
  *
  * Only the SELLING price is ever fetched here — see loadLive(). Cost and
  * profit are admin-only and must never enter the arrays this class returns.
+ *
+ * YEARLY QUOTING
+ * --------------
+ * The customer cards quote SSL per year, because that is how a certificate is
+ * bought. Both price paths therefore expose, alongside the term maths:
+ *
+ *   `terms[N]['per_year']`  that term's total ÷ N years — the headline figure
+ *   `per_year`              the same for the default (1-year) term
+ *   `renewal_year`          the renew selling price × 12, in BDT
+ *
+ * `per_month` / `monthly` / `renewal` stay exactly as they were: the admin
+ * editor and the term arithmetic use them, and nothing on a customer page
+ * prints them any more. A yearly figure is always derived from the term total
+ * (round(total / years)), so the headline and the charge can never disagree.
  */
 class SslPlanService
 {
@@ -205,6 +219,10 @@ class SslPlanService
      * selling price are offered, so a plan without a 24-month price shows a
      * single-option term list rather than inventing a number.
      *
+     * Each term carries both the term total (what is charged) and `per_year`
+     * (that total divided by the years), because the card quotes SSL yearly —
+     * the figure a customer compares against every other certificate seller.
+     *
      * @param  array  $live
      * @return array
      */
@@ -238,6 +256,10 @@ class SslPlanService
                 'total' => $total,
                 'savings' => $savings,
                 'per_month' => round($total / $months),
+                // What the card prints: the same money spread over the years
+                // the term covers. Customers budget for SSL a year at a time,
+                // so `per_year` is the headline while `total` is the charge.
+                'per_year' => round($total / $years),
             ];
         }
 
@@ -261,6 +283,12 @@ class SslPlanService
             // Headline / renewal figures the card prints, in BDT.
             'monthly' => $terms[self::LIVE_BASE_YEARS]['per_month'],
             'renewal' => round($renewMonthlyUsd * $rate),
+            // Yearly figures — the two numbers the card actually prints.
+            // The renewal is converted straight from the monthly USD figure
+            // (× 12 × rate) instead of multiplying the already-rounded monthly
+            // BDT value, so the yearly price cannot drift by a few taka.
+            'per_year' => $terms[self::LIVE_BASE_YEARS]['per_year'],
+            'renewal_year' => round($renewMonthlyUsd * 12 * $rate),
             'features' => $this->features($plan),
             'terms' => $terms,
             'default' => $terms[self::LIVE_BASE_YEARS],
@@ -272,7 +300,8 @@ class SslPlanService
     /**
      * The typed BDT price path — unchanged maths, used whenever live data is
      * unusable. `total` is rounded to whole taka so a BDT price never reads
-     * ৳2,559.60, and `per_month` is the effective monthly for that term.
+     * ৳2,559.60, `per_month` is the effective monthly for that term and
+     * `per_year` the yearly figure the card prints.
      *
      * @return array
      */
@@ -291,6 +320,8 @@ class SslPlanService
                 'total' => $total,
                 'savings' => max(0, round($full) - $total),
                 'per_month' => round($total / ($years * 12)),
+                // The card's headline: this term's money per year.
+                'per_year' => round($total / $years),
             ];
         }
 
@@ -303,6 +334,10 @@ class SslPlanService
             'buy_route' => null,
             'monthly' => (float) $plan->monthly_price,
             'renewal' => (float) $plan->renewal_price,
+            // The card is yearly: the 1-year price is the headline, and the
+            // typed renewal column (a per-month figure) is shown × 12.
+            'per_year' => $terms[1]['per_year'],
+            'renewal_year' => round((float) $plan->renewal_price * 12),
             'features' => $this->features($plan),
             'terms' => $terms,
             // 1 year is what the card quotes by default.

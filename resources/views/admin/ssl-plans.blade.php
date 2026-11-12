@@ -56,7 +56,7 @@
            selling price alone, from SslPlanService. */
         .ssl-rc{min-width:0}
         .ssl-rc-scroll{overflow-x:auto}
-        .ssl-rc table{width:100%;min-width:520px;border-collapse:collapse}
+        .ssl-rc table{width:100%;min-width:600px;border-collapse:collapse}
         .ssl-rc th,.ssl-rc td{padding:7px 10px;text-align:right;font-size:12.5px;white-space:nowrap}
         .ssl-rc th{color:#8496a9;font:800 10px 'DM Sans',sans-serif;letter-spacing:.6px;text-transform:uppercase;border-bottom:1px solid #edf2f8}
         .ssl-rc th:first-child,.ssl-rc td:first-child{text-align:left;color:#334155;font-weight:700}
@@ -66,8 +66,7 @@
         .ssl-rc .is-loss{color:#b91c1c;font-weight:800}
         .ssl-rc .is-sell{color:#0f2340;font-weight:800}
         .ssl-rc .is-bdt{color:#0f2340;font:800 13.5px 'Manrope',sans-serif}
-        .ssl-rc-note{margin:8px 0 0;color:#8ea0b3;font-size:11.5px;line-height:1.55}
-        .ssl-rc-note b{color:#5d7491}
+
         .ssl-rc-warn{padding:10px 12px;border:1px solid #f2e0c0;border-radius:9px;background:#fffaf1;color:#8a5f10;font-size:12.5px;line-height:1.55}
         .ssl-rc-warn.is-bad{border-color:#f4d6d6;background:#fff7f7;color:#a32b2b}
 
@@ -101,16 +100,47 @@
         </div>
 
         @php
-            // Money format helpers for this page only.
-            $usd = function ($v) {
-                return $v === null ? '—' : '$' . number_format((float) $v, 2, '.', '');
+            /* Taka, not dollars.
+               ResellerClub quotes every figure in USD per month (see
+               ResellerClubClient::buildSslPricing()), and the owner reads this
+               page in Taka — the currency the customer pays in. The conversion
+               lives here, in the view, so the API client and the pricing
+               service keep exactly the numbers and the logic they had.
+
+               Same order of operations as SslPlanService (and as the customer
+               cards): USD x months x rate, rounded ONCE for the whole term, and
+               only then divided for the per-month display. Rounding the USD
+               figure first would print a taka amount that disagrees with the
+               charge. The rate is ExchangeRateService — the live
+               hexarate.paikama.co USD->BDT mid rate, cached for six hours and
+               the same value the sidebar shows. */
+            $termTaka = function ($usdPerMonth, $months) use ($usdRate) {
+                if ($usdPerMonth === null || $usdRate <= 0) {
+                    return null;
+                }
+
+                return round((float) $usdPerMonth * (int) $months * $usdRate);
+            };
+
+            // That same term's money spread back over its months, rounded to a
+            // whole taka: SslPlanService uses exactly this rule for the
+            // customer card's `per_month`, so the admin column and the card can
+            // never quote a different figure for the same plan.
+            $perMonthTaka = function ($usdPerMonth, $months) use ($termTaka) {
+                $term = $termTaka($usdPerMonth, $months);
+
+                return $term === null ? null : round($term / (int) $months);
+            };
+
+            $taka = function ($v) {
+                return $v === null ? '—' : '৳' . \App\Support\SslPricing::money($v);
             };
         @endphp
 
         <div class="ssl-card-list">
             <div class="ssl-list-head">
                 <span>Plan</span>
-                <span>ResellerClub pricing (USD per month)</span>
+                <span title="Converted from ResellerClub's USD price at the live rate of ৳{{ number_format($usdRate, 2) }} per USD.">ResellerClub pricing (৳ per month)</span>
                 <span>Actions</span>
             </div>
 
@@ -159,7 +189,7 @@
                                     <b>No price returned for plan ID {{ $planRcId }}.</b> Check the ID and that this server's IP is whitelisted in ResellerClub.
                                 @endif
                                 @if((float) $plan->monthly_price > 0)
-                                    Customers currently see the last saved price, ৳{{ number_format($plan->monthly_price) }}/mo.
+                                    Customers currently see the last saved price, ৳{{ number_format((float) $plan->monthly_price * 12) }}/year.
                                 @else
                                     This plan is hidden from customers until a price is available.
                                 @endif
@@ -170,11 +200,11 @@
                                     <thead>
                                         <tr>
                                             <th>Term</th>
-                                            <th>Reseller price</th>
-                                            <th>Profit %</th>
-                                            <th>Revenue</th>
-                                            <th>Selling price</th>
-                                            <th>Customer pays</th>
+                                            <th title="What ResellerClub charges you, per month for this term.">Reseller price</th>
+                                            <th title="Your markup on the reseller price: (selling − reseller price) ÷ reseller price.">Profit %</th>
+                                            <th title="Your profit per month on this term, in Taka.">Revenue</th>
+                                            <th title="What you charge the customer, per month for this term.">Selling price</th>
+                                            <th title="The whole term in one figure — the amount the customer is actually charged.">Customer pays</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -183,14 +213,23 @@
                                                 $rcCell = $planPrices['add'][$rcMonths];
                                                 $rcCost = $rcCell['cost'] ?? null;
                                                 $rcSelling = (float) $rcCell['selling'];
+                                                // Profit % is a ratio, so it needs no conversion
+                                                // and keeps coming from the API untouched.
                                                 $rcPercent = $rcCell['profit_percent'] ?? null;
-                                                $rcProfit = $rcCell['profit_amount'] ?? null;
                                                 $rcLoss = $rcCost !== null && $rcSelling < (float) $rcCost;
-                                                $rcBdt = $usdRate > 0 ? round($rcSelling * $rcMonths * $usdRate) : null;
+
+                                                // Every money cell in taka: the per-month figure
+                                                // and the whole-term total.
+                                                $rcCostMonth = $perMonthTaka($rcCost, $rcMonths);
+                                                $rcSellMonth = $perMonthTaka($rcSelling, $rcMonths);
+                                                $rcBdt = $termTaka($rcSelling, $rcMonths);
+                                                $rcProfitMonth = ($rcCostMonth === null || $rcSellMonth === null)
+                                                    ? null
+                                                    : $rcSellMonth - $rcCostMonth;
                                             @endphp
                                             <tr>
                                                 <td>{{ $rcMonths % 12 === 0 ? ($rcMonths / 12) . ' ' . \Illuminate\Support\Str::plural('year', $rcMonths / 12) : $rcMonths . ' months' }}</td>
-                                                <td><span class="{{ $rcCost === null ? 'is-null' : '' }}">{{ $usd($rcCost) }}</span></td>
+                                                <td><span class="{{ $rcCostMonth === null ? 'is-null' : '' }}">{{ $taka($rcCostMonth) }}</span></td>
                                                 <td>
                                                     @if($rcPercent === null)
                                                         <span class="is-null" title="ResellerClub did not return a cost for this term.">—</span>
@@ -198,19 +237,15 @@
                                                         <span class="{{ $rcLoss ? 'is-loss' : 'is-profit' }}">{{ rtrim(rtrim(number_format((float) $rcPercent, 2, '.', ''), '0'), '.') }}%</span>
                                                     @endif
                                                 </td>
-                                                <td><span class="{{ $rcProfit === null ? 'is-null' : ($rcLoss ? 'is-loss' : 'is-profit') }}">{{ $usd($rcProfit) }}</span></td>
-                                                <td class="is-sell">{{ $usd($rcSelling) }}</td>
-                                                <td class="is-bdt">{{ $rcBdt !== null ? '৳' . number_format($rcBdt) : '—' }}</td>
+                                                <td><span class="{{ $rcProfitMonth === null ? 'is-null' : ($rcLoss ? 'is-loss' : 'is-profit') }}">{{ $taka($rcProfitMonth) }}</span></td>
+                                                <td class="is-sell">{{ $taka($rcSellMonth) }}</td>
+                                                <td class="is-bdt">{{ $taka($rcBdt) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                 </table>
                             </div>
-                            <p class="ssl-rc-note">
-                                Revenue = selling − reseller price. Profit % = revenue ÷ reseller price (worked out from the API
-                                prices, so it can differ by a fraction from the % set in the panel because ResellerClub rounds to
-                                whole cents). “Customer pays” is the selling price for the whole term in Taka at 1 USD = ৳{{ number_format($usdRate, 2) }}.
-                            </p>
+
                         @endif
                     </div>
 

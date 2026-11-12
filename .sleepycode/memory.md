@@ -2,92 +2,127 @@
 
 ## Stack / run
 - Laravel 6.20, PHP ^7.2.5|^8.0. Plain CSS/JS in public/css + public/js. **NO build step in use**: views never
-  call `mix()`; `webpack.mix.js` compiles resources/js/app.js (just `require('./bootstrap')`) and an EMPTY
-  `resources/sass/app.scss`. `public/css/app.css` is hand-written. Do not `npm run dev`.
+  call `mix()`; webpack only compiles resources/js/app.js (just bootstrap) and an EMPTY app.scss. Do not
+  `npm run dev`.
 - Local PHP CLI is 8.4 → `php artisan` fine, plain `vendor/bin/phpunit` FATAL. Use
-  **`php80 vendor\bin\phpunit`** (`C:\Users\azizm\.config\herd\bin\php80\php.exe`). PHPUnit is 9.6.
-- **SUITE BASELINE (measured): 223 tests, 1498 assertions, 12 red = 10 failures + 2 errors.** All pre-existing
-  and unrelated to views/CSS/SSL work: `ResellerClubDomainContacts::extractDefaultContactId()` missing (9 in
-  DomainRegistrationServiceTest + `AdminApiConnectionsTest` expects `/contacts/default.json`),
+  **`php80 vendor\bin\phpunit`** (`C:\Users\azizm\.config\herd\bin\php80\php.exe`). PHPUnit 9.6.
+- **SUITE BASELINE (measured, latest): 226 tests, 1575 assertions, 12 red = 10 failures + 2 errors.** All
+  pre-existing and unrelated to views/CSS/SSL work: `ResellerClubDomainContacts::extractDefaultContactId()`
+  missing (9 in DomainRegistrationServiceTest + `AdminApiConnectionsTest` expects `/contacts/default.json`),
   `DomainTermPricingTest`, `InvoiceWorkflowTest::testCustomerPdfHidesPurchaseAndProfit`,
-  `DomainTransferWorkflowTest::testTransferLandingShowsRequirementsAndSubmitsToCheckout`, and **two real My
-  Store regressions** from commit `9d77c03 "reg2"` — `MyStorePagesTest::testDomainPageShowsTheFullDetailOfEvery
-  Domain` (view says `RENEWAL`, test wants `RENEWAL PRICE`) and
-  `::testDomainPageListsPaidTransferRequestsSeparatelyFromOwnedDomains` (`status_message` deleted from
-  store/domains.blade.php). Don't chase these unless asked.
-- Views are standalone Blade (no layouts) EXCEPT store pages →
-  `@extends('store.layout', ['pageTitle'=>…,'navActive'=>…,'topbarTitle'=>…,'hideStoreAlerts'=>…])`, section
-  `store`, `@stack('head')`, `@stack('scripts')`. Partials: head (app.css+workspace.css+coming-soon.css),
-  sidebar (sidebar-nav.css, must load AFTER domains.css), topbar, admin-sidebar, logo, chat, coming-soon-modal,
-  client-area-menu, site-navbar, favicon, spinner, spinner-overlay, ssl-plans, domain-transfer.
+  `DomainTransferWorkflowTest::testTransferLandingShowsRequirementsAndSubmitsToCheckout`, and two real My Store
+  regressions from commit `9d77c03 "reg2"` — `MyStorePagesTest::testDomainPageShowsTheFullDetailOfEveryDomain`
+  (view says `RENEWAL`, test wants `RENEWAL PRICE`) and
+  `::testDomainPageListsPaidTransferRequestsSeparatelyFromOwnedDomains`. Don't chase these unless asked.
+- Views are standalone Blade (no layouts) EXCEPT store pages → `@extends('store.layout', [...])`, section
+  `store`, `@stack('head')`, `@stack('scripts')`. Partials: head, sidebar, topbar, admin-sidebar, logo, chat,
+  coming-soon-modal, client-area-menu, site-navbar, favicon, spinner, spinner-overlay, ssl-plans,
+  domain-transfer.
 - Files are CRLF in git. **`replace_text` fails on CRLF files.** Working pattern: a temp `php80` script in
-  .sleepycode/ that normalises to LF, replaces an exact single occurrence, restores CRLF (also used for JSON
-  patch specs). Then `php80 -l`. New files written with `write_file` arrive as LF — convert them to CRLF too.
-- **Never `write_file` an existing CSS/asset file.** Read it, then append.
-- **Blade trap (hit once):** a multi-line `@php ... @endphp` block inside a `@foreach` in a partial that also
-  uses inline `@php(...)` made the compiler emit raw `@php` text and then fail with
-  `unexpected token "endforeach"`. Symptom: one compiled view fails `php -l`. Fix: compute in the SERVICE or
+  .sleepycode/ that normalises to LF, replaces exact occurrences (assert the expected count!), restores CRLF.
+  Then `php80 -l`. New files written with `write_file` arrive LF — convert to CRLF too.
+  GOTCHA: in those patch scripts a `<<<'OLD'` heredoc must be closed with `OLD,` inside the call (and `NEW);`
+  for the last arg) — a bare `OLD);` leaves the call unclosed and PHP fails with "Unclosed '('".
+- **Never `write_file` an existing CSS/asset file.** Read it, then append/patch.
+- **Blade trap (hit once):** a multi-line `@php ... @endphp` inside a `@foreach` in a partial that also uses
+  inline `@php(...)` made the compiler emit raw `@php` text and then fail. Fix: compute in the SERVICE or
   controller, keep the partial a plain loop. Always run `view:cache` + `php -l` on **every**
   `storage/framework/views/*.php` after touching Blade.
-- **`SslPlanService::$tablesMissing` is a static memo.** It survives the whole process, so once something
-  (a test that drops tables, a worker) sets it true, the app silently serves the config fallback forever.
-  Call `SslPlanService::resetSchemaCache()` after any schema change. This caused a real order-dependent test
-  bug — first test passed alone, failed in suite.
+- **`SslPlanService::$tablesMissing` is a static memo** — call `resetSchemaCache()` after any schema change.
 - Browser: after /logout a fresh page load is needed (CSRF 419). Viewport-switch geometry can report the
-  previous layout; reload after switching viewports. To screenshot an admin page without the password, render
-  it server-side to a file, copy into `public/`, then open over http (not file://, or CSS is ORB-blocked).
-- Local shortcuts in routes/web.php: `GET /__probe-login` (seeds session('customer') → /mystore) and
+  previous layout; reload after switching viewports. **Admin pages can't be opened directly** (no password) —
+  render server-side. A hand-rolled `$app['session']` script FAILS before the kernel boots
+  (`Class "session" does not exist`); the reliable way is a **scratch feature test** with
+  `$this->withSession(['admin'=>...])->get('/admin/...')->getContent()`, written to `public/__x.html`, opened
+  over http, then deleted.
+- Local shortcuts in routes/web.php: `GET /__probe-login` (session('customer') → /mystore) and
   `GET /__probe-rowcheck`. **Remove before production.**
-- User commits work as they go, and has external tooling that commits `.sleepycode/` scratch files — so
-  `git status` may show less/more than expected. Clean up your own scratch files.
-- `learn/` and `docs/` and `agent.md` are gitignored (local-only).
+- User commits work as they go, and has external tooling that commits `.sleepycode/` scratch files. Clean up
+  your own scratch files.
+- `learn/`, `docs/`, `agent.md` are gitignored (local-only).
+- `findstr`/`&`-chained commands often return empty stdout here. Use
+  `powershell -NoProfile -Command "... | Out-String"` or redirect to a file then `type`. `ls` doesn't exist
+  (cmd.exe) — use `dir`. `run_command` timeout max is 120s (full suite ≈ 70s, so it just fits).
 
-## SSL plans — CMS, live ResellerClub pricing, per-feature visibility
+## Exchange rate (USD → BDT) — the only conversion source
+- `App\Services\ExchangeRateService::usdToBdt()` → `['rate','source','updated_at']`. Endpoint
+  `https://hexarate.paikama.co/api/rates/latest/USD?target=BDT`, reads `data.mid` (live: **125.0**), caches
+  `exchange_rate_usd_bdt` for **21600s (6h)**, falls back to `services.exchange_rate.usd_to_bdt_fallback`
+  (120) with `source='fallback'` and `updated_at=null` on any failure. Never throws.
+- Consumers: `AdminController::usdToBdtRate()` (dashboard/SSL admin), `AppServiceProvider` view composer
+  (`$exchangeRate`, partials.admin-sidebar only), `DomainRegistrationService`, `DomainTransferService`,
+  `ResellerClubClient` (convertLivePriceToBdt), `SslPlanService`.
+- **Conversion rule everywhere: multiply USD × months × rate FIRST, round ONCE.** Rounding the USD figure
+  first is wrong ($0.79 → ৳95/mo but ৳1,140/yr instead of ৳1,138). Per-month display = `round(term / months)`.
+- **Tests stub the rate to 120** via `$this->app->instance(ExchangeRateService::class, ...)`; the real 125
+  appears only when a scratch test clears the cache and doesn't stub.
+
+## SSL plans — CMS, live ResellerClub pricing, per-feature visibility, YEARLY quoting, TAKA admin
 ### Structure
-- Tables `ssl_plans` (+nullable `resellerclub_plan_id` from
-  `2026_11_13_000000_add_resellerclub_plan_id_to_ssl_plans`) and `ssl_plan_features`
-  (`ssl_plan_id, feature, shown_to_customers, is_available, sort` — visibility column from
-  `2026_11_14_000000_add_shown_to_customers_to_ssl_plan_features`).
-- `SslPlanService::plans()` → `resolve($plan, $live)` → array consumed by
-  `partials/ssl-plans.blade.php`: `id,key,name,tagline,badge,buy_route,monthly,renewal,features[],terms[N],
-  default,source('live'|'local')`. **Never carries cost/profit — those are admin-only.**
-- Live path: `round(usd_per_month × months × rate)`, convert once/round once (rounding the USD first gives
-  ৳1,140 instead of ৳1,138 for $0.79). Terms = only tenures ResellerClub sells (12mo→1y, 24mo→2y; NO 3-year).
-  `SslPlanService` calls **`sslSellingPricing()` only** (1 HTTP call); admin uses `sslPlanPricing()` (both
-  price endpoints) for cost + profit %. Profit % = (selling−cost)/cost×100, computed here, null when either
-  is missing or cost ≤ 0.
-- Kill switch `services.resellerclub.ssl_live_pricing` (`RESELLERCLUB_SSL_LIVE_PRICING`, default true).
+- Tables `ssl_plans` (+nullable `resellerclub_plan_id`) and `ssl_plan_features`
+  (`ssl_plan_id, feature, shown_to_customers, is_available, sort`).
+- `SslPlanService::plans()` → `resolve($plan, $live)` → array consumed by `partials/ssl-plans.blade.php`:
+  `id,key,name,tagline,badge,buy_route,monthly,renewal,per_year,renewal_year,features[],terms[N],default,
+  source('resellerclub'|'local')`. **Never carries cost/profit — admin-only.**
+- **YEARLY QUOTING (customer rule):** every printed figure is annual. `terms[N]['per_year'] =
+  round(total / N)`; top-level `per_year` = default (1-year) term's; `renewal_year` = renew USD/mo × 12 × rate
+  (live) or `renewal_price × 12` (typed) — never derived from the already-rounded monthly BDT.
+  `per_month`/`monthly`/`renewal` stay in the array (admin + term maths) but **nothing customer-facing prints
+  them**; tests assert no `/mo` in the markup.
+- Live path: only tenures ResellerClub sells (12mo→1y, 24mo→2y; NO 3-year). `sslSellingPricing()` for customers
+  (1 HTTP call), `sslPlanPricing()` (both endpoints) for admin cost/profit. Kill switch
+  `services.resellerclub.ssl_live_pricing`.
 - Fallback ladder: no link → typed BDT · kill switch off · not configured · API down · 12-mo selling missing ·
-  rate ≤ 0 → typed. A plan with typed price ≤ 0 is dropped from the customer list (no free cert).
-- Migration pattern in this folder: **no `dropColumn`** (Laravel 6 + SQLite needs doctrine/dbal, absent) —
-  rebuild the table instead. Add-column migrations are fine and are `hasColumn`-guarded.
-- Plan ID map (matched by `plan_key`, re-runnable, only fills NULLs): positive-ssl→300, comodo-ssl→299,
-  positive-ssl-wildcard→301, ev-ssl→672. Admin form requires the ID (price is never typed).
-- Locally `RESELLERCLUB_ENABLED=false` with empty key, so the live API is unverifiable here; everything was
-  verified against the captured fixtures + `buildSslPricing()` unit tests.
+  rate ≤ 0 → typed. Typed price ≤ 0 ⇒ plan dropped from the customer list (no free cert).
+- Migration pattern here: **no `dropColumn`** (Laravel 6 + SQLite needs doctrine/dbal) — rebuild the table.
+- Plan ID map (by `plan_key`, fills only NULLs): positive-ssl→300, comodo-ssl→299,
+  positive-ssl-wildcard→301, ev-ssl→672.
+- Locally `RESELLERCLUB_ENABLED=false` → the live API is unverifiable; verify via captured fixtures +
+  `buildSslPricing()` unit tests + stubbed feature tests. Local DB typed fallbacks make the real customer page
+  read 1,368 / 4,788 / 7,188 / 15,588 per year.
 - Tests: `tests/Unit/SslPricingCalculatorTest.php`, `tests/Feature/SslLivePricingTest.php`,
-  `tests/Feature/SslPlanCmsTest.php`, `tests/Feature/SslPlanFeatureVisibilityTest.php`.
+  `SslPlanCmsTest.php`, `SslPlanFeatureVisibilityTest.php` (**62 tests under `--filter Ssl`**).
+- **Plan↔product names are offset in ResellerClub**: comodo-ssl is linked to 299 = $4.00/mo (Premium in their
+  panel), so "Comodo SSL ৳4,788/yr" is arithmetically correct; linking it to 300 would make it ৳1,138.
 
-### Admin editor markup contract (rebuilt at user request — keep it)
-- **Single column, max-width 900px.** The old right rail (live preview + visibility note + order help) was
-  removed at the user's request; `is_visible` and `sort` moved into a compact "4 Publishing" panel because
-  omitting them would unpublish the plan and zero its order.
+### Admin list (`admin/ssl-plans.blade.php`) — ALL MONEY IN TAKA
+- Table heading `ResellerClub pricing (৳ per month)`; its `title` is the ONLY place the rate is stated
+  ("live rate of ৳X per USD"). The old explanatory paragraph (`Revenue = selling − reseller price…`) and its
+  `.ssl-rc-note` CSS were **deleted at the owner's request** — column `title` tooltips carry the meaning now.
+- Conversion lives **in the view only** (`$termTaka`, `$perMonthTaka`, `$taka`): ResellerClubClient and
+  SslPlanService were NOT touched. `$termTaka = round(usd × months × $usdRate)`;
+  `$perMonthTaka = round($termTaka / months)` (same rule as the card's `per_month`).
+- **Revenue is `sellMonth − costMonth`** (difference of the two taka figures already on the row) so the columns
+  reconcile by eye; the API's own `profit_amount` is no longer read. **Profit % is a ratio → unconverted.**
+- `$usdRate <= 0` ⇒ every money cell prints `—`, never `৳0`.
+- `.ssl-rc table{min-width:600px}` inside `.ssl-rc-scroll{overflow-x:auto}`. 4-up table fits at 1920/1280
+  (`grid-template-columns: minmax(150px,.6fr) minmax(0,2.4fr) 132px`); at 390px it scrolls in its container
+  with no page overflow.
+- With the 125.0 live rate + screenshot fixtures, Positive SSL reads ৳83 | 19.7% | ৳16 | ৳99 | ৳1,185.
+
+### Customer card layout / CSS
+- `.ssl-price` row = superscript `.ssl-taka` + `.ssl-amount` + `.ssl-per`; `.ssl-per` rides the baseline
+  (`align-self:flex-end; margin-bottom:.26em`). `.ssl-amount` is `clamp(34px, 3.6vw, 42px)` — **unchanged for the
+  wider yearly figure**; the clamp is `vw`-based so it scales. Do NOT "fix" phantom overflow by forcing 42px onto
+  a narrow card: at the tightest 4-up viewport (1081px → 237px card, 188px content) it computes to 38.9px and the
+  widest figure "৳15,588/year" needs ~177px.
+- Term `<option>`s carry `data-per-year` / `data-total` / `data-savings`; inline script swaps `.ssl-amount` +
+  `.ssl-total` on change. No-JS default = the selected (1-year) option.
+- Totals line = `৳{total} <span>total for {term}</span>` — the charge, not a per-month figure.
+
+### Admin editor markup contract (keep it)
+- **Single column, max-width 900px.** No right rail; `is_visible` + `sort` live in a compact "4 Publishing" panel.
 - Feature row = `grid-template-columns: minmax(0,1fr) 38px 38px` (text | eye | ×) — **icons only, no visible
-  labels or helper text**. Responsive: 36px under 640px, 34px under 420px; the text input shrinks, the two
-  icon columns never wrap. Rows must stay ONE line — verify `getBoundingClientRect().top` spread < 6px.
-- `.ssl-eye` = checkbox laid over an inline SVG (eye + `<circle class="ssl-eye-dot">` +
-  `<line class="ssl-eye-off">`). Checked = green eye, no slash. Unchecked = grey eye WITH slash + struck-out
-  text via `.is-hidden-feature`. Meaning lives in `aria-label` + `title` only.
-- **Never use a `.ssl-sr`-style screen-reader class in this admin view** — that stylesheet (`ssl-plans.css`)
-  isn't loaded there, so the "hidden" text renders visibly and destroys the row grid. That was the bug.
-- **Checkbox sentinel:** each toggle also posts `<input type="hidden" name="features[N][shown_marker]" value="1">`.
-  Contract in `AdminController::validatedSslPlan()`: `shown=1` → visible; `shown_marker` without `shown` →
-  explicitly hidden; **neither → stays visible** (older forms/scripts, and the pre-column behaviour that
-  `SslPlanCmsTest` pins). Without the marker an unchecked box is indistinguishable from "not posted".
-- Delete = the row is simply omitted from the POST; `syncSslPlanFeatures()` deletes-then-recreates, so it
-  persists `shown_to_customers` through `$plan->features()->create($feature)`.
-- `is_available` is kept in lockstep with visibility (hidden ⇒ is_available=0) so any older reader of that
-  column agrees. Hidden rows are dropped in `SslPlanService::features()` (not in Blade).
+  labels/helper text**. 36px under 640px, 34px under 420px. Rows must stay ONE line (< 6px top spread).
+- `.ssl-eye` = checkbox over inline SVG (eye + `.ssl-eye-dot` + `.ssl-eye-off`). Checked = green eye, no slash;
+  unchecked = grey eye WITH slash + `.is-hidden-feature` strike. Meaning in `aria-label` + `title` only.
+- **Never use a `.ssl-sr`-style screen-reader class in the admin view** — `ssl-plans.css` isn't loaded there.
+- **Checkbox sentinel:** each toggle also posts `features[N][shown_marker]=1`. `AdminController::validatedSslPlan()`:
+  `shown=1` → visible; marker without `shown` → explicitly hidden; neither → stays visible.
+- Delete = row omitted from POST; `syncSslPlanFeatures()` deletes-then-recreates. `is_available` kept in lockstep
+  with visibility. Hidden rows dropped in `SslPlanService::features()` (not Blade).
+- Plan column shows the NAME only (+ "Hidden" pill). The "no price returned" warning quotes the last saved
+  price as `monthly_price × 12` per year.
 
 ## Post-auth redirects
 - `App\Support\AuthIntent` = session `url.intended` + `url.intended_at`, 24h TTL, same-site paths only
@@ -96,33 +131,29 @@
 - Checkout guest panel → `route('login'|'register', ['return_to' => '/domains/checkout'])`;
   `EnsureCustomer` → `route('login', ['return_to' => current URI | referer])`.
 - `AuthController::intendedDestination()`: explicit return_to → else `/domains/checkout` when a `domain_cart`
-  exists → else null. `signIn()`/`verifyEmail()` redirect via `AuthIntent::pull(...)`. Plain sign-in (no cart,
-  no return_to) still → dashboard. `email.verified` meta-refreshes to the target.
+  exists → else null. `signIn()`/`verifyEmail()` redirect via `AuthIntent::pull(...)`. Plain sign-in → dashboard.
 - `ReturnTo` is the sibling mechanism for back buttons (`?back=`, same sanitiser, no nesting).
-- Tests: `tests/Feature/PostAuthRedirectTest.php`, `tests/Feature/InvoiceBackLinkTest.php`.
+- Tests: `PostAuthRedirectTest.php`, `InvoiceBackLinkTest.php`.
 
 ## Domain transfer page — partials/domain-transfer.blade.php + public/css/domain-transfer.css
-- One partial, two surfaces: `.dt-page--public` (`/services/domain-transfer`, navbar+footer) and
-  `.dt-page--client` (`/client/coming-soon/domain-transfer`, store layout, `.dt-guide` drops its band).
+- One partial, two surfaces: `.dt-page--public` (`/services/domain-transfer`) and `.dt-page--client`
+  (`/client/coming-soon/domain-transfer`).
 - `.dt-guide-inner` max-width **880px** = width of `.dt-transfer-panel`.
-- Steps: `<div class="dt-transfer-panel">` wrapping `<ol class="dt-transfer-steps">`; each `li` = grid
-  node + copy, `li > button` is the round node (JS click-to-select walkthrough toggles is-active/is-complete).
-- Connector is ONE pseudo-element per row, `li:not(:last-child)::after`, in the node column; solid gradient,
-  colour by state. Row backgrounds live on the CONTENT cell so nothing hides the rail.
-- Responsive knobs are CSS vars on `.dt-transfer-steps` (≤620px: node 40, inset 10, pad 13).
-- `li` has no `tabindex`; the button is the only tab stop.
+- Steps: `.dt-transfer-panel` > `ol.dt-transfer-steps`; each `li` = grid node + copy, `li > button` is the round
+  node (JS click-to-select walkthrough toggles is-active/is-complete).
+- Connector = ONE pseudo-element per row (`li:not(:last-child)::after`) in the node column; solid gradient,
+  colour by state. Row backgrounds live on the CONTENT cell.
+- Responsive knobs are CSS vars on `.dt-transfer-steps` (≤620px: node 40, inset 10, pad 13). `li` has no
+  `tabindex`; the button is the only tab stop.
 
 ## My Store (reworked — /mystore = All Items + 7 section pages)
-- `App\Support\StoreInventory` is the single data layer: `sections()` (7 × key/label/title/kicker/icon/tone/
-  nav/url/blurb/empty/empty_short/cta), `paidOrders()`, `domains()`, `transfers()`, `service($key)`
-  (hosting|ssl|email|sms from **paid invoice lines** by `invoice_items.item_type` prefix), `invoiceMap()`,
-  `payments()` (Topup rows + Payment rows, **plain arrays**, sorted desc), `paymentTotals()`, `counts()`,
-  `paidToDate()`, `pendingTopupCount()`. NOTE: `payments()` must stay plain arrays — Eloquent
-  Collection::merge() calls getKey() on arrays.
+- `App\Support\StoreInventory` is the single data layer: `sections()`, `paidOrders()`, `domains()`,
+  `transfers()`, `service($key)`, `invoiceMap()`, `payments()` (**plain arrays** — Collection::merge() calls
+  getKey() on arrays), `paymentTotals()`, `counts()`, `paidToDate()`, `pendingTopupCount()`.
 - `MyStoreController`: index, domains, domainDetails, domainActivity, updateNameservers,
   updateOrganizationConsent, hosting, service{ssl|email|sms}, invoices, payments.
-- Views: `store/layout` + `store/index` (balance row + 7 serial cards) + `domains|service|invoices|payments`
-  + `domain-details` (899 lines) + `domain-activity` + `coming-soon`; partials card/empty/page-head/service-rows.
+- Views: `store/layout` + `store/index` + `domains|service|invoices|payments` + `domain-details` (899 lines) +
+  `domain-activity` + `coming-soon`; partials card/empty/page-head/service-rows.
 - Invoices section = paid domain orders + their invoice document. Balance cards ONLY on All Items.
 - CSS at tail of `public/css/store.css`: tone vars, `.store-card-grid` 3→2→1, `.store-card*`,
   `.store-page-head`, `.store-item/.store-facts/.store-fact`, `.store-totals`, `.store-table.cols-*`.
@@ -148,12 +179,13 @@
 Rules `#site-navbar`-scoped; includes the coming-soon modal. Order: Home · Domains · Web Hosting · SSL ·
 Business Email · SMS Service · Support. Tiers: ≥1401px one row 1400px + phone; 1201–1400px 1240px, nav
 14.5px/9px, phone → handset icon; ≤1200px nav drops under logo; ≤560px phone text + user name hidden.
-Drawer cut-off 960px.
+Drawer cut-off 960px. NOTE: at 390px `.site-nav-toggle` / `.site-account` extend ~54px past the viewport on
+**every** public page (pre-existing; also on /services/domain-transfer — not caused by content pages).
 
 ## Domain / shop logic
 - Catalog from `ResellerClubClient` (5-min price caches + BDT fallback). `services.test_domains` is referenced
   by 6 code sites but **is NOT defined in config/services.php** → the shortcut is inert.
-- Cart in session `domain_cart` (keyed by domain; holds order_type/price/purchase_price/renewal_price/years,
+- Cart in session `domain_cart` (keyed by domain; order_type/price/purchase_price/renewal_price/years;
   transfers add an encrypted `transfer_auth_code`). Registrations and transfers can't share a cart.
 - `placeOrder`: validates, preflights, `createPendingPayment`, one `DB::transaction` (wallet `lockForUpdate`,
   DomainOrder + items + Payment) → `InvoiceService::createForOrder` → wallet registers immediately +
@@ -162,23 +194,20 @@ Drawer cut-off 960px.
   `email_verification_tokens` (raw SQL, not a migration), 300s resend cooldown. Admin = config creds +
   `session('admin')`, re-checked inline in 35 places (no admin middleware); **POST /admin/login has no
   throttle**.
-- Invoices: `InvoiceService` is the only writer; `item_type` produced today: `domain-registration`,
-  `domain-transfer`, `topup`. Admin editor also accepts `domain-renewal`, `hosting`, `manual`.
+- Invoices: `InvoiceService` is the only writer; `item_type` today: `domain-registration`, `domain-transfer`,
+  `topup` (admin editor also accepts `domain-renewal`, `hosting`, `manual`).
 - Hosting/SSL/email/SMS **checkouts do not exist** — My Store shows empty states until they bill invoices.
 
 ## Verification techniques that worked here
-- Temp PHP helper in .sleepycode/ to create AND delete throwaway customers (`*.check@example.test` /
-  `Check#12345`) plus orders/topups/invoices, then delete them.
-- Render an admin page server-side (set `session('admin')`, `$app['session']` + `HttpKernel::handle`) to a
-  file → copy to `public/` → measure with `browser_evaluate`/`browser_geometry` alongside
-  `browser_screenshot`. Beats typing an admin password into a form.
-- When a feature test 500s, mirror it in a scratch test with `$this->withoutExceptionHandling()` for the real
-  stack trace, then delete the scratch test.
-- **Assert on text unique to the fixture** (`UNIQUE-…`). Seeded features repeat across plans, so
-  `assertDontSee('1 Sub-domain')` fails for the wrong reason. Also count controls only in the markup
-  (slice before `<script>`) — the inline JS template shares class names.
-- `run_command` sometimes returns empty stdout for `&`-chained commands; redirect to a file and `type` it.
-  `findstr /n @media public/css/domains.css` is useless (4 physical lines, minified) — use PowerShell `-Raw`.
-- Pixel-proof purely visual work: full-page screenshot at deviceScaleFactor 1, then sample coordinates in
-  PHP GD (`imagecolorat`). Computed-style checks (`getComputedStyle(el,'::before')`) catch inherited
-  decoration a visual pass misses.
+- Temp PHP helper in .sleepycode/ to create AND delete throwaway customers (`*.check@example.test`) plus
+  orders/topups/invoices.
+- **Admin-page proof = scratch feature test** that writes `getContent()` into `public/__x.html`, then
+  `browser_navigate` + `browser_evaluate` (read cells) + `browser_geometry` (overflow) + `browser_screenshot`;
+  delete the test and the file afterwards.
+- Assert on text unique to the fixture (`UNIQUE-…`). Count controls only in the markup (slice before
+  `<script>`). When slicing a page you must anchor on the MARKUP (`<div class="ssl-card-list">`), not a class
+  name — the same string appears in the page's inline `<style>` and would swallow the sidebar.
+- When a feature test 500s, mirror it in a scratch test with `$this->withoutExceptionHandling()`.
+- Pixel-proof purely visual work: full-page screenshot at deviceScaleFactor 1, sample coordinates in PHP GD.
+- `browser_geometry` can report a stale viewport right after switching; reload, then re-measure. It also
+  sometimes reports `documentHeight: 0` — use `document.documentElement.scrollWidth - clientWidth` for overflow.

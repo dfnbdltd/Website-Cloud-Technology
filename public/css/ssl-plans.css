@@ -318,6 +318,12 @@
     letter-spacing: 0;
 }
 
+/* The figure is the YEARLY price now ("৳15,588"), a digit wider than the
+   monthly figure this clamp was tuned for. It still fits without a change:
+   the font is a vw value, so at the narrowest viewport that shows four cards
+   (1081px) it resolves to 38.9px and needs ~177px of the 188px the card
+   offers; from 1167px up it is capped at 42px and needs at most 191px of the
+   210px+ those cards have. */
 .ssl-amount {
     font-size: clamp(34px, 3.6vw, 42px);
     font-weight: 800;
@@ -326,7 +332,7 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* "/mo" rides the baseline of the figure (as in the reference), not the box
+/* "/year" rides the baseline of the figure (as in the reference), not the box
    bottom — `align-self: flex-end` would drop it under the descender line. */
 .ssl-per {
     align-self: flex-end;

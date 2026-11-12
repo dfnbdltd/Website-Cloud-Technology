@@ -73,7 +73,8 @@ class SslPlanCmsTest extends TestCase
         $this->get('/services/ssl-certificate')
             ->assertOk()
             ->assertSee('CMS Positive SSL')
-            ->assertSee('>111<', false)
+            // Yearly: 111/mo x 12 = 1,332 for the default 1-year term.
+            ->assertSee('>1,332<', false)
             // All three terms are always offered.
             ->assertSee('1 Year')
             ->assertSee('2 Years')
@@ -178,5 +179,20 @@ class SslPlanCmsTest extends TestCase
 
         // 1 year is what the card quotes by default.
         $this->assertSame(1, $row['default']['years']);
+
+        // Yearly quoting, from the same term totals: 1,200 / 2,160 / 2,880
+        // over 1 / 2 / 3 years. The renewal column is a per-month figure, so
+        // the yearly one is that × 12.
+        $this->assertSame(1200.0, (float) $row['per_year']);
+        $this->assertSame(1200.0, (float) $row['default']['per_year']);
+        $this->assertSame(1080.0, (float) $row['terms'][2]['per_year']);
+        $this->assertSame(960.0, (float) $row['terms'][3]['per_year']);
+        $this->assertSame((float) $row['renewal'] * 12, (float) $row['renewal_year']);
+
+        $this->get('/services/ssl-certificate')
+            ->assertOk()
+            ->assertSee('data-ssl-amount>1,200<', false)
+            ->assertSee('Renews at ৳2,388/year')
+            ->assertDontSee('/mo');
     }
 }

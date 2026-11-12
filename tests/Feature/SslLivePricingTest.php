@@ -154,6 +154,7 @@ class SslLivePricingTest extends TestCase
 
         // positive-ssl (300): $0.79/mo -> ৳95/mo, ৳1,138/yr, renews $1.99 -> ৳239
         $this->assertSame(95.0, (float) $plans['positive-ssl']['default']['per_month']);
+        $this->assertSame(1138.0, (float) $plans['positive-ssl']['default']['per_year']);
         $this->assertSame(1138.0, (float) $plans['positive-ssl']['default']['total']);
         $this->assertSame(239.0, (float) $plans['positive-ssl']['renewal']);
 
@@ -171,6 +172,16 @@ class SslLivePricingTest extends TestCase
         $this->assertSame(1560.0, (float) $plans['ev-ssl']['default']['per_month']);
         $this->assertSame(18720.0, (float) $plans['ev-ssl']['default']['total']);
         $this->assertSame(2040.0, (float) $plans['ev-ssl']['renewal']);
+
+        // The card quotes SSL yearly, so the headline is `per_year`. For the
+        // default 1-year term that is the term total itself; the renewal line
+        // is the 12-month renew price converted once ($1.99 x 12 x 120).
+        $this->assertSame(1138.0, (float) $plans['positive-ssl']['per_year']);
+        $this->assertSame(5760.0, (float) $plans['comodo-ssl']['per_year']);
+        $this->assertSame(8626.0, (float) $plans['positive-ssl-wildcard']['per_year']);
+        $this->assertSame(18720.0, (float) $plans['ev-ssl']['per_year']);
+        $this->assertSame(2866.0, (float) $plans['positive-ssl']['renewal_year']);
+        $this->assertSame(24480.0, (float) $plans['ev-ssl']['renewal_year']);
     }
 
     /** @test */
@@ -189,6 +200,54 @@ class SslLivePricingTest extends TestCase
         $this->assertSame(28800.0, (float) $plans['ev-ssl']['terms'][2]['total']);
         $this->assertSame(8640.0, (float) $plans['ev-ssl']['terms'][2]['savings']);
         $this->assertSame(1200.0, (float) $plans['ev-ssl']['terms'][2]['per_month']);
+        // ৳28,800 over two years is ৳14,400 a year — the figure the card shows.
+        $this->assertSame(14400.0, (float) $plans['ev-ssl']['terms'][2]['per_year']);
+        // Every card's yearly figure is its term total divided by the years,
+        // whatever the term: no separate rule that could drift from `total`.
+        foreach ($this->resolved() as $key => $plan) {
+            foreach ($plan['terms'] as $years => $term) {
+                $this->assertSame(
+                    round($term['total'] / $years),
+                    (float) $term['per_year'],
+                    $key . ' ' . $years . '-year per_year must be total / years'
+                );
+            }
+        }
+    }
+
+    /**
+     * SSL is sold a year at a time, so every money figure on the card is a
+     * yearly one: the headline, the renewal line and each option's
+     * data-per-year. The monthly figure is still computed (the admin editor and
+     * the term maths use it) but it must never reach the page.
+     *
+     * @test
+     */
+    public function every_price_on_the_card_is_quoted_per_year()
+    {
+        $content = $this->get('/services/ssl-certificate')->assertOk()->getContent();
+
+        // Four cards, each with the /year unit and one yearly renewal line.
+        $this->assertSame(4, substr_count($content, '<span class="ssl-per">/year</span>'));
+        $this->assertSame(4, substr_count($content, 'class="ssl-renew"'));
+        $this->assertSame(4, substr_count($content, 'data-ssl-amount>'));
+
+        // The headline and the renewal line are the yearly numbers, not the
+        // monthly ones (৳95/mo and ৳239/mo from the acceptance table).
+        $this->assertStringContainsString('data-ssl-amount>1,138<', $content);
+        $this->assertStringContainsString('Renews at ৳2,866/year', $content);
+        $this->assertStringNotContainsString('data-ssl-amount>95<', $content);
+        $this->assertStringNotContainsString('৳239/mo', $content);
+
+        // Every term option carries the yearly figure the script swaps in, and
+        // the no-JS default already matches the selected option.
+        $this->assertSame(5, substr_count($content, 'data-per-year="'));
+        $this->assertStringNotContainsString('data-per-month', $content);
+        $this->assertStringContainsString('data-per-year="1,138"', $content);
+
+        // Nothing on a customer page may say "/mo" any more.
+        $this->assertStringNotContainsString('/mo<', $content);
+        $this->assertStringNotContainsString('/mo', $content);
     }
 
     /** @test */
@@ -235,11 +294,11 @@ class SslLivePricingTest extends TestCase
         $response->assertOk()
             // The ৳ glyph is a separate element from the figure, so assert the
             // figure and the total as rendered.
-            ->assertSee('data-ssl-amount>95<', false)
+            ->assertSee('data-ssl-amount>1,138<', false)
             ->assertSee('5,760')
             ->assertSee('18,720')
             ->assertSee('28,800')
-            ->assertSee('Renews at ৳239/mo')
+            ->assertSee('Renews at ৳2,866/year')
             ->assertDontSee('3 Years')
             ->assertDontSee('ResellerClub')
             ->assertDontSee('sslcert')
@@ -257,8 +316,8 @@ class SslLivePricingTest extends TestCase
             ],
         ])->get('/client/coming-soon/ssl-certificate')
             ->assertOk()
-            ->assertSee('data-ssl-amount>95<', false)
-            ->assertSee('৳239/mo')
+            ->assertSee('data-ssl-amount>1,138<', false)
+            ->assertSee('৳2,866/year')
             ->assertDontSee('ResellerClub');
     }
 
@@ -383,24 +442,139 @@ class SslLivePricingTest extends TestCase
 
     // ── admin surface ─────────────────────────────────────────────────────
 
-    /** @test */
+    /**
+     * The admin table reads in Taka now, converted from ResellerClub's USD with
+     * the same ExchangeRateService rate the customer cards use (120 here).
+     *
+     * Every money column is taka; profit % is a ratio so it is untouched; and no
+     * dollar figure or conversion explainer may survive anywhere on the page.
+     *
+     * @test
+     */
     public function the_admin_page_shows_reseller_price_profit_revenue_and_selling_per_plan()
     {
-        $this->withSession(['admin' => ['email' => 'admin@example.test']])
+        $response = $this->withSession(['admin' => ['email' => 'admin@example.test']])
             ->get('/admin/ssl-plans')
             ->assertOk()
             ->assertSee('Reseller price')
             ->assertSee('Profit %')
             ->assertSee('Revenue')
             ->assertSee('Selling price')
-            // Cost, profit % and selling for the Premium/Standard plans.
-            ->assertSee('$3.33')
+            // Cost per month in taka: $3.33 x 12 x 120 = ৳4,795 a year, and
+            // that term total divided by its 12 months.
+            ->assertSee('৳400')
+            ->assertSee('৳599')        // $4.99/mo
+            // Profit % is currency-free: unchanged from the API.
             ->assertSee('20.12%')
             ->assertSee('19.7%')
-            ->assertSee('$4.99')
-            // The BDT figure the customer will actually pay.
+            // Selling price per month in taka: $4.00 -> ৳480, $5.99 -> ৳719.
+            ->assertSee('৳480')
+            ->assertSee('৳719')
+            // The figure the customer is actually charged for the term.
             ->assertSee('Customer pays')
-            ->assertSee('5,760');
+            ->assertSee('৳5,760')
+            ->assertSee('৳1,138');
+
+        $html = $response->getContent();
+
+        // Scope the "no dollars, no explainer" checks to the pricing list. The
+        // admin sidebar legitimately prints the live rate above it, and the
+        // class name also appears in the page's own <style> block, so the slice
+        // has to start at the markup.
+        $start = strpos($html, '<div class="ssl-card-list">');
+        $this->assertNotFalse($start, 'the pricing list should be on the page');
+        $list = substr($html, $start);
+        $list = substr($list, 0, strpos($list, '</main>'));
+
+        $this->assertStringNotContainsString('$3.33', $list);
+        $this->assertStringNotContainsString('$4.99', $list);
+        $this->assertStringNotContainsString('$0.79', $list);
+        $this->assertStringNotContainsString('$', $list);
+        $this->assertStringNotContainsString('(USD per month)', $list);
+        $this->assertStringContainsString('(৳ per month)', $list);
+
+        // The paragraph under the table is gone, and so is the rate sentence it
+        // carried — the figure now lives in a tooltip on the column heading.
+        $this->assertStringNotContainsString('Revenue = selling', $list);
+        $this->assertStringNotContainsString('whole cents', $list);
+        $this->assertStringNotContainsString('1 USD = ৳', $list);
+        $this->assertStringNotContainsString('ssl-rc-note', $list);
+
+        // The rate is still accounted for, as the heading's tooltip.
+        $this->assertStringContainsString('live rate of ৳120.00 per USD', $list);
+    }
+
+    /**
+     * The taka conversion must agree with what the customer is charged, so the
+     * admin table and the customer card are checked against the same rate.
+     *
+     * @test
+     */
+    public function the_admin_table_converts_usd_to_taka_at_the_customer_rate()
+    {
+        $admin = $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get('/admin/ssl-plans')
+            ->assertOk()
+            ->getContent();
+
+        $plans = collect(app(SslPlanService::class)->plans())->keyBy('key');
+
+        // positive-ssl (300): $0.79/mo at 120 -> ৳95/mo, ৳1,138/year.
+        $this->assertStringContainsString('৳95', $admin);
+        $this->assertStringContainsString('৳1,138', $admin);
+        $this->assertSame(95.0, (float) $plans['positive-ssl']['default']['per_month']);
+        $this->assertSame(1138.0, (float) $plans['positive-ssl']['default']['total']);
+
+        // comodo-ssl (299): $4.00/mo -> ৳480/mo, ৳5,760/year.
+        $this->assertStringContainsString('৳480', $admin);
+        $this->assertStringContainsString('৳5,760', $admin);
+        $this->assertSame(480.0, (float) $plans['comodo-ssl']['default']['per_month']);
+        $this->assertSame(5760.0, (float) $plans['comodo-ssl']['default']['total']);
+
+        // ev-ssl (672): $13/mo -> ৳1,560/mo, ৳18,720/year.
+        $this->assertStringContainsString('৳1,560', $admin);
+        $this->assertStringContainsString('৳18,720', $admin);
+        $this->assertSame(1560.0, (float) $plans['ev-ssl']['default']['per_month']);
+        $this->assertSame(18720.0, (float) $plans['ev-ssl']['default']['total']);
+
+        // A 2-year term shows its own cheaper monthly rate and the bigger
+        // charge, and both match the customer card's own maths.
+        $this->assertStringContainsString('2 years', $admin);
+        $this->assertStringContainsString('৳1,200', $admin);
+        $this->assertStringContainsString('৳28,800', $admin);
+        $this->assertSame(1200.0, (float) $plans['ev-ssl']['terms'][2]['per_month']);
+        $this->assertSame(28800.0, (float) $plans['ev-ssl']['terms'][2]['total']);
+
+        // The admin table's per-month figure is the card's per-month figure for
+        // every plan: one rule, two surfaces.
+        foreach ($plans as $key => $plan) {
+            $this->assertStringContainsString(
+                '৳' . \App\Support\SslPricing::money($plan['default']['per_month']),
+                $admin,
+                $key . ': the admin selling column should quote the card\'s per-month price'
+            );
+        }
+    }
+
+    /**
+     * A rate the app cannot resolve must not print a taka figure derived from
+     * zero — the same guard the customer cards have.
+     *
+     * @test
+     */
+    public function a_zero_exchange_rate_prints_no_taka_figures_in_the_admin_table()
+    {
+        $this->app->instance(ExchangeRateService::class, $this->rateStub(0));
+
+        $html = $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get('/admin/ssl-plans')
+            ->assertOk()
+            ->getContent();
+
+        // Columns render, but every money cell is the em dash, never ৳0.
+        $this->assertStringContainsString('Customer pays', $html);
+        $this->assertStringNotContainsString('৳0<', $html);
+        $this->assertStringContainsString('>—<', $html);
     }
 
     /** @test */
@@ -433,6 +607,9 @@ class SslLivePricingTest extends TestCase
             ->get('/admin/ssl-plans')
             ->assertOk()
             ->assertSee('No price returned for plan ID 300')
+            // The fallback sentence quotes the same yearly figure a customer
+            // sees, not the stored per-month column (79 x 12).
+            ->assertSee('last saved price, ৳948/year')
             ->assertDontSee('20.12%');
     }
 

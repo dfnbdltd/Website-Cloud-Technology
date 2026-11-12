@@ -8,9 +8,25 @@
     Data comes from App\Services\SslPlanService with config fallback. Prices are
     already BDT, so the ৳ glyph is the only currency decoration needed.
 
-    The term dropdown swaps the "/mo" price and the term total in place with a
+    YEARLY QUOTING
+    --------------
+    An SSL certificate is bought for a term by the year, so every figure on the
+    card is annual:
+
+      headline   = that term's total ÷ its years   (`per_year`)
+      renewal    = the renew selling price × 12     (`renewal_year`)
+      total line = what is actually charged         (`total`)
+
+    The headline comes from the SELLING price, never from cost, and never from
+    the monthly figure: `per_month` still exists in the service array (term
+    maths and the admin editor use it) but nothing here prints it. Because a
+    2-year term is offered at a lower monthly rate, its yearly headline is
+    genuinely cheaper (৳1,300/year vs ৳1,368/year) while the one-off total is
+    larger — which is the honest way to compare terms.
+
+    The term dropdown swaps the "/year" price and the term total in place with a
     small inline script — no request. The values ship in data-attributes, so the
-    no-JS view already reads correctly for the default term.
+    no-JS view already reads correctly for the default (1-year) term.
 --}}
 @php($sslPlans = $sslPlans ?? app(\App\Services\SslPlanService::class)->plans())
 @php($sslVariant = $sslVariant ?? 'public')
@@ -48,17 +64,17 @@
                      the reference art sets it: its own tinted tile, vertically
                      centred on the digits rather than sitting on the baseline. --}}
                 <p class="ssl-price">
-                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>{{ \App\Support\SslPricing::perMonth($sslDefault['per_month']) }}</span><span class="ssl-per">/mo</span>
+                    <span class="ssl-taka" aria-hidden="true">৳</span><span class="ssl-amount" data-ssl-amount>{{ \App\Support\SslPricing::money($sslDefault['per_year']) }}</span><span class="ssl-per">/year</span>
                 </p>
 
-                <p class="ssl-renew">Renews at ৳{{ \App\Support\SslPricing::money($sslPlan['renewal']) }}/mo</p>
+                <p class="ssl-renew">Renews at ৳{{ \App\Support\SslPricing::money($sslPlan['renewal_year']) }}/year</p>
 
                 <div class="ssl-term">
                     <label class="ssl-sr" for="{{ $sslTermId }}">{{ $sslPlan['name'] }} billing term</label>
                     <select id="{{ $sslTermId }}" data-ssl-term>
                         @foreach($sslPlan['terms'] as $sslTerm)
                             <option value="{{ $sslTerm['years'] }}"
-                                    data-per-month="{{ \App\Support\SslPricing::perMonth($sslTerm['per_month']) }}"
+                                    data-per-year="{{ \App\Support\SslPricing::money($sslTerm['per_year']) }}"
                                     data-total="{{ \App\Support\SslPricing::money($sslTerm['total']) }}"
                                     data-savings="{{ \App\Support\SslPricing::money($sslTerm['savings']) }}"
                                     @if($sslTerm['years'] === $sslDefault['years']) selected @endif>
@@ -110,7 +126,7 @@
             function apply(option) {
                 if (!option || option.disabled) { return; }
 
-                amount.textContent = option.getAttribute('data-per-month');
+                amount.textContent = option.getAttribute('data-per-year');
 
                 var span = document.createElement('span');
                 span.textContent = 'total for ' + option.textContent.trim().toLowerCase();
