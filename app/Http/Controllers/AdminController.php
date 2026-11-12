@@ -94,11 +94,11 @@ class AdminController extends Controller
             'integrations' => [
                 [
                     'name' => 'ResellerClub',
-                    'purpose' => 'Domain availability, pricing, wallet pre-check and registration.',
+                    'purpose' => 'Domain availability, pricing, wallet pre-check and registration, plus SSL certificate selling prices.',
                     'status' => $resellerClubConfigured ? 'Configured' : 'Needs configuration',
                     'endpoints' => [
-                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices.'],
-                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/reseller-cost-price.json', 'usage' => 'Fetch actual reseller costs for invoice purchase-price snapshots.'],
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/customer-price.json', 'usage' => 'Fetch registration and renewal prices, and SSL certificate selling prices (sslcert plans).'],
+                        ['method' => 'GET', 'url' => $resellerClubBase . '/products/reseller-cost-price.json', 'usage' => 'Fetch actual reseller costs for invoice purchase-price snapshots and the SSL cost shown in admin.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/billing/reseller-balance.json', 'usage' => 'Check the reseller wallet before checkout.'],
                         ['method' => 'GET', 'url' => $resellerClubBase . '/domains/available.json', 'usage' => 'Check domain availability.'],
                         ['method' => 'POST', 'url' => $resellerClubBase . '/domains/register.json', 'usage' => 'Register a paid domain under the configured default ResellerClub customer.'],
@@ -133,6 +133,14 @@ class AdminController extends Controller
                         [
                             'name' => 'Registration contact IDs (Registrant/Admin/Tech/Billing)',
                             'status' => $resellerClubContactsConfigured ? 'Configured' : 'Missing',
+                        ],
+                        [
+                            'name' => 'SSL live pricing (RESELLERCLUB_SSL_LIVE_PRICING)',
+                            'status' => config('services.resellerclub.ssl_live_pricing', true) ? 'Enabled' : 'Disabled',
+                        ],
+                        [
+                            'name' => 'SSL plans linked to ResellerClub',
+                            'status' => $this->sslLinkedPlanStatus(),
                         ],
                     ],
                 ],
@@ -876,6 +884,18 @@ class AdminController extends Controller
             ->with('success', 'Plan card "' . $name . '" deleted.');
     }
 
+    /**
+     * SSL plan list with the ResellerClub prices underneath each plan.
+     *
+     * The admin sees COST, PROFIT % and SELLING per plan/action/tenure; the
+     * customer-facing SslPlanService never touches cost or profit, so this is
+     * the only place that data appears.
+     *
+     * Every load drops the two 5-minute price caches so an owner who just
+     * changed a margin in the ResellerClub panel sees the new numbers at once.
+     * Clearing them is harmless to the domain pages — they simply refetch on
+     * their next request.
+     */
     public function sslPlans(Request $request)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
@@ -884,13 +904,139 @@ class AdminController extends Controller
             return view('admin.ssl-plans', [
                 'plans' => collect(),
                 'cmsUnavailable' => 'SSL CMS tables are not available. Run the SSL migration before managing plans.',
+                'rcPricing' => [],
+                'rcStatus' => 'not_configured',
+                'rcLinked' => 0,
+                'rcLinkedIds' => [],
+                'usdRate' => $this->usdToBdtRate(),
             ]);
         }
 
+        // The admin always sees what ResellerClub says right now (a margin
+        // change made in the panel shows up on the next page load). The
+        // customer side keeps using the 5-minute cache.
+        if ($this->sslCmsAvailable() && config('services.resellerclub.ssl_live_pricing', true)) {
+            cache()->forget('resellerclub.pricing.v2');
+            cache()->forget('resellerclub.reseller_cost_pricing.v1');
+        }
+
+        $plans = SslPlan::with('features')->orderBy('sort')->orderBy('id')->get();
+
+        $linkedIds = [];
+        foreach ($plans as $plan) {
+            $planId = $plan->resellerclubPlanId();
+            if ($planId !== null) {
+                $linkedIds[$planId] = $planId;
+            }
+        }
+        $linkedIds = array_values($linkedIds);
+
+        $rcPricing = [];
+        $rcStatus = 'not_configured';
+
+        try {
+            $client = app(\App\Services\ResellerClubClient::class);
+            $configured = $client->isConfigured();
+
+            if ($configured && $linkedIds) {
+                // Both endpoints here on purpose: cost is what makes the profit
+                // column possible, and this page is admin-only and rarely hit.
+                $prices = $client->sslPlanPricing($linkedIds);
+                $rcPricing = is_array($prices) ? $prices : [];
+
+                // A result array is not proof: buildSslPricing() still returns a
+                // row per requested ID (with empty add/renew) when the API did
+                // not know that plan. "ok" therefore means at least one plan
+                // actually came back with a selling price.
+                $rcStatus = $this->hasAnySslSellingPrice($rcPricing, $linkedIds) ? 'ok' : 'unavailable';
+            } elseif ($configured) {
+                $rcStatus = 'ok';
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('SSL plan pricing could not be loaded for the admin page', [
+                'plan_ids' => $linkedIds,
+                'error' => $e->getMessage(),
+            ]);
+            $rcPricing = [];
+            $rcStatus = 'unavailable';
+        }
+
         return view('admin.ssl-plans', [
-            'plans' => SslPlan::with('features')->orderBy('sort')->orderBy('id')->get(),
+            'plans' => $plans,
             'cmsUnavailable' => null,
+            'rcPricing' => $rcPricing,
+            'rcStatus' => $rcStatus,
+            'rcLinked' => count($linkedIds),
+            'rcLinkedIds' => $linkedIds,
+            // Named usdRate, not exchangeRate: the AppServiceProvider view
+            // composer only fills $exchangeRate for partials.admin-sidebar, and
+            // reusing the name here would be confusing.
+            'usdRate' => $this->usdToBdtRate(),
         ]);
+    }
+
+    /**
+     * Did ResellerClub return a usable selling price for any linked plan?
+     *
+     * Without this the admin page would claim live pricing is working while
+     * every card quietly shows the typed fallback — the most confusing state
+     * there is for whoever is trying to debug the API.
+     *
+     * @param  array  $prices     planId => price rows
+     * @param  array  $linkedIds
+     * @return bool
+     */
+    private function hasAnySslSellingPrice(array $prices, array $linkedIds)
+    {
+        foreach ($linkedIds as $planId) {
+            $selling = isset($prices[$planId]['add'][12]['selling'])
+                ? $prices[$planId]['add'][12]['selling']
+                : null;
+
+            if (is_numeric($selling) && (float) $selling > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * "2 of 4 plans linked" for /admin/apis.
+     *
+     * Deliberately cheap and side-effect free: no ResellerClub call, and it
+     * tolerates an install where the SSL tables or the plan-ID column do not
+     * exist yet (the API page must never 500).
+     *
+     * @return string
+     */
+    private function sslLinkedPlanStatus()
+    {
+        if (!Schema::hasTable('ssl_plans') || !Schema::hasColumn('ssl_plans', 'resellerclub_plan_id')) {
+            return 'Not available (run the SSL migration)';
+        }
+
+        $total = SslPlan::query()->count();
+        if ($total === 0) {
+            return 'No SSL plans yet';
+        }
+
+        $linked = SslPlan::query()->whereNotNull('resellerclub_plan_id')->count();
+
+        return $linked . ' of ' . $total . ' plans linked';
+    }
+
+    /**
+     * The USD→BDT rate the customer cards will use, for the admin price line.
+     * Never throws: a failed rate lookup shows 0 and the view falls back to USD.
+     */
+    private function usdToBdtRate()
+    {
+        try {
+            return (float) app(ExchangeRateService::class)->usdToBdt()['rate'];
+        } catch (\Throwable $e) {
+            return 0.0;
+        }
     }
 
     public function createSslPlan(Request $request)
@@ -1011,15 +1157,9 @@ class AdminController extends Controller
 
             'tagline' => ['nullable', 'string', 'max:255'],
 
-            'monthly_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
-
-            'renewal_price' => ['required', 'numeric', 'min:0', 'max:99999999'],
-
-            'discount_one_year' => ['required', 'numeric', 'min:0', 'max:100'],
-
-            'discount_two_year' => ['required', 'numeric', 'min:0', 'max:100'],
-
-            'discount_three_year' => ['required', 'numeric', 'min:0', 'max:100'],
+            // Price, profit and discounts come from ResellerClub, so the plan
+            // must be linked to a ResellerClub product. No price is typed here.
+            'resellerclub_plan_id' => ['required', 'integer', 'min:1', 'max:2147483647'],
 
             'features' => ['nullable', 'array', 'max:60'],
 
@@ -1055,19 +1195,11 @@ class AdminController extends Controller
 
             'plan_key' => strtolower($data['plan_key']),
 
+            'resellerclub_plan_id' => (int) $data['resellerclub_plan_id'],
+
             'name' => $data['name'],
 
             'tagline' => $data['tagline'] ?? null,
-
-            'monthly_price' => $data['monthly_price'],
-
-            'renewal_price' => $data['renewal_price'],
-
-            'discount_one_year' => $data['discount_one_year'],
-
-            'discount_two_year' => $data['discount_two_year'],
-
-            'discount_three_year' => $data['discount_three_year'],
 
             'is_visible' => $request->boolean('is_visible'),
 
@@ -1112,6 +1244,12 @@ class AdminController extends Controller
         }
 
 
+
+        // An install that has not run the 2026_11_13 migration has no such
+        // column, so writing it would throw. Drop it and keep saving the rest.
+        if (!Schema::hasColumn('ssl_plans', 'resellerclub_plan_id')) {
+            unset($columns['resellerclub_plan_id']);
+        }
 
         return [$columns, $features];
 
@@ -1254,4 +1392,4 @@ class AdminController extends Controller
         $request->session()->forget('admin');
         return redirect()->route('admin.login');
     }
-}
+}

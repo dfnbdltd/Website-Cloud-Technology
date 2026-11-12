@@ -80,6 +80,180 @@ class ResellerClubClient
     }
 
     /**
+     * SSL certificate prices, keyed by ResellerClub plan ID.
+     *
+     * COST AND SELLING TOGETHER — admin only. This calls both price endpoints
+     * (customer-price.json and reseller-cost-price.json), so never use it on a
+     * customer page: the customer side only needs the selling price and must
+     * not pay for the second HTTP round trip. Use sslSellingPricing() there.
+     *
+     * Products live under `sslcert.plans.<planId>.<add|renew>.<months>` and the
+     * prices are USD *per month*. Returns [] when the integration is off or the
+     * API is unreachable — callers fall back to their stored prices.
+     *
+     * @param  array|null  $planIds  limit to these ResellerClub plan IDs
+     * @return array
+     */
+    public function sslPlanPricing(array $planIds = null)
+    {
+        return self::buildSslPricing(
+            $this->sslPlansFrom($this->pricing()),
+            $this->sslPlansFrom($this->resellerPricing()),
+            $planIds
+        );
+    }
+
+    /**
+     * SSL selling prices only — safe for customer-facing pages.
+     *
+     * One HTTP call (customer-price.json, already cached for 5 minutes), and
+     * the cost side is simply unknown, so every cost/profit field is null.
+     *
+     * @param  array|null  $planIds
+     * @return array
+     */
+    public function sslSellingPricing(array $planIds = null)
+    {
+        return self::buildSslPricing($this->sslPlansFrom($this->pricing()), [], $planIds);
+    }
+
+    /**
+     * Pull `sslcert.plans` out of a full pricing response, tolerating every
+     * shape the API has been seen to return (missing keys, null, error object).
+     *
+     * @param  mixed  $pricing
+     * @return array
+     */
+    private function sslPlansFrom($pricing)
+    {
+        if (!is_array($pricing)) {
+            return [];
+        }
+
+        $plans = isset($pricing['sslcert']['plans']) ? $pricing['sslcert']['plans'] : null;
+
+        return is_array($plans) ? $plans : [];
+    }
+
+    /**
+     * Normalise SSL price lists into per-plan, per-action, per-tenure money.
+     *
+     * Pure and static so it can be unit-tested against the fixtures without a
+     * network call, a framework boot or a database:
+     *
+     *   buildSslPricing($selling, $cost, [299]) =>
+     *     [299 => ['plan_id' => 299,
+     *              'add'   => [12 => ['cost'=>3.33,'selling'=>4.0,
+     *                                 'profit_amount'=>0.67,'profit_percent'=>20.12]],
+     *              'renew' => [...]]]
+     *
+     * Every money value is USD per month, or null when that side of the price
+     * is not configured. ResellerClub's panel profit % is a markup on cost:
+     * (selling - cost) / cost * 100. It is never 0 for a missing price — a
+     * tenure the reseller has not added comes back as null, and cost <= 0 also
+     * yields null rather than a division by zero.
+     *
+     * @param  array  $selling  `sslcert.plans` from customer-price.json
+     * @param  array  $cost     `sslcert.plans` from reseller-cost-price.json
+     * @param  array|null  $planIds
+     * @return array
+     */
+    public static function buildSslPricing(array $selling, array $cost, array $planIds = null)
+    {
+        if ($planIds !== null) {
+            $ids = [];
+            foreach ($planIds as $planId) {
+                if (is_scalar($planId) && (int) $planId > 0) {
+                    $ids[(int) $planId] = (int) $planId;
+                }
+            }
+        } else {
+            // Union of both lists: a cost-only plan still gets a row (its
+            // selling side is null), which is what the admin table shows.
+            $ids = [];
+            foreach (array_merge(array_keys($selling), array_keys($cost)) as $planId) {
+                if (is_scalar($planId) && (int) $planId > 0) {
+                    $ids[(int) $planId] = (int) $planId;
+                }
+            }
+        }
+
+        ksort($ids);
+
+        $result = [];
+
+        foreach ($ids as $id) {
+            $plan = [
+                'plan_id' => $id,
+                'add' => [],
+                'renew' => [],
+            ];
+
+            foreach (['add', 'renew'] as $action) {
+                $sellingByMonths = isset($selling[$id][$action]) && is_array($selling[$id][$action])
+                    ? $selling[$id][$action]
+                    : [];
+                $costByMonths = isset($cost[$id][$action]) && is_array($cost[$id][$action])
+                    ? $cost[$id][$action]
+                    : [];
+
+                $months = [];
+                foreach (array_merge(array_keys($sellingByMonths), array_keys($costByMonths)) as $month) {
+                    if (is_numeric($month) && (int) $month > 0) {
+                        $months[(int) $month] = (int) $month;
+                    }
+                }
+                ksort($months);
+
+                foreach ($months as $month) {
+                    $sell = isset($sellingByMonths[$month]) ? self::positiveAmount($sellingByMonths[$month]) : null;
+                    $base = isset($costByMonths[$month]) ? self::positiveAmount($costByMonths[$month]) : null;
+
+                    $plan[$action][$month] = [
+                        'cost' => $base,
+                        'selling' => $sell,
+                        'profit_amount' => ($sell !== null && $base !== null)
+                            ? round($sell - $base, 2)
+                            : null,
+                        'profit_percent' => ($sell !== null && $base !== null && $base > 0)
+                            ? round((($sell - $base) / $base) * 100, 2)
+                            : null,
+                    ];
+                }
+            }
+
+            $result[$id] = $plan;
+        }
+
+        return $result;
+    }
+
+    /**
+     * The numeric value of a raw API price, or null.
+     *
+     * The API mixes numbers and numeric strings ("4" vs 4) and can return an
+     * empty string for a tenure it does not sell. Anything that is not a
+     * finite value greater than zero is treated as "no price".
+     *
+     * @param  mixed  $value
+     * @return float|null
+     */
+    private static function positiveAmount($value)
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $amount = (float) $value;
+
+        if (!is_finite($amount) || $amount <= 0) {
+            return null;
+        }
+
+        return $amount;
+    }
+
+    /**
      * Public catalog: one row per TLD we want to show, using live prices.
      */
     public function catalog(array $classkeys = ['domcno', 'dotnet', 'dotxyz', 'dottop', 'doticu', 'dotlive', 'dotclub', 'dotwebsite'])

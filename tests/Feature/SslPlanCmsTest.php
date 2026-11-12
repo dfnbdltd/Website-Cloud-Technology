@@ -101,11 +101,7 @@ class SslPlanCmsTest extends TestCase
             'plan_key' => 'custom-ssl',
             'name' => 'Custom SSL',
             'tagline' => 'Custom protection',
-            'monthly_price' => '250',
-            'renewal_price' => '300',
-            'discount_one_year' => '0',
-            'discount_two_year' => '7',
-            'discount_three_year' => '12',
+            'resellerclub_plan_id' => '300',
             'sort' => '20',
             'is_visible' => '1',
             'features' => [
@@ -115,6 +111,12 @@ class SslPlanCmsTest extends TestCase
         ])->assertRedirect('/admin/ssl-plans');
 
         $plan = SslPlan::where('plan_key', 'custom-ssl')->firstOrFail();
+        // Admin can no longer type a price: a new plan starts with the DB
+        // default (0) and is hidden from customers until ResellerClub prices it.
+        $this->assertSame(0.0, $plan->monthly_price);
+        $this->get('/services/ssl-certificate')->assertDontSee('Custom SSL');
+        // Stand-in for a price saved earlier / filled in by the API fallback.
+        $plan->update(['monthly_price' => 275, 'renewal_price' => 325, 'discount_two_year' => 8]);
         $this->admin()->get("/admin/ssl-plans/{$plan->id}/edit")->assertOk()->assertSee('Custom SSL');
 
         // Blank feature rows are dropped; every kept feature is available.
@@ -125,11 +127,9 @@ class SslPlanCmsTest extends TestCase
             'plan_key' => 'custom-ssl',
             'name' => 'Updated SSL',
             'tagline' => 'Updated protection',
-            'monthly_price' => '275',
-            'renewal_price' => '325',
-            'discount_one_year' => '1',
-            'discount_two_year' => '8',
-            'discount_three_year' => '13',
+            'resellerclub_plan_id' => '300',
+            'monthly_price' => '1',
+            'discount_two_year' => '99',
             'sort' => '3',
             'is_visible' => '1',
             'features' => [['text' => 'Updated feature']],

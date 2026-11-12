@@ -6,8 +6,7 @@
     <link rel="stylesheet" href="{{ asset('css/store.css') }}?v={{ filemtime(public_path('css/store.css')) }}">
     <style>
         /* Two-column editor: the form on the left, a live preview + reference
-           panel on the right. Prices recompute as you type, so the discount
-           percentages stop being abstract. */
+           panel on the right. */
         .ssl-edit{max-width:1180px}
         .ssl-edit-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:22px;align-items:start}
 
@@ -17,6 +16,8 @@
         .ssl-panel-num{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;background:#eef4ff;color:#1f6fe5;font:800 12px 'Manrope',sans-serif}
         .ssl-panel-head h2{margin:0;color:#0f2340;font:800 16px/1.2 'Manrope',sans-serif;letter-spacing:-.2px}
         .ssl-panel-head p{margin:0;color:#8496a9;font-size:12.5px}
+        .ssl-field-error{margin:12px 0 0;padding:9px 12px;border-radius:8px;background:#fdeaea;color:#ad2222;font-size:12.5px;font-weight:600}
+        .ssl-field small code{font:600 11.5px 'DM Sans',sans-serif;color:#5b7492;background:#f2f6fb;padding:1px 5px;border-radius:4px}
 
         .ssl-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px 18px}
         .ssl-field{display:block;min-width:0}
@@ -98,7 +99,7 @@
         <div class="ssl-head-copy" style="margin-bottom:20px">
             <span class="domain-kicker">{{ $plan ? 'EDIT SSL PLAN' : 'ADD SSL PLAN' }}</span>
             <h1 class="workspace-title" style="margin:0 0 6px">{{ $plan ? $plan->name : 'A new SSL plan' }}.</h1>
-            <p class="workspace-subtitle" style="margin:0">Prices are in Bangladeshi Taka. All three terms are always offered — the discount percentages decide what a longer term costs.</p>
+            <p class="workspace-subtitle" style="margin:0">The price, profit and terms come from ResellerClub and cannot be edited here. You only manage the plan's name, tagline, features and visibility.</p>
         </div>
 
         @php($features = $plan ? $plan->features : collect())
@@ -131,49 +132,29 @@
                         </div>
                     </section>
 
-                    {{-- 2 ─ Money --}}
+                    {{-- 2 ─ ResellerClub link --}}
                     <section class="ssl-panel">
                         <div class="ssl-panel-head">
                             <span class="ssl-panel-num">2</span>
-                            <div><h2>Pricing</h2><p>Monthly price, renewal price and the term discounts.</p></div>
+                            <div><h2>ResellerClub link</h2><p>Required. The price on the card is read from ResellerClub for this plan.</p></div>
                         </div>
                         <div class="ssl-fields">
-                            <label class="ssl-field ssl-prefix">
-                                <span>Monthly price</span>
-                                <i>৳</i>
-                                <input type="number" step="0.01" min="0" name="monthly_price" id="monthlyPrice"
-                                       value="{{ old('monthly_price', $plan->monthly_price ?? '') }}" required>
-                                <small>The card's headline price.</small>
-                            </label>
-                            <label class="ssl-field ssl-prefix">
-                                <span>Renewal price</span>
-                                <i>৳</i>
-                                <input type="number" step="0.01" min="0" name="renewal_price"
-                                       value="{{ old('renewal_price', $plan->renewal_price ?? '') }}" required>
-                                <small>Charged per month from year two.</small>
-                            </label>
-                            <label class="ssl-field ssl-prefix ssl-prefix-suffix">
-                                <span>1-year discount</span>
-                                <i></i>
-                                <input type="number" step="0.01" min="0" max="100" name="discount_one_year" data-discount="1"
-                                       value="{{ old('discount_one_year', $plan->discount_one_year ?? 0) }}" required>
-                                <em>%</em>
-                            </label>
-                            <label class="ssl-field ssl-prefix ssl-prefix-suffix">
-                                <span>2-year discount</span>
-                                <i></i>
-                                <input type="number" step="0.01" min="0" max="100" name="discount_two_year" data-discount="2"
-                                       value="{{ old('discount_two_year', $plan->discount_two_year ?? 5) }}" required>
-                                <em>%</em>
-                            </label>
-                            <label class="ssl-field ssl-prefix ssl-prefix-suffix">
-                                <span>3-year discount</span>
-                                <i></i>
-                                <input type="number" step="0.01" min="0" max="100" name="discount_three_year" data-discount="3"
-                                       value="{{ old('discount_three_year', $plan->discount_three_year ?? 10) }}" required>
-                                <em>%</em>
+                            <label class="ssl-field">
+                                <span>ResellerClub plan ID</span>
+                                <input type="number" min="1" step="1" name="resellerclub_plan_id" required
+                                       value="{{ old('resellerclub_plan_id', $plan && $plan->resellerclubPlanId() ? $plan->resellerclubPlanId() : '') }}"
+                                       placeholder="e.g. 300" class="{{ $errors->has('resellerclub_plan_id') ? 'has-error' : '' }}">
+                                <small>
+                                    The number in the ResellerClub panel URL
+                                    <code>…/ssl-certificate/sslcert/<b>299</b></code>.
+                                    Known IDs: <b>299</b> Premium, <b>300</b> Standard,
+                                    <b>301</b> Wildcard, <b>672</b> EV.
+                                </small>
                             </label>
                         </div>
+                        @if($errors->has('resellerclub_plan_id'))
+                            <p class="ssl-field-error">{{ $errors->first('resellerclub_plan_id') }}</p>
+                        @endif
                     </section>
 
                     {{-- 3 ─ Features --}}
@@ -202,22 +183,9 @@
                 {{-- Right rail: live preview + guidance --}}
                 <aside class="ssl-aside">
                     <div class="ssl-preview">
-                        <p class="ssl-preview-label">Live preview · 1 year</p>
+                        <p class="ssl-preview-label">Live preview</p>
                         <h3 class="ssl-preview-name" id="pvName">{{ $plan->name ?? 'New plan' }}</h3>
                         <p class="ssl-preview-tag" id="pvTagline">{{ $plan->tagline ?? 'Add a tagline to describe the plan.' }}</p>
-                        <div class="ssl-preview-price">
-                            <span class="taka" aria-hidden="true">৳</span>
-                            <span class="amount" id="pvMonthly">{{ $plan ? number_format($plan->monthly_price) : '0' }}</span>
-                            <span class="per">/mo</span>
-                        </div>
-                        <ul class="ssl-preview-terms" id="pvTerms">
-                            @foreach([1 => '1 year', 2 => '2 years', 3 => '3 years'] as $years => $label)
-                                <li data-term="{{ $years }}">
-                                    <span>{{ $label }} <span class="pct" data-pct="{{ $years }}"></span></span>
-                                    <b data-total="{{ $years }}">—</b>
-                                </li>
-                            @endforeach
-                        </ul>
                     </div>
 
                     <div class="ssl-help">
@@ -265,57 +233,18 @@
             index++;
         });
 
-        /* ── Live preview ────────────────────────────────────────────────────
-           Mirrors SslPlanService::resolve(): total = monthly × 12 × years,
-           minus the term discount, rounded to whole taka. Server stays
-           authoritative; this only stops the discount fields being abstract. */
-        var monthly = document.getElementById('monthlyPrice');
+        /* Live preview of the name and tagline only; prices come from ResellerClub. */
         var nameInput = document.querySelector('[name="name"]');
         var taglineInput = document.querySelector('[name="tagline"]');
-        var discounts = { 1: 0, 2: 5, 3: 10 };
-        var fmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
-
-        function readDiscounts() {
-            document.querySelectorAll('[data-discount]').forEach(function (input) {
-                var years = input.getAttribute('data-discount');
-                var value = parseFloat(input.value);
-                if (!isFinite(value) || value < 0) { value = 0; }
-                if (value > 100) { value = 100; }
-                discounts[years] = value;
-            });
-        }
 
         function render() {
-            readDiscounts();
-
-            var base = parseFloat(monthly.value);
-            if (!isFinite(base) || base < 0) { base = 0; }
-
-            document.getElementById('pvMonthly').textContent = fmt.format(base);
             document.getElementById('pvName').textContent = (nameInput.value || 'New plan');
             document.getElementById('pvTagline').textContent =
                 taglineInput.value || 'Add a tagline to describe the plan.';
-
-            [1, 2, 3].forEach(function (years) {
-                var discount = discounts[years] || 0;
-                var full = base * 12 * years;
-                var total = Math.round(full * (1 - (discount / 100)));
-
-                var totalEl = document.querySelector('[data-total="' + years + '"]');
-                var pctEl = document.querySelector('[data-pct="' + years + '"]');
-                var li = totalEl.closest('li');
-
-                totalEl.textContent = '৳' + fmt.format(total);
-                pctEl.textContent = discount > 0 ? '−' + discount + '%' : '';
-                li.classList.toggle('is-save', discount > 0);
-            });
         }
 
-        [monthly, nameInput, taglineInput].forEach(function (el) {
+        [nameInput, taglineInput].forEach(function (el) {
             if (el) { el.addEventListener('input', render); }
-        });
-        document.querySelectorAll('[data-discount]').forEach(function (el) {
-            el.addEventListener('input', render);
         });
 
         render();
