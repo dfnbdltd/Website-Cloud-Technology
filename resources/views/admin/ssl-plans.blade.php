@@ -21,11 +21,13 @@
 
         .ssl-card-list{background:#fff;border:1px solid #e5ebf3;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,35,64,.04)}
 
-        .ssl-list-head,.ssl-row{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.9fr) 150px;gap:20px;align-items:center}
+        /* The plan column is now just a name, so it needs far less room and the
+           pricing table gets the space the deleted lines used to take. */
+        .ssl-list-head,.ssl-row{display:grid;grid-template-columns:minmax(150px,.6fr) minmax(0,2.4fr) 132px;gap:20px;align-items:center}
         .ssl-list-head{padding:12px 22px;background:#f7f9fc;border-bottom:1px solid #edf1f5;color:#77879a;font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
         .ssl-list-head span:nth-child(3){text-align:right}
 
-        .ssl-row{padding:18px 22px;border-top:1px solid #edf1f5;transition:background .16s ease}
+        .ssl-row{padding:14px 22px;border-top:1px solid #edf1f5;transition:background .16s ease}
         .ssl-row:first-child{border-top:0}
         .ssl-row:hover{background:#fbfdff}
         .ssl-row.is-hidden{background:#fcfcfd}
@@ -33,11 +35,7 @@
 
         .ssl-plan{min-width:0}
         .ssl-name{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#0f2340;font:800 17px/1.3 'Manrope',sans-serif;letter-spacing:-.2px}
-        .ssl-badge{padding:3px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font:800 10px 'DM Sans',sans-serif;letter-spacing:.4px;text-transform:uppercase}
         .ssl-pill-hidden{padding:3px 9px;border-radius:999px;background:#fef3c7;color:#92400e;font:800 10px 'DM Sans',sans-serif;letter-spacing:.4px;text-transform:uppercase}
-        .ssl-tagline{margin:5px 0 0;color:#6f8398;font-size:13.5px;line-height:1.5}
-        .ssl-meta{margin:7px 0 0;color:#93a2b3;font-size:12px}
-        .ssl-meta code{font:600 12px 'DM Sans',sans-serif;color:#7b8ea3}
 
         .ssl-money{text-align:right;white-space:nowrap}
         .ssl-money strong{display:block;color:#0f2340;font:800 21px/1.1 'Manrope',sans-serif;letter-spacing:-.5px}
@@ -134,14 +132,17 @@
                     }
                 @endphp
                 <div class="ssl-row{{ $plan->is_visible ? '' : ' is-hidden' }}">
+                    {{-- Name only. The tagline, the plan_key / feature-count / order /
+                         ResellerClub-ID line and the "Most popular" badge were removed at
+                         the owner's request: they made every row three lines tall for
+                         information that is either already on the Edit page or visible in
+                         the pricing table beside it. "Hidden" stays because it is a state
+                         you must be able to see at a glance in the list. --}}
                     <div class="ssl-plan">
                         <span class="ssl-name">
                             {{ $plan->name }}
-                            @if($plan->badge)<span class="ssl-badge">{{ $plan->badge }}</span>@endif
                             @unless($plan->is_visible)<span class="ssl-pill-hidden">Hidden</span>@endunless
                         </span>
-                        @if($plan->tagline)<p class="ssl-tagline">{{ $plan->tagline }}</p>@endif
-                        <p class="ssl-meta"><code>{{ $plan->plan_key }}</code> · {{ $plan->features->count() }} {{ \Illuminate\Support\Str::plural('feature', $plan->features->count()) }} · order {{ $plan->sort }}@if($planRcId !== null) · ResellerClub ID {{ $planRcId }}@endif</p>
                     </div>
 
                     <div class="ssl-rc">
