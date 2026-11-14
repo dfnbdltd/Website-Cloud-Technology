@@ -6,13 +6,20 @@
 
         <form method="POST" action="…" data-spinner="search">…</form>
 
+    Links can opt in too, via spinner-links.js (no forms needed):
+
+        <a href="…" data-spinner-link data-spinner-title="Loading…">…</a>
+
     Programmatic use (AJAX / fetch):
         SiteSpinner.show({ title: 'Loading…' });
         SiteSpinner.progress(42);          // tracks progress internally
         SiteSpinner.finish();              // animate to 100%, then fade out
-    CSS: public/css/site-spinner.css · JS: public/js/site-spinner.js
+    CSS: public/css/site-spinner.css · JS: public/js/site-spinner.js,
+    public/js/spinner-links.js
 --}}
 @php($sspinCss = @filemtime(public_path('css/site-spinner.css')))
 @php($sspinJs = @filemtime(public_path('js/site-spinner.js')))
+@php($sspinLinksJs = @filemtime(public_path('js/spinner-links.js')))
 <link rel="stylesheet" href="{{ asset('css/site-spinner.css') }}@if($sspinCss)?v={{ $sspinCss }}@endif">
 <script src="{{ asset('js/site-spinner.js') }}@if($sspinJs)?v={{ $sspinJs }}@endif" defer></script>
+<script src="{{ asset('js/spinner-links.js') }}@if($sspinLinksJs)?v={{ $sspinLinksJs }}@endif" defer></script>

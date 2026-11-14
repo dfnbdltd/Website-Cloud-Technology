@@ -66,6 +66,11 @@
         .ssl-rc .is-loss{color:#b91c1c;font-weight:800}
         .ssl-rc .is-sell{color:#0f2340;font-weight:800}
         .ssl-rc .is-bdt{color:#0f2340;font:800 13.5px 'Manrope',sans-serif}
+        /* The Revenue cell carries two figures (per month and per year). The
+           unit is small and quiet, the separator lighter still, so the pair
+           reads as one value rather than two competing numbers. */
+        .ssl-rc .ssl-per-unit{margin-left:1px;color:#93a2b3;font:600 10.5px 'DM Sans',sans-serif}
+        .ssl-rc .ssl-per-sep{margin:0 5px;color:#c3cedb;font-weight:400}
 
         .ssl-rc-warn{padding:10px 12px;border:1px solid #f2e0c0;border-radius:9px;background:#fffaf1;color:#8a5f10;font-size:12.5px;line-height:1.55}
         .ssl-rc-warn.is-bad{border-color:#f4d6d6;background:#fff7f7;color:#a32b2b}
@@ -82,6 +87,9 @@
     </style>
 </head>
 <body class="domain-app admin-app">
+{{-- Early-paint spinner overlay: the sidebar's "SSL plans" link arms the
+     handoff, this markup paints the loader on the first frame of THIS page. --}}
+@include('partials.spinner-overlay')
 @include('partials.admin-sidebar', ['active' => 'ssl-plans'])
 <main class="domain-main">
     <header class="domain-topbar"><div><span class="crumb">CMS /</span><strong>SSL plans</strong></div><a class="cart-badge" href="{{ route('services.coming-soon', 'ssl-certificate') }}" target="_blank">View website ↗</a></header>
@@ -202,7 +210,7 @@
                                             <th>Term</th>
                                             <th title="What ResellerClub charges you, per month for this term.">Reseller price</th>
                                             <th title="Your markup on the reseller price: (selling − reseller price) ÷ reseller price.">Profit %</th>
-                                            <th title="Your profit per month on this term, in Taka.">Revenue</th>
+                                            <th title="Your profit on this term: the per-month figure first, then the same money over a year.">Revenue (৳/mo · ৳/yr)</th>
                                             <th title="What you charge the customer, per month for this term.">Selling price</th>
                                             <th title="The whole term in one figure — the amount the customer is actually charged.">Customer pays</th>
                                         </tr>
@@ -237,7 +245,13 @@
                                                         <span class="{{ $rcLoss ? 'is-loss' : 'is-profit' }}">{{ rtrim(rtrim(number_format((float) $rcPercent, 2, '.', ''), '0'), '.') }}%</span>
                                                     @endif
                                                 </td>
-                                                <td><span class="{{ $rcProfitMonth === null ? 'is-null' : ($rcLoss ? 'is-loss' : 'is-profit') }}">{{ $taka($rcProfitMonth) }}</span></td>
+                                                <td>
+                                                    {{-- Revenue, twice: the monthly figure the column has always
+                                                         shown, then the same money over a year (x 12), because a
+                                                         certificate is bought and renewed yearly. Both come from
+                                                         the converted taka figures on this row, so they reconcile. --}}
+                                                    <span class="{{ $rcProfitMonth === null ? 'is-null' : ($rcLoss ? 'is-loss' : 'is-profit') }}">{{ $taka($rcProfitMonth) }}</span>@if($rcProfitMonth !== null)<span class="ssl-per-unit">/mo</span><span class="ssl-per-sep" aria-hidden="true">·</span><span class="{{ $rcLoss ? 'is-loss' : 'is-profit' }}">{{ $taka($rcProfitMonth * 12) }}</span><span class="ssl-per-unit">/yr</span>@endif
+                                                </td>
                                                 <td class="is-sell">{{ $taka($rcSellMonth) }}</td>
                                                 <td class="is-bdt">{{ $taka($rcBdt) }}</td>
                                             </tr>

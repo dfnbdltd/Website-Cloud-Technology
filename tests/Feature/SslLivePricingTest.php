@@ -463,6 +463,12 @@ class SslLivePricingTest extends TestCase
             // Cost per month in taka: $3.33 x 12 x 120 = ৳4,795 a year, and
             // that term total divided by its 12 months.
             ->assertSee('৳400')
+            // Revenue is quoted twice, because a certificate is sold by the
+            // year: per month and the same money over twelve months.
+            // profit $0.67/mo -> ৳80/mo and ৳960/yr.
+            ->assertSee('৳80</span><span class="ssl-per-unit">/mo</span>', false)
+            ->assertSee('৳960</span><span class="ssl-per-unit">/yr</span>', false)
+            ->assertSee('Revenue (৳/mo · ৳/yr)')
             ->assertSee('৳599')        // $4.99/mo
             // Profit % is currency-free: unchanged from the API.
             ->assertSee('20.12%')
@@ -502,6 +508,82 @@ class SslLivePricingTest extends TestCase
 
         // The rate is still accounted for, as the heading's tooltip.
         $this->assertStringContainsString('live rate of ৳120.00 per USD', $list);
+    }
+
+    /**
+     * Yearly revenue must be twelve times the monthly figure on the same row,
+     * for every plan and term — otherwise the two numbers inside one cell would
+     * disagree with each other.
+     *
+     * @test
+     */
+    public function admin_revenue_shows_the_same_money_per_month_and_per_year()
+    {
+        $html = $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get('/admin/ssl-plans')
+            ->assertOk()
+            ->getContent();
+
+        // Every Revenue cell with a value must carry both units.
+        preg_match_all(
+            '#<span class="(?:is-profit|is-loss)">৳([\d,]+)</span><span class="ssl-per-unit">/mo</span>'
+            . '<span class="ssl-per-sep"[^>]*>·</span>'
+            . '<span class="(?:is-profit|is-loss)">৳([\d,]+)</span><span class="ssl-per-unit">/yr</span>#u',
+            $html,
+            $cells,
+            PREG_SET_ORDER
+        );
+
+        $this->assertNotEmpty($cells, 'no Revenue cell carried both a /mo and a /yr figure');
+
+        foreach ($cells as $cell) {
+            $perMonth = (int) str_replace(',', '', $cell[1]);
+            $perYear = (int) str_replace(',', '', $cell[2]);
+
+            // Yearly is the monthly figure x 12, exactly.
+            $this->assertSame(
+                $perMonth * 12,
+                $perYear,
+                'Revenue ' . $cell[1] . '/mo should be ' . ($perMonth * 12) . '/yr, got ' . $cell[2]
+            );
+        }
+
+        // A zero-profit row still shows both units rather than a bare dash.
+        $this->assertStringNotContainsString('৳0/mo', str_replace('</span><span class="ssl-per-unit">', '', $html));
+    }
+
+    /**
+     * The SSL plans sidebar link is the slow one (it refetches ResellerClub on
+     * every load), so it drives the shared site-spinner, and this page
+     * pre-renders the overlay so the loader survives the navigation.
+     *
+     * @test
+     */
+    public function the_ssl_admin_page_wires_the_sidebar_link_to_the_shared_spinner()
+    {
+        $html = $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get('/admin/ssl-plans')
+            ->assertOk()
+            ->getContent();
+
+        // Markup: overlay present, loader inside it.
+        $this->assertStringContainsString('id="sspin-overlay"', $html);
+        $this->assertStringContainsString('class="loader"', $html);
+
+        // The shared assets ship on every page via partials.head.
+        $this->assertStringContainsString('js/site-spinner.js', $html);
+        $this->assertStringContainsString('js/spinner-links.js', $html);
+        $this->assertStringContainsString('css/site-spinner.css', $html);
+
+        // The SSL plans row opts in, and carries its own title.
+        $this->assertStringContainsString('data-spinner-link', $html);
+        $this->assertStringContainsString('data-spinner-title="Loading SSL plans', $html);
+
+        // Only that row: no other sidebar link is spinner-driven.
+        $this->assertSame(1, substr_count($html, 'data-spinner-link'));
+
+        // And the link still points where it did.
+        $this->assertStringContainsString(route('admin.ssl.plans'), $html);
     }
 
     /**

@@ -6,7 +6,7 @@
   `npm run dev`.
 - Local PHP CLI is 8.4 → `php artisan` fine, plain `vendor/bin/phpunit` FATAL. Use
   **`php80 vendor\bin\phpunit`** (`C:\Users\azizm\.config\herd\bin\php80\php.exe`). PHPUnit 9.6.
-- **SUITE BASELINE (measured, latest): 226 tests, 1575 assertions, 12 red = 10 failures + 2 errors.** All
+- **SUITE BASELINE (measured, latest): 228 tests, 1596 assertions, 12 red = 10 failures + 2 errors.** All
   pre-existing and unrelated to views/CSS/SSL work: `ResellerClubDomainContacts::extractDefaultContactId()`
   missing (9 in DomainRegistrationServiceTest + `AdminApiConnectionsTest` expects `/contacts/default.json`),
   `DomainTermPricingTest`, `InvoiceWorkflowTest::testCustomerPdfHidesPurchaseAndProfit`,
@@ -20,42 +20,70 @@
   domain-transfer.
 - Files are CRLF in git. **`replace_text` fails on CRLF files.** Working pattern: a temp `php80` script in
   .sleepycode/ that normalises to LF, replaces exact occurrences (assert the expected count!), restores CRLF.
-  Then `php80 -l`. New files written with `write_file` arrive LF — convert to CRLF too.
-  GOTCHA: in those patch scripts a `<<<'OLD'` heredoc must be closed with `OLD,` inside the call (and `NEW);`
-  for the last arg) — a bare `OLD);` leaves the call unclosed and PHP fails with "Unclosed '('".
+  Then `php80 -l`. Files written with `write_file` arrive LF — convert to CRLF too.
+- **HEREDOC TRAP (bit twice):** in those patch scripts the delimiter must NEVER appear inside the text being
+  matched. Using `<<<'OLD'` to match a block that itself contains a line starting `OLD);` closed the heredoc
+  early and **wrote the script's own source into the Blade view**. Always use a token like `BEFORE`/`AFTER`
+  that cannot occur in the content, and re-read the file afterwards to confirm.
+- **`&`-chained `php80 patch.php > out.txt 2>&1 & type out.txt` silently loses output** (and once made a patch
+  look unapplied when it had worked). Run patch scripts as
+  `php80 -d display_errors=1 .sleepycode\patch.php 2>&1 | more` and verify the FILE afterwards, not the echo.
 - **Never `write_file` an existing CSS/asset file.** Read it, then append/patch.
 - **Blade trap (hit once):** a multi-line `@php ... @endphp` inside a `@foreach` in a partial that also uses
   inline `@php(...)` made the compiler emit raw `@php` text and then fail. Fix: compute in the SERVICE or
   controller, keep the partial a plain loop. Always run `view:cache` + `php -l` on **every**
   `storage/framework/views/*.php` after touching Blade.
-- **`SslPlanService::$tablesMissing` is a static memo** — call `resetSchemaCache()` after any schema change.
-- Browser: after /logout a fresh page load is needed (CSRF 419). Viewport-switch geometry can report the
-  previous layout; reload after switching viewports. **Admin pages can't be opened directly** (no password) —
-  render server-side. A hand-rolled `$app['session']` script FAILS before the kernel boots
-  (`Class "session" does not exist`); the reliable way is a **scratch feature test** with
-  `$this->withSession(['admin'=>...])->get('/admin/...')->getContent()`, written to `public/__x.html`, opened
-  over http, then deleted.
+- **`SslPlanService::$tablesMissing` is a static memo** — call `SslPlanService::resetSchemaCache()` (on the
+  SERVICE, not the model) after any schema/data change that must be seen in the same process.
+- Browser: after /logout a fresh page load is needed (CSRF 419). **Viewport-switch geometry can report the
+  previous layout — always reload after switching, then re-measure.** `documentHeight: 0` is normal; use
+  `document.documentElement.scrollWidth - clientWidth` for overflow.
+- **Admin pages can't be opened directly** (no password). Render server-side instead: a **scratch feature test**
+  with `$this->withSession(['admin'=>...])->get('/admin/...')->getContent()`, write it to
+  `public/__x.html`, open over http, then delete both. A hand-rolled `$app['session']` script FAILS before the
+  kernel boots (`Class "session" does not exist`).
+  IMPORTANT: the test env resolves `asset()` against `APP_URL=http://localhost`, which the browser blocks
+  (ERR_BLOCKED_BY_ORB) from the `.test` host → **`str_replace('http://localhost/', 'http://cloudtechnologybd.test/', $html)`** before writing the dump, or it renders unstyled.
 - Local shortcuts in routes/web.php: `GET /__probe-login` (session('customer') → /mystore) and
   `GET /__probe-rowcheck`. **Remove before production.**
 - User commits work as they go, and has external tooling that commits `.sleepycode/` scratch files. Clean up
   your own scratch files.
 - `learn/`, `docs/`, `agent.md` are gitignored (local-only).
-- `findstr`/`&`-chained commands often return empty stdout here. Use
+- `findstr`/`&`-chained commands often return empty stdout. Use
   `powershell -NoProfile -Command "... | Out-String"` or redirect to a file then `type`. `ls` doesn't exist
-  (cmd.exe) — use `dir`. `run_command` timeout max is 120s (full suite ≈ 70s, so it just fits).
+  (cmd.exe) — use `dir`. `run_command` timeout max is 120s (full suite ≈ 70s, just fits).
+- Console output mangles UTF-8 (`৳`→`?`, `·`→`�`, `…`→`.`). **Never judge encoding from console output** —
+  read bytes with `[System.Text.Encoding]::UTF8.GetString([System.IO.File]::ReadAllBytes(...))` and print
+  code points.
+
+## Loading spinner (site-spinner) — shared by domain search AND admin links
+- `public/css/site-spinner.css` + `public/js/site-spinner.js`: fullscreen dark overlay with a single dot
+  `loader` (no card, no %). API `SiteSpinner.show({title,theme,inline,host})`, `.progress()`, `.finish()`,
+  `.hide()`, `.isVisible()`.
+- Loaded on EVERY page via `partials.head` → `partials.spinner` (CSS + site-spinner.js + **spinner-links.js**).
+- **Forms**: `<form data-spinner="search">` — wired inside site-spinner.js `boot()`.
+- **Links**: `public/js/spinner-links.js` (added for the admin sidebar) wires `[data-spinner-link]` with
+  `data-spinner-title="…"`. Contract: arms the SAME `sspin-handoff` sessionStorage token (8s TTL) then calls
+  `SiteSpinner.show()`. Only plain left-clicks (no ctrl/meta/shift/alt, no `target!=_self`, no `download`,
+  no `href="#"`, not defaultPrevented). Guards double-wiring via `data-spinner-link-wired="true"`.
+- **Cross-page handoff**: the DESTINATION page must `@include('partials.spinner-overlay')` right after `<body>`
+  so the overlay pre-paints on the first frame; site-spinner.js consumes the token and hides it on boot.
+  Pages with an overlay include today: `home`, `domains/index`, `admin/ssl-plans`.
+- NB while testing with `dispatchEvent`: a **capture-phase** `preventDefault` runs BEFORE the link handler, so
+  the handler bails (`defaultPrevented`) — use the **bubble** phase to stop navigation after the fact.
 
 ## Exchange rate (USD → BDT) — the only conversion source
 - `App\Services\ExchangeRateService::usdToBdt()` → `['rate','source','updated_at']`. Endpoint
   `https://hexarate.paikama.co/api/rates/latest/USD?target=BDT`, reads `data.mid` (live: **125.0**), caches
   `exchange_rate_usd_bdt` for **21600s (6h)**, falls back to `services.exchange_rate.usd_to_bdt_fallback`
-  (120) with `source='fallback'` and `updated_at=null` on any failure. Never throws.
+  (120) with `source='fallback'` on any failure. Never throws.
 - Consumers: `AdminController::usdToBdtRate()` (dashboard/SSL admin), `AppServiceProvider` view composer
   (`$exchangeRate`, partials.admin-sidebar only), `DomainRegistrationService`, `DomainTransferService`,
-  `ResellerClubClient` (convertLivePriceToBdt), `SslPlanService`.
-- **Conversion rule everywhere: multiply USD × months × rate FIRST, round ONCE.** Rounding the USD figure
-  first is wrong ($0.79 → ৳95/mo but ৳1,140/yr instead of ৳1,138). Per-month display = `round(term / months)`.
-- **Tests stub the rate to 120** via `$this->app->instance(ExchangeRateService::class, ...)`; the real 125
-  appears only when a scratch test clears the cache and doesn't stub.
+  `ResellerClubClient::convertLivePriceToBdt`, `SslPlanService`.
+- **Conversion rule everywhere: multiply USD × months × rate FIRST, round ONCE.** Rounding the USD figure first
+  is wrong ($0.79 → ৳95/mo but ৳1,140/yr instead of ৳1,138). Per-month display = `round(term / months)`.
+- **Tests stub the rate to 120**; the real 125 appears only when a scratch test clears the cache and doesn't
+  stub. `php80 artisan tinker` HANGS here (network call to ResellerClub) — avoid it.
 
 ## SSL plans — CMS, live ResellerClub pricing, per-feature visibility, YEARLY quoting, TAKA admin
 ### Structure
@@ -66,39 +94,45 @@
   source('resellerclub'|'local')`. **Never carries cost/profit — admin-only.**
 - **YEARLY QUOTING (customer rule):** every printed figure is annual. `terms[N]['per_year'] =
   round(total / N)`; top-level `per_year` = default (1-year) term's; `renewal_year` = renew USD/mo × 12 × rate
-  (live) or `renewal_price × 12` (typed) — never derived from the already-rounded monthly BDT.
-  `per_month`/`monthly`/`renewal` stay in the array (admin + term maths) but **nothing customer-facing prints
-  them**; tests assert no `/mo` in the markup.
+  (live) or `renewal_price × 12` (typed). `per_month`/`monthly`/`renewal` stay in the array (admin + term
+  maths) but **nothing customer-facing prints them**; tests assert no `/mo` in the markup.
 - Live path: only tenures ResellerClub sells (12mo→1y, 24mo→2y; NO 3-year). `sslSellingPricing()` for customers
   (1 HTTP call), `sslPlanPricing()` (both endpoints) for admin cost/profit. Kill switch
   `services.resellerclub.ssl_live_pricing`.
 - Fallback ladder: no link → typed BDT · kill switch off · not configured · API down · 12-mo selling missing ·
-  rate ≤ 0 → typed. Typed price ≤ 0 ⇒ plan dropped from the customer list (no free cert).
+  rate ≤ 0 → typed. Typed price ≤ 0 ⇒ plan dropped from the customer list.
 - Migration pattern here: **no `dropColumn`** (Laravel 6 + SQLite needs doctrine/dbal) — rebuild the table.
 - Plan ID map (by `plan_key`, fills only NULLs): positive-ssl→300, comodo-ssl→299,
   positive-ssl-wildcard→301, ev-ssl→672.
-- Locally `RESELLERCLUB_ENABLED=false` → the live API is unverifiable; verify via captured fixtures +
-  `buildSslPricing()` unit tests + stubbed feature tests. Local DB typed fallbacks make the real customer page
-  read 1,368 / 4,788 / 7,188 / 15,588 per year.
-- Tests: `tests/Unit/SslPricingCalculatorTest.php`, `tests/Feature/SslLivePricingTest.php`,
-  `SslPlanCmsTest.php`, `SslPlanFeatureVisibilityTest.php` (**62 tests under `--filter Ssl`**).
+- **Pricing IS dynamic** — nothing price-related is stored or hardcoded: every load re-reads
+  `customer-price.json` (5-min cache), only the plan ID is persisted, and the rate is fetched per request.
+  Changing a plan's ID re-prices it on the next request (verified: comodo @299 → ৳6,000/yr, @300 → ৳1,185/yr,
+  unlinked → typed ৳4,788/yr).
 - **Plan↔product names are offset in ResellerClub**: comodo-ssl is linked to 299 = $4.00/mo (Premium in their
   panel), so "Comodo SSL ৳4,788/yr" is arithmetically correct; linking it to 300 would make it ৳1,138.
+- Locally `RESELLERCLUB_ENABLED=false` → the live API is unverifiable; verify via captured fixtures +
+  `buildSslPricing()` unit tests + stubbed feature tests.
+- Tests: `tests/Unit/SslPricingCalculatorTest.php`, `tests/Feature/SslLivePricingTest.php`,
+  `SslPlanCmsTest.php`, `SslPlanFeatureVisibilityTest.php` (**64 tests under `--filter Ssl`**).
 
 ### Admin list (`admin/ssl-plans.blade.php`) — ALL MONEY IN TAKA
-- Table heading `ResellerClub pricing (৳ per month)`; its `title` is the ONLY place the rate is stated
-  ("live rate of ৳X per USD"). The old explanatory paragraph (`Revenue = selling − reseller price…`) and its
-  `.ssl-rc-note` CSS were **deleted at the owner's request** — column `title` tooltips carry the meaning now.
-- Conversion lives **in the view only** (`$termTaka`, `$perMonthTaka`, `$taka`): ResellerClubClient and
+- Table heading `ResellerClub pricing (৳ per month)`; its `title` is the ONLY place the rate is stated. The old
+  explanatory paragraph (`Revenue = selling − reseller price…`) and its `.ssl-rc-note` CSS were deleted at the
+  owner's request — column `title` tooltips carry the meaning.
+- Conversion lives **in the view only** (`$termTaka`, `$perMonthTaka`, `$taka`); ResellerClubClient and
   SslPlanService were NOT touched. `$termTaka = round(usd × months × $usdRate)`;
-  `$perMonthTaka = round($termTaka / months)` (same rule as the card's `per_month`).
-- **Revenue is `sellMonth − costMonth`** (difference of the two taka figures already on the row) so the columns
-  reconcile by eye; the API's own `profit_amount` is no longer read. **Profit % is a ratio → unconverted.**
+  `$perMonthTaka = round($termTaka / months)`.
+- **Revenue is quoted TWICE** in one cell (owner's choice, no extra column):
+  `<th>Revenue (৳/mo · ৳/yr)</th>`, cell = `৳16/mo · ৳192/yr` using `.ssl-per-unit` + `.ssl-per-sep` spans.
+  Yearly = per-month × 12 (test asserts the relation for every row). Revenue = `sellMonth − costMonth`
+  (difference of the two taka figures on the row, so columns reconcile). **Profit % is a ratio → unconverted.**
 - `$usdRate <= 0` ⇒ every money cell prints `—`, never `৳0`.
-- `.ssl-rc table{min-width:600px}` inside `.ssl-rc-scroll{overflow-x:auto}`. 4-up table fits at 1920/1280
-  (`grid-template-columns: minmax(150px,.6fr) minmax(0,2.4fr) 132px`); at 390px it scrolls in its container
-  with no page overflow.
-- With the 125.0 live rate + screenshot fixtures, Positive SSL reads ৳83 | 19.7% | ৳16 | ৳99 | ৳1,185.
+- `.ssl-rc table{min-width:600px}` inside `.ssl-rc-scroll{overflow-x:auto}`; grid
+  `minmax(150px,.6fr) minmax(0,2.4fr) 132px`. Fits at 1920/1280; at 390px it scrolls inside its container with
+  no page overflow.
+- With the 125.0 live rate + screenshot fixtures, Positive SSL reads ৳83 | 19.7% | ৳16/mo · ৳192/yr | ৳99 |
+  ৳1,185.
+- This page includes `partials.spinner-overlay` after `<body>` (spinner handoff target).
 
 ### Customer card layout / CSS
 - `.ssl-price` row = superscript `.ssl-taka` + `.ssl-amount` + `.ssl-per`; `.ssl-per` rides the baseline
@@ -175,12 +209,19 @@
   element** is the scroll container in the drawer.
 - Row rhythm: `nav > a` 44px, padding 6px 12px, gap 10px, 30px icon tile; child rows 40px, radius 10px.
 
+## Admin sidebar — partials/admin-sidebar.blade.php
+- One long line: logo, `admin-exchange-rate` block (live USD→BDT from the view composer), nav (MANAGEMENT /
+  SYSTEM / CMS groups, `$active` marks the row), sign-out.
+- **The "SSL plans" row** carries `data-spinner-link data-spinner-title="Loading SSL plans…"` because
+  `AdminController::sslPlans()` drops both price caches and makes 2 live ResellerClub calls on every load —
+  the slowest admin link. No other admin link is spinner-driven.
+
 ## Public navbar — partials/site-navbar.blade.php + public/css/site-navbar.css
 Rules `#site-navbar`-scoped; includes the coming-soon modal. Order: Home · Domains · Web Hosting · SSL ·
 Business Email · SMS Service · Support. Tiers: ≥1401px one row 1400px + phone; 1201–1400px 1240px, nav
 14.5px/9px, phone → handset icon; ≤1200px nav drops under logo; ≤560px phone text + user name hidden.
 Drawer cut-off 960px. NOTE: at 390px `.site-nav-toggle` / `.site-account` extend ~54px past the viewport on
-**every** public page (pre-existing; also on /services/domain-transfer — not caused by content pages).
+**every** public page (pre-existing; also on /services/domain-transfer).
 
 ## Domain / shop logic
 - Catalog from `ResellerClubClient` (5-min price caches + BDT fallback). `services.test_domains` is referenced
@@ -201,13 +242,13 @@ Drawer cut-off 960px. NOTE: at 390px `.site-nav-toggle` / `.site-account` extend
 ## Verification techniques that worked here
 - Temp PHP helper in .sleepycode/ to create AND delete throwaway customers (`*.check@example.test`) plus
   orders/topups/invoices.
-- **Admin-page proof = scratch feature test** that writes `getContent()` into `public/__x.html`, then
-  `browser_navigate` + `browser_evaluate` (read cells) + `browser_geometry` (overflow) + `browser_screenshot`;
+- **Admin-page proof = scratch feature test** writing `getContent()` into `public/__x.html` (with the asset host
+  rewritten), then `browser_navigate` + `browser_evaluate` (read cells/state) + `browser_geometry` + screenshot;
   delete the test and the file afterwards.
+- **Prove interactivity in the browser** by dispatching events and monkey-patching the API
+  (`window.SiteSpinner.show = …` to record calls) rather than trusting markup presence.
 - Assert on text unique to the fixture (`UNIQUE-…`). Count controls only in the markup (slice before
-  `<script>`). When slicing a page you must anchor on the MARKUP (`<div class="ssl-card-list">`), not a class
-  name — the same string appears in the page's inline `<style>` and would swallow the sidebar.
+  `<script>`). When slicing a page anchor on the MARKUP (`<div class="ssl-card-list">`), not a class name — the
+  same string appears in the page's inline `<style>` and would swallow the sidebar.
 - When a feature test 500s, mirror it in a scratch test with `$this->withoutExceptionHandling()`.
 - Pixel-proof purely visual work: full-page screenshot at deviceScaleFactor 1, sample coordinates in PHP GD.
-- `browser_geometry` can report a stale viewport right after switching; reload, then re-measure. It also
-  sometimes reports `documentHeight: 0` — use `document.documentElement.scrollWidth - clientWidth` for overflow.
