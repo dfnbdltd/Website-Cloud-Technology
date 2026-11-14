@@ -739,26 +739,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
     </div>
     <p class="billing-note" id="billing-note">Flexible month-to-month billing</p>
 
-    <style>
-.dedicated-theme .plan-card li::before{display:inline-grid;place-items:center;vertical-align:middle;width:20px;height:20px;margin-right:9px;border-radius:50%;background:#0497ce;color:#fff;font-family:"Segoe UI Symbol","Noto Sans Symbols 2",sans-serif;font-size:.78rem;font-weight:400;box-shadow:0 4px 10px rgba(4,151,206,.35)}
-.dedicated-theme .plan-card li[data-icon="check"]::before{content:"\2713"}
-.dedicated-theme .plan-card li[data-icon="storage"]::before{content:"\25A4"}
-.dedicated-theme .plan-card li[data-icon="transfer"]::before{content:"\21C4"}
-.dedicated-theme .plan-card li[data-icon="ftp"]::before{content:"\21C5"}
-.dedicated-theme .plan-card li[data-icon="website"]::before{content:"\2302"}
-.dedicated-theme .plan-card li[data-icon="mail"]::before{content:"\2709"}
-.dedicated-theme .plan-card li[data-icon="db"]::before{content:"\25A6"}
-.dedicated-theme .plan-card li[data-icon="subdomain"]::before{content:"\2316"}
-.dedicated-theme .plan-card li[data-icon="ecommerce"]::before{content:"\25C8"}
-.dedicated-theme .plan-card li[data-icon="remote"]::before{content:"\21D4"}
-.dedicated-theme .plan-card li[data-icon="postgres"]::before{content:"\25A9"}
-.dedicated-theme .plan-card li[data-icon="phppgadmin"]::before{content:"\25A7"}
-.dedicated-theme .plan-card li[data-icon="ssh"]::before{content:"\2318"}
-.dedicated-theme .plan-card li[data-icon="shell"]::before{content:"\25CD"}
-.dedicated-theme .plan-card li[data-icon="speed"]::before{content:"\26A1"}
-.dedicated-theme .plan-card li[data-icon="cpu"]::before{content:"\2699"}
-.dedicated-theme .plan-card li.feature-unavailable::before{content:"\00D7";background:#fff0f0;color:#ef5350;box-shadow:none}
-    </style>
     <div class="coming-soon-panel" hidden>
         <span class="coming-soon-pill">Coming soon</span>
         <h3>Long-term billing is on its way.</h3>
@@ -795,9 +775,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
             </li>
             @endforeach
           </ul>
-          <button class="features-toggle" type="button" aria-haspopup="dialog" aria-controls="features-dialog">
-            See more
-          </button>
           <ul class="extra-features" hidden>
             @foreach($plan['extra_features'] as $feature)
             <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}" data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}" @if(!empty($feature['feature_key'])) data-feature="{{ $feature['feature_key'] }}" @endif>{{ $feature['monthly'] }}</li>
@@ -821,18 +798,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
         @endforeach
     </div>
 </main>
-
-<dialog class="features-dialog" id="features-dialog">
-    <div class="dialog-header">
-        <div>
-            <p class="dialog-eyebrow">Included with this plan</p>
-            <h2 id="dialog-title">More features</h2>
-        </div>
-        <button class="dialog-close" type="button" aria-label="Close feature list">&#215;</button>
-    </div>
-    <div class="dialog-summary" id="dialog-summary"></div>
-    <p class="dialog-acl-note">CMS control is included with this plan.</p>
-</dialog>
 
 <script>
     const periodNotes = {
@@ -904,28 +869,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
         if (primaryList && extraList) {
             buildDedicatedFeatureGroups(card, [...primaryList.children], [...extraList.children]);
         }
-    });
-
-    // Tag each feature with an icon key for the themed markers.
-    document.querySelectorAll('.feature-group li').forEach((item) => {
-        const text = item.textContent.toLowerCase();
-        let icon = 'check';
-        if (text.includes('subdomain')) icon = 'subdomain';
-        else if (text.includes('remote')) icon = 'remote';
-        else if (text.includes('e-commerce') || text.includes('ecommerce')) icon = 'ecommerce';
-        else if (text.includes('postgresql')) icon = 'postgres';
-        else if (text.includes('phppgadmin')) icon = 'phppgadmin';
-        else if (text.includes('ssh') || text.includes('terminal')) icon = 'ssh';
-        else if (text.includes('shell') || text.includes('jailed')) icon = 'shell';
-        else if (text.includes('eaccelerator')) icon = 'speed';
-        else if (text.includes('nvme') || text.includes('storage') || text.includes('disk')) icon = 'storage';
-        else if (text.includes('bandwidth')) icon = 'transfer';
-        else if (text.includes('ftp')) icon = 'ftp';
-        else if (text.includes('website') || text.includes('add-on') || text.includes('addon')) icon = 'website';
-        else if (text.includes('mail')) icon = 'mail';
-        else if (text.includes('mysql') || text.includes('database')) icon = 'db';
-        else if (text.includes('cpu') || text.includes('core')) icon = 'cpu';
-        item.dataset.icon = icon;
     });
 
     const applyPeriod = (period) => {
@@ -1004,29 +947,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
             }
         });
     });
-
-    document.querySelectorAll('.features-toggle').forEach((toggle) => {
-        toggle.addEventListener('click', () => {
-            const card = toggle.closest('.plan-card');
-            const dialog = document.querySelector('#features-dialog');
-            const title = card.querySelector('h3').textContent;
-            const description = card.querySelector('.plan-description').textContent;
-            const price = card.querySelector('.price').cloneNode(true);
-            const summary = document.querySelector('#dialog-summary');
-            document.querySelector('#dialog-title').textContent = `${title} plan features`;
-            summary.innerHTML = `<p>${description}</p><div class="dialog-price"></div>`;
-            summary.querySelector('.dialog-price').append(price);
-            dialog.showModal();
-        });
-    });
-
-    const featuresDialog = document.querySelector('#features-dialog');
-    featuresDialog.querySelector('.dialog-close').addEventListener('click', () => featuresDialog.close());
-    featuresDialog.addEventListener('click', (event) => {
-        if (event.target === featuresDialog) {
-            featuresDialog.close();
-        }
-    });
 </script>
 <script>
 (function () {
@@ -1052,6 +972,591 @@ button, a { -webkit-tap-highlight-color: transparent; }
     sync();
 })();
 </script>
+    <style>
+      /* ---------------------------------------------------------------
+         Dedicated hosting: simple monochrome cards.
+         Last stylesheet on the page, so it overrides the stacked
+         theme blocks above without editing them. Scoped to
+         .dedicated-theme.
+         --------------------------------------------------------------- */
+      .page-width {
+        width: min(1240px, calc(100% - 40px));
+      }
+
+      /* Four cards per row; a lone trailing card is centred. */
+      .dedicated-theme .plans {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+        align-items: stretch;
+        margin-top: 28px;
+      }
+      .dedicated-theme .plans > .plan-card {
+        grid-column: auto;
+        width: auto;
+        justify-self: stretch;
+        left: auto;
+        position: relative;
+      }
+      .dedicated-theme .plans > .plan-card:nth-child(4n + 1):last-child {
+        grid-column: 2 / 4;
+        justify-self: center;
+        width: calc(50% - 10px);
+      }
+
+      /* Neutral card shell: one border, no colour stripe, no glow. */
+      .dedicated-theme .plan-card,
+      .dedicated-theme .plan-card-featured {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 24px 22px;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: none !important;
+        transform: none;
+        opacity: 1;
+      }
+      .dedicated-theme .plan-card:hover,
+      .dedicated-theme .plan-card-featured:hover {
+        border-color: #cbd5e1 !important;
+        box-shadow: none !important;
+        transform: translateY(-2px);
+      }
+
+      /* Reset the old flex ordering so DOM order wins. */
+      .dedicated-theme .plan-card > * {
+        order: 0;
+      }
+
+      /* Plan name: plain text instead of a coloured chip. */
+      .dedicated-theme .plan-card h3.plan-circle,
+      .dedicated-theme .plan-card-featured h3.plan-circle {
+        display: block;
+        width: auto;
+        min-height: 0;
+        margin: 0 0 8px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        line-height: 1.3;
+        text-align: left;
+        text-transform: none;
+      }
+
+      .dedicated-theme .plan-description {
+        display: block;
+        min-height: 0;
+        margin: 0 0 16px;
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1.45;
+        text-align: left;
+      }
+
+      /* Price: one size, regular weight, ink currency. */
+      .dedicated-theme .price {
+        position: static;
+        display: flex;
+        width: auto;
+        justify-content: flex-start;
+        align-items: baseline;
+        flex: 0 0 auto;
+        margin: 0 0 18px;
+        color: #0f172a;
+        font-size: 2rem;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+      }
+      .dedicated-theme .price-value {
+        font-weight: 500;
+      }
+      .dedicated-theme .currency {
+        position: static;
+        top: auto;
+        left: auto;
+        margin: 0 4px 0 0;
+        color: #0f172a;
+        font-family: inherit;
+        font-size: 1.15rem;
+        font-weight: 500;
+      }
+      .dedicated-theme .price small,
+      .dedicated-theme .price-unit {
+        display: inline;
+        margin-left: 6px;
+        color: #94a3b8;
+        font-size: 0.8rem;
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+
+      /* Call to action: flat dark button, sentence case. */
+      .dedicated-theme .purchase-button {
+        width: 100%;
+        min-height: 44px;
+        margin: 0 0 4px;
+        padding: 10px 16px;
+        border: 1px solid #0f172a;
+        border-radius: 8px;
+        background: #0f172a !important;
+        color: #fff !important;
+        box-shadow: none !important;
+        font-size: 0.9rem;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+        transform: none;
+      }
+      .dedicated-theme .purchase-button:hover {
+        border-color: #1e293b;
+        background: #1e293b !important;
+        color: #fff !important;
+        box-shadow: none !important;
+        transform: none;
+      }
+      .dedicated-theme .purchase-button > span {
+        font-weight: 500;
+      }
+      .dedicated-theme .purchase-button .cart-icon,
+      .dedicated-theme .purchase-button .arrow {
+        display: none;
+      }
+      .dedicated-theme .plan-card.is-coming-soon .purchase-button,
+      .dedicated-theme .plan-card.is-coming-soon .purchase-button:hover {
+        border-color: #e2e8f0;
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+        transform: none;
+      }
+      .dedicated-theme .plan-card.is-coming-soon .price-value {
+        color: #94a3b8;
+        font-size: 1.4rem;
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+
+      /* Badges: quiet neutral label above the plan name. */
+      .dedicated-theme .cheapest-badge,
+      .dedicated-theme .popular-badge {
+        position: absolute;
+        top: 24px;
+        right: 22px;
+        left: auto;
+        display: block;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        padding: 3px 9px;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        background: #f8fafc;
+        color: #475569;
+        box-shadow: none;
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        line-height: 1.6;
+        text-transform: uppercase;
+        transform: none;
+      }
+      .dedicated-theme .popular-badge {
+        border-color: #0f172a;
+        background: #0f172a;
+        color: #fff;
+      }
+      /* Keep a long plan name clear of the pinned badge. */
+      .dedicated-theme .plan-card h3.plan-circle {
+        padding-right: 98px;
+      }
+
+      /* Feature list: fixed height with a thin neutral scrollbar. */
+      .dedicated-theme .feature-groups {
+        height: 300px;
+        max-height: 300px;
+        min-height: 0;
+        flex: 0 0 auto;
+        margin: 20px 0 0;
+        padding: 18px 10px 4px 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-top: 1px solid #eef2f6;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+        scrollbar-gutter: stable;
+      }
+      .dedicated-theme .feature-groups::-webkit-scrollbar {
+        width: 6px;
+      }
+      .dedicated-theme .feature-groups::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .dedicated-theme .feature-groups::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: #cbd5e1;
+      }
+      .dedicated-theme .feature-groups::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .dedicated-theme .plan-card > ul:not(.extra-features) {
+        display: block;
+        height: 300px;
+        max-height: 300px;
+        margin: 20px 0 0;
+        padding: 18px 10px 4px 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-top: 1px solid #eef2f6;
+      }
+      .dedicated-theme .feature-group + .feature-group {
+        margin-top: 16px;
+      }
+      .dedicated-theme .feature-group h4 {
+        margin: 0 0 8px;
+        color: #94a3b8;
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .dedicated-theme .feature-group ul {
+        display: block;
+        margin: 0;
+        padding: 0;
+        color: #475569;
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1.45;
+      }
+      .dedicated-theme .feature-group li,
+      .dedicated-theme .plan-card > ul:not(.extra-features) li {
+        display: block;
+        min-height: 0;
+        padding: 5px 0;
+        color: #475569;
+        font-size: 0.875rem;
+        line-height: 1.45;
+        letter-spacing: 0;
+        text-transform: none;
+        text-align: left;
+        white-space: normal;
+        overflow: visible;
+        border-bottom: 0;
+      }
+      /* Tick: plain glyph, soft green. */
+      .dedicated-theme .plan-card li::before,
+      .dedicated-theme .plan-card > ul:not(.extra-features) li::before,
+      .dedicated-theme .feature-group li::before {
+        content: "\2713";
+        position: static;
+        display: inline;
+        width: auto;
+        height: auto;
+        margin: 0 9px 0 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        color: #15803d;
+        font-size: 0.95em;
+        font-weight: 400;
+        line-height: inherit;
+        vertical-align: baseline;
+      }
+      /* Cross: plain glyph, soft red. */
+      .dedicated-theme .plan-card li.feature-unavailable::before,
+      .dedicated-theme .plan-card > ul:not(.extra-features) li.feature-unavailable::before,
+      .dedicated-theme .feature-group li.feature-unavailable::before {
+        content: "\00D7";
+        position: static;
+        display: inline;
+        width: auto;
+        height: auto;
+        margin: 0 9px 0 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        color: #b91c1c;
+        font-size: 1.05em;
+        font-weight: 400;
+        line-height: inherit;
+        vertical-align: baseline;
+      }
+      .dedicated-theme .plan-card li.feature-unavailable,
+      .dedicated-theme .feature-group li.feature-unavailable {
+        color: #94a3b8;
+      }
+      .dedicated-theme .plan-card li strong,
+      .dedicated-theme .plan-card > ul:not(.extra-features) li strong,
+      .dedicated-theme .feature-group li strong {
+        color: #0f172a;
+        font-weight: 600;
+      }
+
+      /* Billing tabs: flat segmented control, no dots, no shadow. */
+      .dedicated-theme .billing-tabs,
+      .billing-tabs {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: none;
+        padding: 3px;
+      }
+      .billing-tab {
+        min-width: 96px;
+        padding: 9px 16px;
+        border-radius: 6px;
+        background: transparent;
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .billing-tab:hover {
+        background: #f8fafc;
+        color: #0f172a;
+        box-shadow: none;
+      }
+      .billing-tab.is-active {
+        background: #0f172a;
+        color: #fff;
+        box-shadow: none;
+      }
+      .billing-tab::before,
+      .billing-tab.is-active::before {
+        display: none;
+        content: none;
+      }
+      .billing-note {
+        margin: 12px 0 32px !important;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-weight: 400;
+      }
+
+      /* Banner: plain dark block, no decorative rings. */
+      .page-banner-luxe {
+        padding: 58px 0 52px;
+        background: #0f172a;
+        animation: none;
+        overflow: hidden;
+      }
+      .page-banner-luxe::before,
+      .page-banner-luxe::after {
+        display: none;
+        content: none;
+        animation: none;
+      }
+      .page-banner-luxe .banner-kicker {
+        display: inline-block;
+        margin: 0 0 12px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        color: #94a3b8;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .page-banner-luxe .banner-kicker::before {
+        content: none;
+        display: none;
+      }
+      .page-banner-luxe h1 {
+        margin: 0 0 16px;
+        font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+        font-weight: 600;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        text-shadow: none;
+      }
+      .page-banner .breadcrumb {
+        color: #94a3b8;
+        font-size: 0.82rem;
+        font-weight: 400;
+      }
+      .page-banner::after,
+      .page-banner::before {
+        display: none;
+        content: none;
+      }
+      .page-banner-compact {
+        padding: 56px 0 48px;
+      }
+      .pricing {
+        padding-top: 28px;
+      }
+
+      /* Hosting switcher: folder-tab pills with a small circular icon chip. */
+      .dedicated-theme .hosting-bar-half {
+        margin: 0 0 24px;
+      }
+      .dedicated-theme .hosting-bar-half nav {
+        gap: 8px;
+      }
+      .dedicated-theme .hosting-bar-half a {
+        position: relative;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        width: 118px;
+        margin-left: 0;
+        padding: 10px 8px 14px;
+        overflow: hidden;
+        text-align: center;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0 0 46px 46px / 0 0 26px 26px;
+        box-shadow: none;
+        color: #64748b;
+        font-size: 0.76rem;
+        font-weight: 500;
+        transform: none;
+        filter: none;
+      }
+      .dedicated-theme .hosting-bar-half .di-svg {
+        display: block;
+        width: 13px;
+        height: 13px;
+        padding: 4px;
+        box-sizing: content-box;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #64748b;
+        transform: none;
+      }
+      .dedicated-theme .hosting-bar-half strong {
+        font-size: 0.76rem;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+        color: inherit;
+      }
+      .dedicated-theme .hosting-bar-half a:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #0f172a;
+        box-shadow: none;
+        transform: none;
+        filter: none;
+      }
+      .dedicated-theme .hosting-bar-half a:hover .di-svg {
+        background: #e2e8f0;
+        color: #0f172a;
+        transform: none;
+      }
+      .dedicated-theme .hosting-bar-half a[aria-current="page"] {
+        width: 118px;
+        margin-top: 0;
+        padding: 10px 8px 14px;
+        background: #0f172a;
+        border-color: #0f172a;
+        box-shadow: none;
+        color: #fff;
+        transform: none;
+      }
+      .dedicated-theme .hosting-bar-half a[aria-current="page"] .di-svg {
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
+      }
+      .dedicated-theme .hosting-bar-half a[aria-current="page"] strong {
+        color: #fff;
+      }
+
+      /* Two cards per row on tablets, one on phones. */
+      @media (max-width: 1080px) {
+        .dedicated-theme .plans {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .dedicated-theme .plans > .plan-card:nth-child(4n + 1):last-child {
+          grid-column: auto;
+          justify-self: stretch;
+          width: auto;
+        }
+      }
+      @media (max-width: 760px) {
+        .dedicated-theme .plans {
+          grid-template-columns: 1fr;
+          margin-top: 22px;
+        }
+        .dedicated-theme .plan-card,
+        .dedicated-theme .plan-card-featured {
+          padding: 20px 18px;
+        }
+        .dedicated-theme .feature-groups,
+        .dedicated-theme .plan-card > ul:not(.extra-features) {
+          height: 260px;
+          max-height: 260px;
+        }
+      }
+
+      /* Phones: nothing may overflow the viewport. */
+      @media (max-width: 640px) {
+        .dedicated-theme .hosting-bar-half nav {
+          width: 100%;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 6px;
+        }
+        .dedicated-theme .hosting-bar-half a,
+        .dedicated-theme .hosting-bar-half a[aria-current="page"] {
+          flex: 1;
+          width: auto;
+          min-width: 0;
+          padding: 9px 4px 12px;
+        }
+        .dedicated-theme .hosting-bar-half strong {
+          font-size: 0.72rem;
+        }
+        .billing-tabs {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          width: 100%;
+          max-width: 100%;
+          padding: 3px;
+          gap: 2px;
+        }
+        .billing-tab {
+          min-width: 0;
+          padding: 9px 2px;
+          font-size: 0.78rem;
+          white-space: nowrap;
+        }
+        .billing-note,
+        .billing-note#billing-note {
+          display: block;
+          position: static;
+          left: auto;
+          width: auto;
+          max-width: 100%;
+          margin: 10px 0 22px !important;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          background: none;
+          transform: none;
+          overflow: visible;
+          white-space: normal;
+          text-align: center;
+        }
+        .dedicated-theme .plan-card h3.plan-circle {
+          padding-right: 92px;
+        }
+      }
+    </style>
+
     <footer class="hosting-footer">
         <div class="hosting-footer-inner">
             <a class="hf-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'f'])</a>

@@ -64,9 +64,10 @@
 /* Floating vertical hosting switcher (far-left rail, desktop-wide only). */
 .hosting-rail{--line:#e5e7eb;--blue:#2563eb;position:fixed;left:16px;top:50%;transform:translateY(-50%) translateX(-14px);z-index:40;display:flex;flex-direction:column;gap:6px;padding:8px;margin:0;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);box-shadow:0 14px 34px rgba(16,34,71,.14);font-family:'DM Sans',sans-serif;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease}
 .hosting-rail.show{opacity:1;pointer-events:auto;transform:translateY(-50%) translateX(0)}
-.hosting-rail a{display:flex;flex-direction:column;align-items:center;gap:5px;width:76px;padding:10px 4px;border-radius:12px;color:#5b6b84;font-size:.66rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;text-decoration:none}
-.hosting-rail .di-svg{width:20px;height:20px}
-.hosting-rail a:hover{background:#f1f6ff;color:var(--blue)}
+.hosting-rail a{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;padding:9px 2px;border-radius:12px;color:#475569;font-size:.66rem;font-weight:500;letter-spacing:0;text-transform:none;text-decoration:none;transition:background .18s ease,color .18s ease}
+.hosting-rail .di-svg{display:block;width:14px;height:14px;padding:5px;box-sizing:content-box;border-radius:50%;background:#f1f5f9;color:#475569;transition:background .18s ease,color .18s ease}
+.hosting-rail a:hover{background:#f8fafc;color:#0f172a}
+.hosting-rail a:hover .di-svg{background:#e2e8f0;color:#0f172a}
 
 /* shared site footer — same design as the landing page footer */
 .hosting-footer{background:#0f172a;padding:30px 0;color:#94a3b8;font-size:13px;font-family:'DM Sans',sans-serif}
@@ -75,5 +76,6 @@
 .hosting-footer .hf-logo .ct-logo-img{display:block;height:50px;width:auto;object-fit:contain}
 .hosting-footer span{color:#94a3b8}
 @media(max-width:640px){.hosting-footer-inner{flex-direction:column;gap:6px;text-align:center}}
-.hosting-rail a.is-active{background:linear-gradient(180deg,#4f8df7 0%,#1d4fb0 100%);color:#fff;box-shadow:0 8px 18px rgba(47,115,232,.4)}
-@media(max-width:1450px){.hosting-rail{display:none}}
+.hosting-rail a.is-active{background:#0f172a;color:#fff;box-shadow:none}
+.hosting-rail a.is-active .di-svg{background:rgba(255,255,255,.16);color:#fff}
+@media(max-width:1180px){.hosting-rail{display:none}}

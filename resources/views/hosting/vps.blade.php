@@ -332,18 +332,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .feature-group ul { gap: 6px; min-width: 0; }
 .feature-group li { position: relative; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 38px; padding: 6px 0 6px 34px; color: #222; font-size: .95rem; line-height: 1.45; letter-spacing: .02em; text-transform: uppercase; text-align: left; white-space: normal; }
 .feature-group li::before { position: absolute; left: 0; top: 7px; display: inline-grid; place-items: center; width: 22px; height: 22px; margin: 0; border: 0; border-radius: 6px; background: #1747b5; color: #fff; font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif; font-size: .78rem; font-weight: 400; box-shadow: none; }
-.feature-group li[data-icon="cpu"]::before { content: "\2699"; }
-.feature-group li[data-icon="ram"]::before { content: "\25A6"; }
-.feature-group li[data-icon="storage"]::before { content: "\25A4"; }
-.feature-group li[data-icon="transfer"]::before { content: "\21C4"; }
-.feature-group li[data-icon="internet"]::before { content: "\2194"; }
-.feature-group li[data-icon="ix"]::before { content: "\21C6"; }
-.feature-group li[data-icon="ip"]::before { content: "\25C9"; }
-.feature-group li[data-icon="root"]::before { content: "\2318"; }
-.feature-group li[data-icon="activation"]::before { content: "\26A1"; }
-.feature-group li[data-icon="location"]::before { content: "\2316"; }
-.feature-group li[data-icon="backup"]::before { content: "\21BB"; }
-.feature-group li[data-icon="check"]::before { content: "\2713"; }
 .feature-group li.feature-unavailable { color: #555; }
 .feature-group li.feature-unavailable::before { border: 0; background: #fff0f0; color: #e05252; }
 .feature-group li strong { color: #111; font-weight: 900; }
@@ -506,7 +494,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
         </div>
     </section>
 
-    <main class="pricing page-width">
+    <main class="pricing page-width vps-theme">
         <div class="hosting-bar hosting-bar-edge hosting-bar-half">
         <nav aria-label="Hosting type">
             <a href="{{ route('hosting.shared') }}"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><strong>Shared</strong></a>
@@ -609,7 +597,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
             <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}"><strong data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}">{{ $feature['monthly'] }}</strong> {{ $feature['name'] }}</li>
             @endforeach
           </ul>
-          <button class="features-toggle" type="button" aria-haspopup="dialog" aria-controls="features-dialog">See more</button>
           <ul class="extra-features" hidden>
             @foreach($plan['extra_features'] as $feature)
             <li class="{{ $feature['available'] ? '' : 'feature-unavailable' }}" data-monthly="{{ $feature['monthly'] }}" data-yearly="{{ $feature['yearly'] }}" @if(!empty($feature['feature_key'])) data-feature="{{ $feature['feature_key'] }}" @endif>{{ $feature['monthly'] }}</li>
@@ -672,6 +659,663 @@ button, a { -webkit-tap-highlight-color: transparent; }
         </div>
     </section>
 
+    <style>
+      /* ---------------------------------------------------------------
+         VPS hosting: simple monochrome cards.
+         Last stylesheet on the page, so it overrides the stacked
+         theme blocks above without editing them. Scoped to
+         .vps-theme.
+         --------------------------------------------------------------- */
+      .page-width {
+        width: min(1240px, calc(100% - 40px));
+      }
+
+      /* Four cards per row; a lone trailing card is centred. */
+      .vps-theme .plans {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+        align-items: stretch;
+        margin-top: 28px;
+      }
+      .vps-theme .plans > .plan-card {
+        grid-column: auto;
+        width: auto;
+        justify-self: stretch;
+        left: auto;
+        position: relative;
+      }
+      .vps-theme .plans > .plan-card:nth-child(4n + 1):last-child {
+        grid-column: 2 / 4;
+        justify-self: center;
+        width: calc(50% - 10px);
+      }
+
+      /* Neutral card shell: one border, no colour stripe, no glow. */
+      .vps-theme .plan-card,
+      .vps-theme .plan-card-featured {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 24px 22px;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: none !important;
+        transform: none;
+        opacity: 1;
+      }
+      .vps-theme .plan-card:hover,
+      .vps-theme .plan-card-featured:hover {
+        border-color: #cbd5e1 !important;
+        box-shadow: none !important;
+        transform: translateY(-2px);
+      }
+
+      /* Reset the old flex ordering so DOM order wins. */
+      .vps-theme .plan-card > * {
+        order: 0;
+      }
+
+      /* Plan name: plain text instead of a coloured chip. */
+      .vps-theme .plan-card h3.plan-circle,
+      .vps-theme .plan-card-featured h3.plan-circle {
+        display: block;
+        width: auto;
+        min-height: 0;
+        margin: 0 0 8px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        line-height: 1.3;
+        text-align: left;
+        text-transform: none;
+      }
+
+      .vps-theme .plan-description {
+        display: block;
+        min-height: 0;
+        margin: 0 0 16px;
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1.45;
+        text-align: left;
+      }
+
+      /* Price: one size, regular weight, ink currency. */
+      .vps-theme .price {
+        position: static;
+        display: flex;
+        width: auto;
+        justify-content: flex-start;
+        align-items: baseline;
+        flex: 0 0 auto;
+        margin: 0 0 18px;
+        color: #0f172a;
+        font-size: 2rem;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+      }
+      .vps-theme .price-value {
+        font-weight: 500;
+      }
+      .vps-theme .currency {
+        position: static;
+        top: auto;
+        left: auto;
+        margin: 0 4px 0 0;
+        color: #0f172a;
+        font-family: inherit;
+        font-size: 1.15rem;
+        font-weight: 500;
+      }
+      .vps-theme .price small,
+      .vps-theme .price-unit {
+        margin-left: 6px;
+        color: #94a3b8;
+        font-size: 0.8rem;
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+
+      /* Call to action: flat dark button, sentence case. */
+      .vps-theme .purchase-button {
+        width: 100%;
+        min-height: 44px;
+        margin: 0 0 4px;
+        padding: 10px 16px;
+        border: 1px solid #0f172a;
+        border-radius: 8px;
+        background: #0f172a !important;
+        color: #fff !important;
+        box-shadow: none !important;
+        font-size: 0.9rem;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+        transform: none;
+      }
+      .vps-theme .purchase-button:hover {
+        border-color: #1e293b;
+        background: #1e293b !important;
+        color: #fff !important;
+        box-shadow: none !important;
+        transform: none;
+      }
+      .vps-theme .purchase-button .cart-icon,
+      .vps-theme .purchase-button .arrow {
+        display: none;
+      }
+      .vps-theme .plan-card.is-coming-soon .purchase-button,
+      .vps-theme .plan-card.is-coming-soon .purchase-button:hover {
+        border-color: #e2e8f0;
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+        transform: none;
+      }
+      .vps-theme .plan-card.is-coming-soon .price-value {
+        color: #94a3b8;
+        font-size: 1.4rem;
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+
+      /* Badges: quiet neutral label above the plan name. */
+      .vps-theme .cheapest-badge,
+      .vps-theme .popular-badge {
+        position: absolute;
+        top: 24px;
+        right: 22px;
+        left: auto;
+        display: block;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        padding: 3px 9px;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        background: #f8fafc;
+        color: #475569;
+        box-shadow: none;
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        line-height: 1.6;
+        text-transform: uppercase;
+        transform: none;
+      }
+      .vps-theme .popular-badge {
+        border-color: #0f172a;
+        background: #0f172a;
+        color: #fff;
+      }
+      /* Keep a long plan name clear of the pinned badge. */
+      .vps-theme .plan-card h3.plan-circle {
+        padding-right: 98px;
+      }
+
+      /* Feature list: fixed height with a thin neutral scrollbar. */
+      .vps-theme .feature-groups {
+        height: 300px;
+        max-height: 300px;
+        min-height: 0;
+        flex: 0 0 auto;
+        margin: 20px 0 0;
+        padding: 18px 10px 4px 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-top: 1px solid #eef2f6;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+        scrollbar-gutter: stable;
+      }
+      .vps-theme .feature-groups::-webkit-scrollbar {
+        width: 6px;
+      }
+      .vps-theme .feature-groups::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .vps-theme .feature-groups::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: #cbd5e1;
+      }
+      .vps-theme .feature-groups::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .vps-theme .plan-card > ul:not(.extra-features) {
+        display: block;
+        height: 300px;
+        max-height: 300px;
+        margin: 20px 0 0;
+        padding: 18px 10px 4px 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border-top: 1px solid #eef2f6;
+      }
+      .vps-theme .feature-group + .feature-group {
+        margin-top: 16px;
+      }
+      .vps-theme .feature-group h4 {
+        margin: 0 0 8px;
+        color: #94a3b8;
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .vps-theme .feature-group ul {
+        display: block;
+        margin: 0;
+        padding: 0;
+        color: #475569;
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1.45;
+      }
+      .vps-theme .feature-group li,
+      .vps-theme .plan-card > ul:not(.extra-features) li {
+        display: block;
+        min-height: 0;
+        padding: 5px 0;
+        color: #475569;
+        font-size: 0.875rem;
+        line-height: 1.45;
+        letter-spacing: 0;
+        text-transform: none;
+        text-align: left;
+        white-space: normal;
+        -webkit-line-clamp: unset;
+        -webkit-box-orient: initial;
+        overflow: visible;
+        border-bottom: 0;
+      }
+      /* Tick: plain glyph, soft green. */
+      .vps-theme .plan-card li::before,
+      .vps-theme .plan-card > ul:not(.extra-features) li::before,
+      .vps-theme .feature-group li::before {
+        content: "\2713";
+        position: static;
+        display: inline;
+        width: auto;
+        height: auto;
+        margin: 0 9px 0 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        color: #15803d;
+        font-size: 0.95em;
+        font-weight: 400;
+        line-height: inherit;
+        vertical-align: baseline;
+      }
+      /* Cross: plain glyph, soft red. */
+      .vps-theme .plan-card li.feature-unavailable::before,
+      .vps-theme .plan-card > ul:not(.extra-features) li.feature-unavailable::before,
+      .vps-theme .feature-group li.feature-unavailable::before {
+        content: "\00D7";
+        position: static;
+        display: inline;
+        width: auto;
+        height: auto;
+        margin: 0 9px 0 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        color: #b91c1c;
+        font-size: 1.05em;
+        font-weight: 400;
+        line-height: inherit;
+        vertical-align: baseline;
+      }
+      .vps-theme .plan-card li.feature-unavailable,
+      .vps-theme .feature-group li.feature-unavailable {
+        color: #94a3b8;
+      }
+      .vps-theme .plan-card li strong,
+      .vps-theme .plan-card > ul:not(.extra-features) li strong,
+      .vps-theme .feature-group li strong {
+        color: #0f172a;
+        font-weight: 600;
+      }
+
+      /* Billing tabs: flat segmented control, no dots, no shadow. */
+      .vps-theme .billing-tabs,
+      .billing-tabs {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: none;
+        padding: 3px;
+      }
+      .billing-tab {
+        min-width: 96px;
+        padding: 9px 16px;
+        border-radius: 6px;
+        background: transparent;
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .billing-tab:hover {
+        background: #f8fafc;
+        color: #0f172a;
+        box-shadow: none;
+      }
+      .billing-tab.is-active {
+        background: #0f172a;
+        color: #fff;
+        box-shadow: none;
+      }
+      .billing-tab::before,
+      .billing-tab.is-active::before {
+        display: none;
+        content: none;
+      }
+      .billing-note {
+        margin: 12px 0 32px !important;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-weight: 400;
+      }
+
+      /* Banner: plain dark block, no decorative rings. */
+      .page-banner-luxe {
+        padding: 58px 0 52px;
+        background: #0f172a;
+        animation: none;
+        overflow: hidden;
+      }
+      .page-banner-luxe::before,
+      .page-banner-luxe::after {
+        display: none;
+        content: none;
+        animation: none;
+      }
+      .page-banner-luxe .banner-kicker {
+        display: inline-block;
+        margin: 0 0 12px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        color: #94a3b8;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .page-banner-luxe .banner-kicker::before {
+        content: none;
+        display: none;
+      }
+      .page-banner-luxe h1 {
+        margin: 0 0 16px;
+        font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+        font-weight: 600;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        text-shadow: none;
+      }
+      .page-banner .breadcrumb {
+        color: #94a3b8;
+        font-size: 0.82rem;
+        font-weight: 400;
+      }
+      .page-banner::after,
+      .page-banner::before {
+        display: none;
+        content: none;
+      }
+      .page-banner-compact {
+        padding: 56px 0 48px;
+      }
+      .pricing {
+        padding-top: 28px;
+      }
+
+      /* Hosting switcher: folder-tab pills with a small circular icon chip. */
+      .vps-theme .hosting-bar-half {
+        margin: 0 0 24px;
+      }
+      .vps-theme .hosting-bar-half nav {
+        gap: 8px;
+      }
+      .vps-theme .hosting-bar-half a {
+        position: relative;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        width: 118px;
+        margin-left: 0;
+        padding: 10px 8px 14px;
+        overflow: hidden;
+        text-align: center;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0 0 46px 46px / 0 0 26px 26px;
+        box-shadow: none;
+        color: #64748b;
+        font-size: 0.76rem;
+        font-weight: 500;
+        transform: none;
+        filter: none;
+      }
+      .vps-theme .hosting-bar-half .di-svg {
+        display: block;
+        width: 13px;
+        height: 13px;
+        padding: 4px;
+        box-sizing: content-box;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #64748b;
+        transform: none;
+      }
+      .vps-theme .hosting-bar-half strong {
+        font-size: 0.76rem;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-transform: none;
+        color: inherit;
+      }
+      .vps-theme .hosting-bar-half a:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #0f172a;
+        box-shadow: none;
+        transform: none;
+        filter: none;
+      }
+      .vps-theme .hosting-bar-half a:hover .di-svg {
+        background: #e2e8f0;
+        color: #0f172a;
+        transform: none;
+      }
+      .vps-theme .hosting-bar-half a[aria-current="page"] {
+        width: 118px;
+        margin-top: 0;
+        padding: 10px 8px 14px;
+        background: #0f172a;
+        border-color: #0f172a;
+        box-shadow: none;
+        color: #fff;
+        transform: none;
+      }
+      .vps-theme .hosting-bar-half a[aria-current="page"] .di-svg {
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
+      }
+      .vps-theme .hosting-bar-half a[aria-current="page"] strong {
+        color: #fff;
+      }
+
+      /* Supporting sections below the plans: same quiet card language. */
+      .why-vps .why-vps-head {
+        margin: 0 auto 32px;
+      }
+      .why-vps .why-vps-head h2 {
+        margin: 0 0 10px;
+        color: #0f172a;
+        font-size: clamp(1.6rem, 3vw, 2.1rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .why-vps .why-vps-head p {
+        color: #64748b;
+        font-size: 0.92rem;
+      }
+      .why-vps .eyebrow {
+        color: #94a3b8;
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .why-vps .benefit-card {
+        padding: 22px 20px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: none;
+        transition: border-color 0.18s ease;
+      }
+      .why-vps .benefit-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: none;
+        transform: none;
+      }
+      .why-vps .benefit-card h3 {
+        margin: 0 0 6px;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .why-vps .benefit-card p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+      .why-vps .benefit-icon {
+        display: inline-grid;
+        width: 32px;
+        height: 32px;
+        margin: 0 0 12px;
+        place-items: center;
+        border: 0;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 0.95rem;
+        box-shadow: none;
+      }
+      .vps-theme .trust-bar .trust-item,
+      .trust-bar .trust-item {
+        color: #64748b;
+        font-size: 0.82rem;
+        font-weight: 400;
+      }
+      .trust-bar .dot {
+        background: #cbd5e1;
+      }
+      .trust-bar .dot.blue {
+        background: #94a3b8;
+      }
+
+      /* Two cards per row on tablets, one on phones. */
+      @media (max-width: 1080px) {
+        .vps-theme .plans {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .vps-theme .plans > .plan-card:nth-child(4n + 1):last-child {
+          grid-column: auto;
+          justify-self: stretch;
+          width: auto;
+        }
+      }
+      @media (max-width: 760px) {
+        .vps-theme .plans {
+          grid-template-columns: 1fr;
+          margin-top: 22px;
+        }
+        .vps-theme .plan-card,
+        .vps-theme .plan-card-featured {
+          padding: 20px 18px;
+        }
+        .vps-theme .feature-groups,
+        .vps-theme .plan-card > ul:not(.extra-features) {
+          height: 260px;
+          max-height: 260px;
+        }
+      }
+
+      /* Phones: nothing may overflow the viewport. */
+      @media (max-width: 640px) {
+        .vps-theme .hosting-bar-half nav {
+          width: 100%;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 6px;
+        }
+        .vps-theme .hosting-bar-half a,
+        .vps-theme .hosting-bar-half a[aria-current="page"] {
+          flex: 1;
+          width: auto;
+          min-width: 0;
+          padding: 9px 4px 12px;
+        }
+        .vps-theme .hosting-bar-half strong {
+          font-size: 0.72rem;
+        }
+        .billing-tabs {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          width: 100%;
+          max-width: 100%;
+          padding: 3px;
+          gap: 2px;
+        }
+        .billing-tab {
+          min-width: 0;
+          padding: 9px 2px;
+          font-size: 0.78rem;
+          white-space: nowrap;
+        }
+        .billing-note,
+        .billing-note#billing-note {
+          display: block;
+          position: static;
+          left: auto;
+          width: auto;
+          max-width: 100%;
+          margin: 10px 0 22px !important;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          background: none;
+          transform: none;
+          overflow: visible;
+          white-space: normal;
+          text-align: center;
+        }
+        .vps-theme .plan-card h3.plan-circle {
+          padding-right: 92px;
+        }
+      }
+    </style>
+
     <footer class="hosting-footer">
         <div class="hosting-footer-inner">
             <a class="hf-logo" href="{{ route('landing') }}">@include('partials.logo', ['gid' => 'f'])</a>
@@ -679,18 +1323,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
             <span>{{ \App\Models\Setting::get('support_phone') }} · {{ \App\Models\Setting::get('support_email') }}</span>
         </div>
     </footer>
-
-    <dialog class="features-dialog" id="features-dialog">
-        <div class="dialog-header">
-            <div>
-                <p class="dialog-eyebrow">Included with this plan</p>
-                <h2 id="dialog-title">More features</h2>
-            </div>
-            <button class="dialog-close" type="button" aria-label="Close feature list">&#215;</button>
-        </div>
-        <div class="dialog-summary" id="dialog-summary"></div>
-        <p class="dialog-acl-note">CMS control is included with this plan.</p>
-    </dialog>
 
 <script>
     const periodNotes = {
@@ -710,16 +1342,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
     // let every card flag its own billing terms independently.
     const soonKey = (period) =>
         'soon' + period.charAt(0).toUpperCase() + period.slice(1).toLowerCase();
-
-    // Align each plan name and taka amount on one reference-style row.
-    document.querySelectorAll('.plan-card').forEach((card) => {
-        const heading = document.createElement('div');
-        heading.className = 'plan-heading';
-        const title = card.querySelector(':scope > h3.plan-circle');
-        const price = card.querySelector(':scope > .price');
-        card.insertBefore(heading, title);
-        heading.append(title, price);
-    });
 
     // Builds the grouped feature list for a card from its two source lists
     // (primary rows + extra rows). Used for the initial render and again
@@ -760,29 +1382,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
             });
             group.append(list);
             featureGroups.append(group);
-        });
-        tagVpsFeatureItems(featureGroups);
-    };
-
-    // Tag each feature with an icon key for the themed markers.
-    const tagVpsFeatureItems = (root) => {
-        root.querySelectorAll('.feature-group li').forEach((item) => {
-            const text = item.textContent.toLowerCase();
-            let icon = 'check';
-            if (text.includes('cpu') || text.includes('core')) icon = 'cpu';
-            else if (text.includes('ram')) icon = 'ram';
-            else if (text.includes('nvme') || text.includes('storage') || text.includes('disk')) icon = 'storage';
-            else if (text.includes('transactional')) icon = 'transfer';
-            else if (text.includes('mbps') || text.includes('internet')) icon = 'internet';
-            else if (text.includes(' ix')) icon = 'ix';
-            else if (text.includes('dedicated ip') || text.includes(' ip')) icon = 'ip';
-            else if (text.includes('root')) icon = 'root';
-            else if (text.includes('activation') || text.includes('instant')) icon = 'activation';
-            else if (text.includes('bangladesh') || text.includes('location') || text.includes('server')) icon = 'location';
-            else if (text.includes('back-up') || text.includes('backup')) icon = 'backup';
-            item.dataset.icon = icon;
-            // Full text as tooltip for clamped rows.
-            item.title = item.textContent.trim().replace(/\s+/g, ' ');
         });
     };
 
@@ -882,31 +1481,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
             const tabSoon = tab.dataset.soon === 'true';
             document.querySelector('#billing-note').textContent = tabSoon ? 'Coming soon' : periodNotes[period];
         });
-    });
-
-    // Feature dialog.
-    document.querySelectorAll('.features-toggle').forEach((toggle) => {
-        toggle.textContent = 'See more';
-        toggle.addEventListener('click', () => {
-            const card = toggle.closest('.plan-card');
-            const dialog = document.querySelector('#features-dialog');
-            const title = card.querySelector('h3').textContent;
-            const description = card.querySelector('.plan-description').textContent;
-            const price = card.querySelector('.price').cloneNode(true);
-            const summary = document.querySelector('#dialog-summary');
-            document.querySelector('#dialog-title').textContent = `${title} plan features`;
-            summary.innerHTML = `<p>${description}</p><div class="dialog-price"></div>`;
-            summary.querySelector('.dialog-price').append(price);
-            dialog.showModal();
-        });
-    });
-
-    const featuresDialog = document.querySelector('#features-dialog');
-    featuresDialog.querySelector('.dialog-close').addEventListener('click', () => featuresDialog.close());
-    featuresDialog.addEventListener('click', (event) => {
-        if (event.target === featuresDialog) {
-            featuresDialog.close();
-        }
     });
 </script>
 <script>
