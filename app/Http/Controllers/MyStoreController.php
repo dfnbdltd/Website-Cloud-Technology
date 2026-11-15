@@ -9,7 +9,6 @@ use App\Services\ResellerClubClient;
 use App\Support\StoreInventory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -190,7 +189,7 @@ class MyStoreController extends Controller
         }
 
         // ResellerClub has just logged this change; make Latest Activity re-read it.
-        Cache::forget(ResellerClubClient::domainActionsCacheKey($resellerClubOrderId));
+        ResellerClubClient::forgetDomainActions($resellerClubOrderId);
 
         return redirect()->route('mystore.domains.details', $item)
             ->with('success', 'Nameserver updated successfully')
@@ -229,7 +228,7 @@ class MyStoreController extends Controller
         }
 
         if (is_scalar($orderId)) {
-            Cache::forget(ResellerClubClient::domainActionsCacheKey($orderId));
+            ResellerClubClient::forgetDomainActions($orderId);
         }
 
         return redirect()->route('mystore.domains.details', $item)

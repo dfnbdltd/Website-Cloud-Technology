@@ -111,8 +111,8 @@ class DomainActivityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Cache::forget(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID));
-        Cache::forget(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID + 1));
+        ResellerClubClient::forgetDomainActions(self::ORDER_ID);
+        ResellerClubClient::forgetDomainActions(self::ORDER_ID + 1);
     }
 
     public function testParsesTheRealResponseShape()
@@ -312,5 +312,84 @@ class DomainActivityTest extends TestCase
             return $call['path'] === '/actions/search-current.json';
         });
         $this->assertSame([1, 2], array_values(array_column(array_column($currentCalls, 'parameters'), 'page-no')));
+    }
+
+    /**
+     * Seen in production: search-current answered a bare HTTP 500 once and was
+     * fine on the next call. One retry must be enough to hide that.
+     */
+    public function testClientRetriesOnceSoATransientFailureDoesNotHideTheActivity()
+    {
+        $attempts = 0;
+        $current = $this->currentResponse();
+
+        $client = $this->client([
+            '/actions/search-current.json' => function () use (&$attempts, $current) {
+                $attempts++;
+
+                return $attempts === 1 ? null : $current;
+            },
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+
+        $actions = $client->domainActions(self::ORDER_ID);
+
+        $this->assertSame(['9002', '9001', '8001'], array_column($actions, 'id'));
+        $this->assertSame(2, $attempts);
+    }
+
+    public function testClientGivesUpAfterTheConfiguredAttempts()
+    {
+        $attempts = 0;
+        $client = $this->client([
+            '/actions/search-current.json' => function () use (&$attempts) {
+                $attempts++;
+
+                return null;
+            },
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+
+        $this->assertNull($client->domainActions(self::ORDER_ID));
+        $this->assertSame(ResellerClubClient::ACTIONS_ATTEMPTS, $attempts);
+    }
+
+    public function testClientFallsBackToTheLastListItReadWhenResellerClubFailsLater()
+    {
+        $good = $this->client([
+            '/actions/search-current.json' => $this->currentResponse(),
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+        $this->assertCount(3, $good->domainActions(self::ORDER_ID));
+
+        // The short cache expires, then ResellerClub starts failing.
+        Cache::forget(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID));
+        $failing = $this->client([
+            '/actions/search-current.json' => null,
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+
+        $this->assertSame(['9002', '9001', '8001'], array_column($failing->domainActions(self::ORDER_ID), 'id'));
+    }
+
+    public function testChangingTheDomainDropsTheFallbackSoANewActionIsNeverHidden()
+    {
+        $good = $this->client([
+            '/actions/search-current.json' => $this->currentResponse(),
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+        $good->domainActions(self::ORDER_ID);
+
+        // A change made through our site clears both copies...
+        ResellerClubClient::forgetDomainActions(self::ORDER_ID);
+        $this->assertNull(Cache::get(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID)));
+        $this->assertNull(Cache::get(ResellerClubClient::domainActionsLastGoodCacheKey(self::ORDER_ID)));
+
+        // ...so a failure now is reported honestly instead of showing a list without the change.
+        $failing = $this->client([
+            '/actions/search-current.json' => null,
+            '/actions/search-archived.json' => null,
+        ]);
+        $this->assertNull($failing->domainActions(self::ORDER_ID));
     }
 }

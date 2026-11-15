@@ -12,6 +12,14 @@ class ResellerClubClient
     /** Records requested per page of the search-actions endpoints, and the page cap per endpoint. */
     const ACTIONS_PAGE_SIZE = 50;
     const ACTIONS_MAX_PAGES = 5;
+    /**
+     * ResellerClub's search-actions endpoints occasionally answer a bare HTTP 500
+     * that succeeds a moment later, so each call is tried this many times.
+     */
+    const ACTIONS_ATTEMPTS = 2;
+    const ACTIONS_RETRY_DELAY_MS = 400;
+    /** The last successful list is kept this long and shown only if ResellerClub cannot be read. */
+    const ACTIONS_LAST_GOOD_SECONDS = 86400;
 
     private $config;
 
@@ -791,6 +799,23 @@ class ResellerClubClient
         return 'resellerclub.domain_actions.v1.' . (string) $orderId;
     }
 
+    /** Cache key of the last successfully read list (the fallback copy). */
+    public static function domainActionsLastGoodCacheKey($orderId)
+    {
+        return 'resellerclub.domain_actions.last_good.v1.' . (string) $orderId;
+    }
+
+    /**
+     * Forget everything cached for one order's activity. Called right after a
+     * change is made through our site, so the next view reads ResellerClub
+     * again and never shows a list that predates the change.
+     */
+    public static function forgetDomainActions($orderId)
+    {
+        cache()->forget(self::domainActionsCacheKey($orderId));
+        cache()->forget(self::domainActionsLastGoodCacheKey($orderId));
+    }
+
     /**
      * Activity ("actions") ResellerClub has recorded for one domain order,
      * newest first — the same list as the panel's Latest Activity / Actions tab.
@@ -806,6 +831,10 @@ class ResellerClubClient
      * activity could not be read (not configured, bad order ID, API error).
      * null is never cached, and a partial result is never returned, so an
      * outage cannot be mistaken for "no activity".
+     *
+     * Each call is retried once. If ResellerClub still cannot be read, the last
+     * list that was read successfully (kept for a day) is returned instead of
+     * nothing, and null only when there is no such copy.
      *
      * @param  string|int  $orderId  the ResellerClub order ID (entityid)
      * @return array|null
@@ -830,6 +859,16 @@ class ResellerClubClient
         foreach (['/actions/search-current.json', '/actions/search-archived.json'] as $path) {
             $list = $this->searchActions($path, (int) $orderId);
             if ($list === null) {
+                $lastGood = cache()->get(self::domainActionsLastGoodCacheKey($orderId));
+                if (is_array($lastGood)) {
+                    \Log::warning('ResellerClub activity unreadable, showing the last list that was read', [
+                        'order_id' => (int) $orderId,
+                        'path' => $path,
+                    ]);
+
+                    return $lastGood;
+                }
+
                 return null;
             }
             $lists[] = $list;
@@ -837,6 +876,7 @@ class ResellerClubClient
 
         $actions = DomainActivity::merge(...$lists);
         cache()->put($cacheKey, $actions, now()->addSeconds(self::ACTIONS_CACHE_SECONDS));
+        cache()->put(self::domainActionsLastGoodCacheKey($orderId), $actions, now()->addSeconds(self::ACTIONS_LAST_GOOD_SECONDS));
 
         return $actions;
     }
@@ -850,17 +890,25 @@ class ResellerClubClient
         $collected = [];
 
         for ($page = 1; $page <= self::ACTIONS_MAX_PAGES; $page++) {
-            $parsed = DomainActivity::parseResponse($this->request($path, [
-                'order-id' => $orderId,
-                'no-of-records' => self::ACTIONS_PAGE_SIZE,
-                'page-no' => $page,
-            ], 'GET', false, false, true));
+            $parsed = null;
+            for ($attempt = 1; $attempt <= self::ACTIONS_ATTEMPTS && $parsed === null; $attempt++) {
+                if ($attempt > 1) {
+                    usleep(self::ACTIONS_RETRY_DELAY_MS * 1000);
+                }
+
+                $parsed = DomainActivity::parseResponse($this->request($path, [
+                    'order-id' => $orderId,
+                    'no-of-records' => self::ACTIONS_PAGE_SIZE,
+                    'page-no' => $page,
+                ], 'GET', false, false, true));
+            }
 
             if ($parsed === null) {
                 \Log::warning('ResellerClub activity lookup failed', [
                     'path' => $path,
                     'order_id' => $orderId,
                     'page' => $page,
+                    'attempts' => self::ACTIONS_ATTEMPTS,
                 ]);
 
                 return null;
@@ -1178,6 +1226,11 @@ class ResellerClubClient
                 'path' => $path,
                 'http_status' => $httpStatus,
                 'error' => $error,
+                // Activity lookups only: record what ResellerClub actually answered, so a
+                // bare HTTP 500 can be told apart from "no records" in the log.
+                'response_excerpt' => (strpos($path, '/actions/') === 0 && is_string($body))
+                    ? $this->sanitizeLogText($body, 300)
+                    : null,
             ]);
 
             return null;
