@@ -2,10 +2,17 @@
 
 namespace App\Services;
 
+use App\Support\DomainActivity;
 use App\Support\ResellerClubDomainContacts;
 
 class ResellerClubClient
 {
+    /** How long one order's activity list is reused before ResellerClub is asked again. */
+    const ACTIONS_CACHE_SECONDS = 60;
+    /** Records requested per page of the search-actions endpoints, and the page cap per endpoint. */
+    const ACTIONS_PAGE_SIZE = 50;
+    const ACTIONS_MAX_PAGES = 5;
+
     private $config;
 
     /**
@@ -776,31 +783,99 @@ class ResellerClubClient
     }
 
     /**
-     * Return current and archived ResellerClub actions for one domain order.
-     * The v2 API is read-only here; legacy domain update calls are separate.
+     * Cache key of one order's activity list. Static so callers can clear it
+     * (after a nameserver or consent change) without needing a client instance.
+     */
+    public static function domainActionsCacheKey($orderId)
+    {
+        return 'resellerclub.domain_actions.v1.' . (string) $orderId;
+    }
+
+    /**
+     * Activity ("actions") ResellerClub has recorded for one domain order,
+     * newest first — the same list as the panel's Latest Activity / Actions tab.
+     *
+     * Legacy HTTP API, both endpoints are needed because "current" holds
+     * pending actions and anything completed in the last 24 hours while
+     * "archived" holds everything older:
+     *   GET /api/actions/search-current.json
+     *   GET /api/actions/search-archived.json
+     *
+     * Returns a list of rows (see App\Support\DomainActivity::normalize()),
+     * which is [] when the order simply has no activity, or null when the
+     * activity could not be read (not configured, bad order ID, API error).
+     * null is never cached, and a partial result is never returned, so an
+     * outage cannot be mistaken for "no activity".
+     *
+     * @param  string|int  $orderId  the ResellerClub order ID (entityid)
+     * @return array|null
      */
     public function domainActions($orderId)
     {
         if (!is_scalar($orderId) || !ctype_digit((string) $orderId) || (int) $orderId < 1) {
-            return [];
+            return null;
         }
 
-        $filters = [
-            'size' => 50,
-            'page' => 1,
-            'orderId' => [(int) $orderId],
-        ];
-        $actions = [];
+        if (!$this->isConfigured()) {
+            return null;
+        }
 
-        foreach (['/actions/search-current', '/actions/search-archived'] as $path) {
-            $response = $this->v2Request('GET', $path, $filters);
-            if (!is_array($response) || !is_array($response['actions'] ?? null)) {
-                continue;
+        $cacheKey = self::domainActionsCacheKey($orderId);
+        $cached = cache()->get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $lists = [];
+        foreach (['/actions/search-current.json', '/actions/search-archived.json'] as $path) {
+            $list = $this->searchActions($path, (int) $orderId);
+            if ($list === null) {
+                return null;
             }
-            $actions = array_merge($actions, $response['actions']);
+            $lists[] = $list;
         }
+
+        $actions = DomainActivity::merge(...$lists);
+        cache()->put($cacheKey, $actions, now()->addSeconds(self::ACTIONS_CACHE_SECONDS));
 
         return $actions;
+    }
+
+    /**
+     * Every record of one search-actions endpoint for an order, page by page.
+     * Returns null if any page fails.
+     */
+    private function searchActions($path, $orderId)
+    {
+        $collected = [];
+
+        for ($page = 1; $page <= self::ACTIONS_MAX_PAGES; $page++) {
+            $parsed = DomainActivity::parseResponse($this->request($path, [
+                'order-id' => $orderId,
+                'no-of-records' => self::ACTIONS_PAGE_SIZE,
+                'page-no' => $page,
+            ], 'GET', false, false, true));
+
+            if ($parsed === null) {
+                \Log::warning('ResellerClub activity lookup failed', [
+                    'path' => $path,
+                    'order_id' => $orderId,
+                    'page' => $page,
+                ]);
+
+                return null;
+            }
+
+            $collected = array_merge($collected, $parsed['actions']);
+
+            $lastPage = count($parsed['actions']) < self::ACTIONS_PAGE_SIZE
+                || ($parsed['total'] !== null && count($collected) >= $parsed['total']);
+            if ($lastPage) {
+                break;
+            }
+        }
+
+        return $collected;
     }
 
     private function priceOptions($live, array $fallback = [])

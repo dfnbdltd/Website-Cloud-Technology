@@ -278,6 +278,30 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
 </section>
 </main>
 
+<aside class="store-detail-panel store-latest-activity" aria-labelledby="latest-activity-title">
+    <h2 class="store-latest-title" id="latest-activity-title">LATEST ACTIVITY</h2>
+    @if($activitiesUnavailable)
+    <p class="store-latest-empty">Activity is temporarily unavailable. Please try again shortly.</p>
+    @elseif($latestActivities->isEmpty())
+    <p class="store-latest-empty">No activity</p>
+    @else
+    <ol class="store-latest-list">
+        @foreach($latestActivities as $activity)
+        <li class="store-latest-item">
+            @if($activity['at'])
+            <time datetime="{{ $activity['at']->toIso8601String() }}">{{ $activity['at']->format('jS M, Y') }}</time>
+            @endif
+            <p>{{ $activity['title'] }}</p>
+            @if($activity['state'] !== 'completed')
+            <small class="store-latest-state is-{{ $activity['state'] }}">{{ $activity['state_label'] }}</small>
+            @endif
+        </li>
+        @endforeach
+    </ol>
+    <a class="store-latest-viewall" href="{{ route('mystore.domains.activity', $item->id) }}">View All</a>
+    @endif
+</aside>
+
 </div>
 
 <div class="store-child-details store-ns-error-modal" id="nameserver-error-details-{{ $item->id }}" hidden>

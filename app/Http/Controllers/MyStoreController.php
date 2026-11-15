@@ -9,6 +9,7 @@ use App\Services\ResellerClubClient;
 use App\Support\StoreInventory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -74,16 +75,22 @@ class MyStoreController extends Controller
             ->where('source_id', $item->order->id)
             ->first();
 
-        $nameservers = $this->resellerClub->nameservers($this->resellerClub->domainOrderId($item->domain));
+        // This domain's own ResellerClub order, resolved once and reused below.
+        $resellerOrderId = $this->resellerOrderId($item);
+
+        $nameservers = $this->resellerClub->nameservers($resellerOrderId);
         if (!$nameservers) {
             $nameservers = array_values(array_filter(array_map('trim', (array) config('services.resellerclub.nameservers', []))));
         }
+
+        $activity = $this->registrarActivity($item, $resellerOrderId);
 
         return view('store.domain-details', [
             'item' => $item,
             'order' => $item->order,
             'invoice' => $invoice,
-            'activities' => $this->domainActivities($item->order, $invoice),
+            'latestActivities' => $activity['items']->take(3)->values(),
+            'activitiesUnavailable' => !$activity['available'],
             'nameservers' => $nameservers,
         ]);
     }
@@ -95,9 +102,14 @@ class MyStoreController extends Controller
         $invoice = Invoice::where('source_type', \App\Models\DomainOrder::class)
             ->where('source_id', $order->id)
             ->first();
+        $activity = $this->registrarActivity($item, $this->resellerOrderId($item));
+
         return view('store.domain-activity', [
             'item' => $item,
-            'activities' => $this->domainActivities($order, $invoice),
+            'activities' => $activity['items'],
+            'activitiesUnavailable' => !$activity['available'],
+            'orderUrl' => route('domains.confirmation', $order->reference),
+            'orderHistory' => $this->orderHistory($order, $invoice),
         ]);
     }
 
@@ -177,6 +189,9 @@ class MyStoreController extends Controller
                 ->with('manage_domain_item', $item->id);
         }
 
+        // ResellerClub has just logged this change; make Latest Activity re-read it.
+        Cache::forget(ResellerClubClient::domainActionsCacheKey($resellerClubOrderId));
+
         return redirect()->route('mystore.domains.details', $item)
             ->with('success', 'Nameserver updated successfully')
             ->with('manage_domain_item', $item->id);
@@ -211,6 +226,10 @@ class MyStoreController extends Controller
 
             return redirect()->route('mystore.domains.details', $item)
                 ->withErrors(['consent' => $this->providerErrorMessage($response) ?: 'The organization consent could not be updated. Please contact support.']);
+        }
+
+        if (is_scalar($orderId)) {
+            Cache::forget(ResellerClubClient::domainActionsCacheKey($orderId));
         }
 
         return redirect()->route('mystore.domains.details', $item)
@@ -341,16 +360,91 @@ class MyStoreController extends Controller
             ->firstOrFail();
     }
 
-    private function domainActivities($order, $invoice)
+    /**
+     * The ResellerClub order ID of THIS domain item.
+     *
+     * Stored on the item the first time it is resolved, so later page views
+     * skip the lookup. Never derived from another item of the same cart order.
+     * Returns null for demo/test domains and when ResellerClub cannot be asked.
+     *
+     * @return string|null
+     */
+    private function resellerOrderId(DomainOrderItem $item)
     {
-        $activities = collect();
+        if ($this->isTestDomain($item->domain)) {
+            return null;
+        }
+
+        $stored = trim((string) $item->reseller_order_id);
+        if ($stored !== '' && ctype_digit($stored)) {
+            return $stored;
+        }
+
+        $orderId = $this->resellerClub->domainOrderId($item->domain);
+        if ($orderId !== null && $orderId !== $stored) {
+            $item->update(['reseller_order_id' => $orderId]);
+        }
+
+        return $orderId;
+    }
+
+    private function isTestDomain($domain)
+    {
+        $testDomains = (array) config('services.test_domains', []);
+
+        return isset($testDomains[$domain]);
+    }
+
+    /**
+     * ResellerClub's own activity list for one domain, shaped for the views.
+     *
+     * 'available' is false when the activity could not be read, so the page
+     * can say so instead of claiming the domain has no activity.
+     *
+     * @param  string|null  $resellerOrderId
+     * @return array  ['available' => bool, 'items' => \Illuminate\Support\Collection]
+     */
+    private function registrarActivity(DomainOrderItem $item, $resellerOrderId)
+    {
+        if ($this->isTestDomain($item->domain)) {
+            return ['available' => true, 'items' => collect()];
+        }
+
+        $actions = $resellerOrderId === null ? null : $this->resellerClub->domainActions($resellerOrderId);
+        if ($actions === null) {
+            return ['available' => false, 'items' => collect()];
+        }
+
+        $items = collect($actions)->map(function ($action) {
+            return [
+                'id' => $action['id'],
+                'title' => $action['title'],
+                'description' => $action['description'],
+                'state' => $action['state'],
+                'state_label' => $action['state_label'],
+                'at' => $this->activityDate($action['at']),
+                'started_at' => $this->activityDate($action['started_at'] ?: $action['added_at']),
+                'completed_at' => $this->activityDate($action['completed_at']),
+            ];
+        })->values();
+
+        return ['available' => true, 'items' => $items];
+    }
+
+    /**
+     * Our own record of the order (placed, paid, invoiced), newest first.
+     * Shown under the ResellerClub timeline on the full activity page.
+     */
+    private function orderHistory($order, $invoice)
+    {
+        $history = collect();
         $orderLink = $invoice
             ? route('invoices.view', $invoice)
             : route('domains.confirmation', $order->reference);
         $orderLinkLabel = $invoice ? 'View Invoice' : 'View Order';
 
         if ($order->created_at) {
-            $activities->push([
+            $history->push([
                 'at' => $order->created_at,
                 'title' => 'Domain order placed',
                 'description' => 'Order ' . $order->reference,
@@ -360,7 +454,7 @@ class MyStoreController extends Controller
         }
 
         foreach (Payment::where('domain_order_id', $order->id)->latest()->get() as $payment) {
-            $activities->push([
+            $history->push([
                 'at' => $payment->created_at,
                 'title' => 'Payment ' . ucfirst((string) $payment->status),
                 'description' => ucfirst((string) $payment->provider ?: 'Payment') . ' · ' . $payment->reference . ' · ৳ ' . number_format((float) $payment->amount, 2),
@@ -370,7 +464,7 @@ class MyStoreController extends Controller
         }
 
         if ($invoice && $invoice->created_at) {
-            $activities->push([
+            $history->push([
                 'at' => $invoice->created_at,
                 'title' => 'Invoice issued',
                 'description' => $invoice->invoice_number . ' · ' . ucfirst((string) $invoice->status),
@@ -379,38 +473,18 @@ class MyStoreController extends Controller
             ]);
         }
 
-        $resellerOrderId = $this->resellerClub->domainOrderId($order->items()->value('domain'));
-        foreach ($this->resellerClub->domainActions($resellerOrderId) as $action) {
-            $at = $this->activityDate($action['actionCompleted'] ?? null)
-                ?: $this->activityDate($action['actionStarted'] ?? null)
-                ?: $this->activityDate($action['actionAdded'] ?? null);
-            if (!$at) {
-                continue;
-            }
-            $description = (string) ($action['actionStatusDesc'] ?? $action['description'] ?? 'ResellerClub domain action');
-            $activities->push([
-                'at' => $at,
-                'title' => (string) ($action['actionTypeDesc'] ?? $action['actionType'] ?? 'Domain action'),
-                'description' => $description,
-                'link' => route('domains.confirmation', $order->reference),
-                'link_label' => 'View Order',
-            ]);
-        }
-
-        return $activities->sortByDesc(function ($activity) {
-            return $activity['at'] ? $activity['at']->timestamp : 0;
+        return $history->sortByDesc(function ($entry) {
+            return $entry['at'] ? $entry['at']->timestamp : 0;
         })->values();
     }
 
-    private function activityDate($value)
+    /**
+     * @param  int|null  $timestamp  Unix seconds
+     * @return \Carbon\Carbon|null
+     */
+    private function activityDate($timestamp)
     {
-        if (!is_scalar($value) || trim((string) $value) === '') {
-            return null;
-        }
-
-        $timestamp = strtotime((string) $value);
-
-        return $timestamp === false ? null : Carbon::createFromTimestamp($timestamp);
+        return $timestamp ? Carbon::createFromTimestamp($timestamp) : null;
     }
 
     /**
