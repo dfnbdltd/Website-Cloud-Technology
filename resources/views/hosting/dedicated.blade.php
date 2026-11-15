@@ -1584,21 +1584,27 @@ button, a { -webkit-tap-highlight-color: transparent; }
          overlay — the shell above sets `background: #fff !important`, and
          an absolutely-positioned overlay would also paint over the
          `position: static` heading. A background layer sits under the
-         content by definition, so nothing needs a z-index. */
+         content by definition, so nothing needs a z-index.
+
+         Padding is deliberately roomier than the other two types (this is
+         the premium page) and the band is sized to end just under the
+         description — clear of the price row, whose large superscript ৳
+         rises above the digits. */
       .dedicated-theme .plan-card,
       .dedicated-theme .plan-card-featured {
+        padding: 28px 26px 26px;
         border-radius: 8px;
         background-color: #fff !important;
         background-image: linear-gradient(180deg, var(--hp-accent-tint), var(--hp-accent-tint)) !important;
         background-repeat: no-repeat !important;
-        background-size: 100% 104px !important;
+        background-size: 100% 88px !important;
         background-position: top left !important;
       }
       /* Hairline closing the band, so the header reads as its own zone. */
       .dedicated-theme .plan-card::before {
         content: "";
         position: absolute;
-        top: 103px;
+        top: 87px;
         right: -1px;
         left: -1px;
         height: 1px;
@@ -1623,12 +1629,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
         margin: 0 0 14px;
         padding-top: 0.5em;
       }
+      /* The ৳ is deliberately LARGE — it is the marker that tells the eye
+         "this is money", so it carries real weight next to the figure
+         rather than reading as a stray speck. margin-top is in em, so it
+         scales with the glyph and keeps the same lift above the digits. */
       .dedicated-theme .currency {
         flex: none;
-        margin: -0.62em 0.1em 0 0;
+        margin: -0.5em 0.14em 0 0;
         color: var(--hp-taka);
-        font-size: 1.15rem;
-        font-weight: 600;
+        font-size: 1.85rem;
+        font-weight: 700;
         line-height: 1;
       }
       .dedicated-theme .price-value {
@@ -1683,8 +1693,50 @@ button, a { -webkit-tap-highlight-color: transparent; }
         transform: none;
       }
 
-      /* Badges: the "Most popular" chip is the one place lime can be a
-         fill under dark ink at full strength. */
+      /* Badges: a compact chip CENTRED on the plan-name row, with its
+         label centred INSIDE the box.
+         Two things have to be undone to get that:
+          * the top-of-file rule styles `.popular-badge` as a full-width
+            banner (`left: 0; right: 0; min-height: 40px`), which left the
+            label stranded at the top of a 40px box once the base block
+            below it forced `display: block`. Restating it as a centred
+            inline-flex box with no min-height puts the label in the
+            middle of the chip again.
+          * the base block pins the chip top-right, so `left: 50%` +
+            `translateX(-50%)` needs `!important` to win.
+         `top: 28px` lands the chip on the plan-name line, matching how
+         the badge sits on the other two hosting types. */
+      .dedicated-theme .cheapest-badge,
+      .dedicated-theme .popular-badge {
+        top: 28px !important;
+        left: 50% !important;
+        right: auto !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-height: 0 !important;
+        padding: 4px 10px;
+        line-height: 1.35;
+        transform: translateX(-50%) !important;
+        text-align: center;
+      }
+      /* A centred badge sits in the middle of the name's line, so a long
+         plan name could slide underneath it. On a badged card the name is
+         capped to the clear space left of the chip and wraps instead of
+         colliding; unbadged cards keep the full width. */
+      .dedicated-theme .plan-card h3.plan-circle {
+        padding-right: 0;
+      }
+      .dedicated-theme .plan-card:has(.cheapest-badge) h3.plan-circle,
+      .dedicated-theme .plan-card:has(.popular-badge) h3.plan-circle {
+        max-width: calc(50% - 62px);
+        /* A single long word ("Enterprise") is wider than the capped box
+           and would spill back under the chip, so it must be allowed to
+           break rather than overflow. */
+        overflow-wrap: anywhere;
+      }
+      /* The "Most popular" chip is the one place lime can be a fill under
+         dark ink at full strength. */
       .dedicated-theme .popular-badge {
         border-color: var(--hp-accent) !important;
         background: var(--hp-accent) !important;

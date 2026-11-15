@@ -136,10 +136,13 @@
     display: grid;
     place-items: center;
     flex: none;
-    width: 26px;
-    height: 26px;
-    min-width: 26px;
-    min-height: 26px;
+    /* Sized to match the topbar's "+" chip exactly (.profile-caret in
+       domains.css): an 18px circle with 8px bars at a 1.5px stroke. The
+       previous 26px / 14px / 2px read as a heavy button beside it. */
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
     margin-left: auto;
     padding: 0;
     border: 1px solid #c8d5e4;
@@ -160,9 +163,9 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 14px;
-    height: 2px;
-    border-radius: 1px;
+    width: 8px;
+    height: 1.5px;
+    border-radius: 2px;
     background: currentColor;
     content: "";
     transform: translate(-50%, -50%);

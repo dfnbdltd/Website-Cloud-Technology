@@ -4858,12 +4858,16 @@
         margin: 0 0 14px;
         padding-top: 0.5em;
       }
+      /* The ৳ is deliberately LARGE — it is the marker that tells the eye
+         "this is money", so it carries real weight next to the figure
+         rather than reading as a stray speck. margin-top is in em, so it
+         scales with the glyph and keeps the same lift above the digits. */
       .shared-theme .currency {
         flex: none;
-        margin: -0.62em 0.1em 0 0;
+        margin: -0.5em 0.14em 0 0;
         color: var(--hp-taka);
-        font-size: 1.15rem;
-        font-weight: 600;
+        font-size: 1.85rem;
+        font-weight: 700;
         line-height: 1;
       }
       .shared-theme .price-value {
@@ -4917,7 +4921,46 @@
         transform: none;
       }
 
-      /* Badges pick up the accent family. */
+      /* Badges: a compact chip CENTRED on the plan-name row, with its
+         label centred INSIDE the box.
+         Earlier rules style `.popular-badge` as a full-width banner
+         (`left: 0; right: 0; min-height: 40px`), which left the label
+         stranded at the top of a 40px box once `display: block` was
+         forced on it. Restating it as an inline-flex box with no
+         min-height puts the label back in the middle of the chip.
+         `left: 50%` + `translateX(-50%)` does the horizontal centring and
+         needs `!important` to beat the base block's `left: auto`. */
+      .shared-theme .cheapest-badge,
+      .shared-theme .popular-badge {
+        left: 50% !important;
+        right: auto !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-height: 0 !important;
+        padding: 4px 10px;
+        line-height: 1.35;
+        transform: translateX(-50%) !important;
+        text-align: center;
+      }
+      /* A centred badge sits in the middle of the name's line, so a long
+         plan name could slide underneath it. On a badged card the name is
+         capped to the clear space left of the chip and wraps instead of
+         colliding; unbadged cards keep the full width. `:has()` is already
+         fair game here (the sheet uses `color-mix()`), and the chip is a
+         direct child of the card. */
+      .shared-theme .plan-card h3.plan-circle {
+        padding-right: 0;
+      }
+      .shared-theme .plan-card:has(.cheapest-badge) h3.plan-circle,
+      .shared-theme .plan-card:has(.popular-badge) h3.plan-circle {
+        max-width: calc(50% - 62px);
+        /* A single long word ("Enterprise") is wider than the capped box
+           and would spill back under the chip, so it must be allowed to
+           break rather than overflow. */
+        overflow-wrap: anywhere;
+      }
+      /* Accent family for the badge fills. */
       .shared-theme .popular-badge {
         border-color: var(--hp-accent) !important;
         background: var(--hp-accent) !important;
