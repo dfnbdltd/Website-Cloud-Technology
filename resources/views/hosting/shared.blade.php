@@ -4809,6 +4809,125 @@
           padding-right: 84px;
         }
       }
+
+      /* ===============================================================
+         TYPE IDENTITY — SHARED: blue.
+         Same quiet white shell as the block above, but Shared now wears
+         the site blue: one 4px accent rule welded to the top edge, a
+         solid blue call to action, and the ৳ set as a superscript beside
+         the figure (the price treatment used on the SSL cards, so the
+         two pages read as one family).
+         Kept last so it supersedes the monochrome block above it.
+         =============================================================== */
+      .shared-theme {
+        --hp-accent: #2f73e8;
+        --hp-accent-deep: #1d5fd0;
+        --hp-accent-tint: #eaf2ff;
+        --hp-taka: #2f73e8;
+        --hp-ink: #0f2340;
+        --hp-muted: #7b8ca0;
+      }
+
+      /* The accent rule: a 4px bar welded to the card's top edge. */
+      .shared-theme .plan-card::before {
+        content: "";
+        position: absolute;
+        top: -1px;
+        right: -1px;
+        left: -1px;
+        height: 4px;
+        border-radius: 12px 12px 0 0;
+        background: var(--hp-accent);
+        pointer-events: none;
+      }
+      .shared-theme .plan-card-featured::before {
+        background: linear-gradient(90deg, #2f73e8, #1d5fd0);
+      }
+      .shared-theme .plan-card:hover,
+      .shared-theme .plan-card-featured:hover {
+        border-color: #c9dbf5 !important;
+        box-shadow: 0 10px 24px rgba(47, 115, 232, 0.1) !important;
+      }
+      .shared-theme .plan-card-featured {
+        border-color: #bfd6f7 !important;
+      }
+
+      /* Price: superscript ৳, large ink figure, unit on the baseline. */
+      .shared-theme .price {
+        align-items: flex-start;
+        margin: 0 0 14px;
+        padding-top: 0.5em;
+      }
+      .shared-theme .currency {
+        flex: none;
+        margin: -0.62em 0.1em 0 0;
+        color: var(--hp-taka);
+        font-size: 1.15rem;
+        font-weight: 600;
+        line-height: 1;
+      }
+      .shared-theme .price-value {
+        color: var(--hp-ink);
+        font-size: 2.35rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.028em;
+        font-variant-numeric: tabular-nums;
+      }
+      .shared-theme .price small,
+      .shared-theme .price-unit {
+        align-self: flex-end;
+        margin: 0 0 0.26em 4px;
+        color: var(--hp-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      /* "Coming soon": drop the ৳ and the unit, keep the quiet small size. */
+      .shared-theme .plan-card.is-coming-soon .currency,
+      .shared-theme .plan-card.is-coming-soon .price-unit {
+        display: none;
+      }
+      .shared-theme .plan-card.is-coming-soon .price-value {
+        color: #94a3b8;
+        font-size: 1.45rem;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      /* Accent call to action. */
+      .shared-theme .purchase-button {
+        border: 1px solid var(--hp-accent) !important;
+        background: var(--hp-accent) !important;
+        color: #fff !important;
+      }
+      .shared-theme .purchase-button:hover {
+        border-color: var(--hp-accent-deep) !important;
+        background: var(--hp-accent-deep) !important;
+        color: #fff !important;
+      }
+      /* The accent fill is `!important`, so the disabled "Coming soon"
+         button must be restated here or the accent would win and the
+         dead control would still look clickable. */
+      .shared-theme .plan-card.is-coming-soon .purchase-button,
+      .shared-theme .plan-card.is-coming-soon .purchase-button:hover {
+        border-color: #e2e8f0 !important;
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+        transform: none;
+      }
+
+      /* Badges pick up the accent family. */
+      .shared-theme .popular-badge {
+        border-color: var(--hp-accent) !important;
+        background: var(--hp-accent) !important;
+        color: #fff !important;
+      }
+      .shared-theme .cheapest-badge {
+        border-color: #c9dbf5 !important;
+        background: var(--hp-accent-tint) !important;
+        color: var(--hp-accent-deep) !important;
+      }
     </style>
     <footer class="hosting-footer">
         <div class="hosting-footer-inner">

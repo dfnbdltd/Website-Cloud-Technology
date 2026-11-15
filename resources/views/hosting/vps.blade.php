@@ -1314,6 +1314,140 @@ button, a { -webkit-tap-highlight-color: transparent; }
           padding-right: 92px;
         }
       }
+
+      /* ===============================================================
+         TYPE IDENTITY — VPS: teal.
+         Deliberately a DIFFERENT shape from Shared, not just a recolour:
+         Shared wears a rule across its top edge, VPS wears a 4px rail
+         down its left edge with the name/price side shifted to clear it.
+         Cards are a touch squarer (10px) and the CTA is teal. The ৳ keeps
+         the same superscript treatment as Shared so the price still reads
+         as one family across the hosting pages.
+         Kept last so it supersedes the monochrome block above it.
+         =============================================================== */
+      .vps-theme {
+        --hp-accent: #0f9d76;
+        --hp-accent-deep: #0b7d5e;
+        --hp-accent-tint: #e6f6f1;
+        --hp-taka: #0f9d76;
+        --hp-ink: #0f2340;
+        --hp-muted: #7b8ca0;
+      }
+
+      /* The accent rail: a 4px bar down the card's left edge. */
+      .vps-theme .plan-card::before {
+        content: "";
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        left: -1px;
+        width: 4px;
+        border-radius: 10px 0 0 10px;
+        background: var(--hp-accent);
+        pointer-events: none;
+      }
+      .vps-theme .plan-card-featured::before {
+        background: linear-gradient(180deg, #0f9d76, #0b7d5e);
+      }
+      .vps-theme .plan-card,
+      .vps-theme .plan-card-featured {
+        border-radius: 10px;
+        padding-left: 26px;
+      }
+      .vps-theme .plan-card:hover,
+      .vps-theme .plan-card-featured:hover {
+        border-color: #b4ded2 !important;
+        box-shadow: 0 10px 24px rgba(15, 157, 118, 0.1) !important;
+      }
+      .vps-theme .plan-card-featured {
+        border-color: #a9d9cc !important;
+      }
+
+      /* Price: superscript ৳, large ink figure, unit on the baseline. */
+      .vps-theme .price {
+        align-items: flex-start;
+        margin: 0 0 14px;
+        padding-top: 0.5em;
+      }
+      .vps-theme .currency {
+        flex: none;
+        margin: -0.62em 0.1em 0 0;
+        color: var(--hp-taka);
+        font-size: 1.15rem;
+        font-weight: 600;
+        line-height: 1;
+      }
+      .vps-theme .price-value {
+        color: var(--hp-ink);
+        font-size: 2.35rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.028em;
+        font-variant-numeric: tabular-nums;
+      }
+      .vps-theme .price small,
+      .vps-theme .price-unit {
+        align-self: flex-end;
+        margin: 0 0 0.26em 4px;
+        color: var(--hp-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      /* "Coming soon": drop the ৳ and the unit, keep the quiet small size. */
+      .vps-theme .plan-card.is-coming-soon .currency,
+      .vps-theme .plan-card.is-coming-soon .price-unit {
+        display: none;
+      }
+      .vps-theme .plan-card.is-coming-soon .price-value {
+        color: #94a3b8;
+        font-size: 1.45rem;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      /* Accent call to action. */
+      .vps-theme .purchase-button {
+        border: 1px solid var(--hp-accent) !important;
+        background: var(--hp-accent) !important;
+        color: #fff !important;
+      }
+      .vps-theme .purchase-button:hover {
+        border-color: var(--hp-accent-deep) !important;
+        background: var(--hp-accent-deep) !important;
+        color: #fff !important;
+      }
+      /* The accent fill is `!important`, so the disabled "Coming soon"
+         button must be restated here or the accent would win and the
+         dead control would still look clickable. */
+      .vps-theme .plan-card.is-coming-soon .purchase-button,
+      .vps-theme .plan-card.is-coming-soon .purchase-button:hover {
+        border-color: #e2e8f0 !important;
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+        transform: none;
+      }
+
+      /* Badges pick up the accent family. */
+      .vps-theme .popular-badge {
+        border-color: var(--hp-accent) !important;
+        background: var(--hp-accent) !important;
+        color: #fff !important;
+      }
+      .vps-theme .cheapest-badge {
+        border-color: #b4ded2 !important;
+        background: var(--hp-accent-tint) !important;
+        color: var(--hp-accent-deep) !important;
+      }
+
+      /* The rail narrows the usable width on small screens — give the
+         padding back and keep two-up then one-up intact. */
+      @media (max-width: 760px) {
+        .vps-theme .plan-card,
+        .vps-theme .plan-card-featured {
+          padding-left: 19px;
+        }
+      }
     </style>
 
     <footer class="hosting-footer">

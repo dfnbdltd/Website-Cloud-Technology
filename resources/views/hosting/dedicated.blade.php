@@ -1555,6 +1555,146 @@ button, a { -webkit-tap-highlight-color: transparent; }
           padding-right: 92px;
         }
       }
+
+      /* ===============================================================
+         TYPE IDENTITY — DEDICATED: lime.
+         A third distinct shape: neither Shared's top rule nor VPS's side
+         rail, but a tinted header BAND behind the plan name (lime wash
+         over the top third of the card), with the card squared to 8px.
+         Lime is used only as a FILL carrying dark ink — never as text on
+         white, where #b8e36b is far too pale to read (the "Visited"
+         demo badge shows this at the top of the page). The ৳ therefore
+         uses a deepened olive-lime that keeps the family look while
+         staying legible, and the CTA is solid dark ink with a lime edge
+         so the accent reads without ever carrying a label at low
+         contrast.
+         Kept last so it supersedes the monochrome block above it.
+         =============================================================== */
+      .dedicated-theme {
+        --hp-accent: #b8e36b;
+        --hp-accent-deep: #283b12;
+        --hp-accent-tint: #f4fae7;
+        --hp-taka: #5f8a12;
+        --hp-ink: #0f2340;
+        --hp-muted: #7b8ca0;
+      }
+
+      /* The header band: a lime wash across the top of the card.
+         Painted as a no-repeat background layer rather than a ::before
+         overlay — the shell above sets `background: #fff !important`, and
+         an absolutely-positioned overlay would also paint over the
+         `position: static` heading. A background layer sits under the
+         content by definition, so nothing needs a z-index. */
+      .dedicated-theme .plan-card,
+      .dedicated-theme .plan-card-featured {
+        border-radius: 8px;
+        background-color: #fff !important;
+        background-image: linear-gradient(180deg, var(--hp-accent-tint), var(--hp-accent-tint)) !important;
+        background-repeat: no-repeat !important;
+        background-size: 100% 104px !important;
+        background-position: top left !important;
+      }
+      /* Hairline closing the band, so the header reads as its own zone. */
+      .dedicated-theme .plan-card::before {
+        content: "";
+        position: absolute;
+        top: 103px;
+        right: -1px;
+        left: -1px;
+        height: 1px;
+        background: #e3f0c6;
+        pointer-events: none;
+      }
+      .dedicated-theme .plan-card-featured {
+        background-image: linear-gradient(180deg, #f4fae7, #eaf5d2) !important;
+        border-color: #c2dc95 !important;
+      }
+      .dedicated-theme .plan-card-featured::before {
+        background: #d6e9ab;
+      }
+      .dedicated-theme .plan-card:hover,
+      .dedicated-theme .plan-card-featured:hover {
+        border-color: #cfe3a6 !important;
+        box-shadow: 0 10px 24px rgba(184, 227, 107, 0.18) !important;
+      }
+      /* Price: superscript ৳, large ink figure, unit on the baseline. */
+      .dedicated-theme .price {
+        align-items: flex-start;
+        margin: 0 0 14px;
+        padding-top: 0.5em;
+      }
+      .dedicated-theme .currency {
+        flex: none;
+        margin: -0.62em 0.1em 0 0;
+        color: var(--hp-taka);
+        font-size: 1.15rem;
+        font-weight: 600;
+        line-height: 1;
+      }
+      .dedicated-theme .price-value {
+        color: var(--hp-ink);
+        font-size: 2.35rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.028em;
+        font-variant-numeric: tabular-nums;
+      }
+      .dedicated-theme .price small,
+      .dedicated-theme .price-unit {
+        align-self: flex-end;
+        margin: 0 0 0.26em 4px;
+        color: var(--hp-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      /* "Coming soon": drop the ৳ and the unit, keep the quiet small size. */
+      .dedicated-theme .plan-card.is-coming-soon .currency,
+      .dedicated-theme .plan-card.is-coming-soon .price-unit {
+        display: none;
+      }
+      .dedicated-theme .plan-card.is-coming-soon .price-value {
+        color: #94a3b8;
+        font-size: 1.45rem;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      /* Call to action: dark ink fill with a lime edge — the accent
+         arrives as a detail rather than as a low-contrast label. */
+      .dedicated-theme .purchase-button {
+        border: 1px solid var(--hp-accent) !important;
+        background: var(--hp-accent-deep) !important;
+        color: #fff !important;
+      }
+      .dedicated-theme .purchase-button:hover {
+        border-color: var(--hp-accent) !important;
+        background: #3a5219 !important;
+        color: #fff !important;
+      }
+      /* The accent fill is `!important`, so the disabled "Coming soon"
+         button must be restated here or the accent would win and the
+         dead control would still look clickable. */
+      .dedicated-theme .plan-card.is-coming-soon .purchase-button,
+      .dedicated-theme .plan-card.is-coming-soon .purchase-button:hover {
+        border-color: #e2e8f0 !important;
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+        transform: none;
+      }
+
+      /* Badges: the "Most popular" chip is the one place lime can be a
+         fill under dark ink at full strength. */
+      .dedicated-theme .popular-badge {
+        border-color: var(--hp-accent) !important;
+        background: var(--hp-accent) !important;
+        color: var(--hp-accent-deep) !important;
+      }
+      .dedicated-theme .cheapest-badge {
+        border-color: #cfe3a6 !important;
+        background: var(--hp-accent-tint) !important;
+        color: #4d6b14 !important;
+      }
     </style>
 
     <footer class="hosting-footer">
