@@ -11,7 +11,10 @@ managed like a registered domain. Follow the steps IN ORDER. Do exactly what eac
 4. If a step cannot run (missing tool, no database, no network), write `BLOCKED` plus the exact error and continue.
 5. Report every step as PASS, FAIL or BLOCKED with the command you ran and the first 15 lines of output.
 
-## Step 0 - Environment
+## Step 0 - Environment (IMPORTANT: PHP version)
+This is a Laravel 6 app. Use PHP 8.0 (or 7.4). PHP 8.1, 8.3 and 8.4 crash it with deprecation fatals; that is NOT a project bug.
+Run every `php`, `php artisan` and `vendor/bin/phpunit` command below with the PHP 8.0 binary (on Herd for Windows:
+`C:\Users\<user>\.config\herd\bin\php80\php.exe`). Run each phpunit filter as its OWN command (do not use `|` inside --filter on Windows).
     php -v                       # must be 7.2.5 or newer
     composer --version
     ls vendor/autoload.php       # if missing: composer install --no-interaction
@@ -31,9 +34,16 @@ Use a TEST database, never production. In `.env` set DB_* to an empty test datab
 ## Step 2 - Automated tests
     vendor/bin/phpunit --filter DomainTransferProgressTest
     vendor/bin/phpunit --filter DomainTransferSyncTest
-    vendor/bin/phpunit --filter "DomainTransferWorkflowTest|MyStorePagesTest|DomainActivityTest"
+    vendor/bin/phpunit --filter DomainTransferWorkflowTest
+    vendor/bin/phpunit --filter MyStorePagesTest
+    vendor/bin/phpunit --filter DomainActivityTest
     vendor/bin/phpunit
-Expected: all green. In your report list the number of tests and assertions, and the name of every failing test with its error message.
+Expected: DomainTransferProgressTest and DomainTransferSyncTest fully green.
+KNOWN old failures that are NOT part of this feature (they fail the same way on the original project): the "60-Day Rule:" and
+"RENEWAL PRICE" wording asserts, ResellerClubDomainContacts::extractDefaultContactId, the default-contact-id / walletBalance /
+registration-pending tests, AdminApiConnectionsTest "/contacts/default.json", DomainActivityTest "temporarily unavailable",
+InvoiceWorkflowTest "ResellerClub". Report them under "Known old failures" and do not try to fix them.
+Any OTHER failing test is a real finding. In your report list the number of tests and assertions, and the name of every failing test with its error message.
 (The feature tests build their own tables with RefreshDatabase; they do not need the SQL file.)
 
 ## Step 3 - SQL file

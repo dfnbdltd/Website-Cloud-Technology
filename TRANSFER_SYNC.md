@@ -66,13 +66,31 @@ The order ID also comes from the transfer response (`entityId` in v2, `entityid`
 item: transfer_submitted -> transferred | transfer_failed      order: transfer_pending -> active | transfer_failed
 A `transferred` item has the same Manage page as a registration (nameservers, organization consent, activity).
 
-## 5b. Is a cron job that runs all the time a good idea?
-Yes - it is the standard way, and it is cheap. ResellerClub does not push transfer results to us (none of the API
-documents you gave me has a webhook), so something has to ask. The one cron entry only starts Laravel's scheduler once a
-minute; the scheduler runs `transfers:sync` every 10 minutes; with no pending transfer the command does one small DB query
-and no API call. With pending transfers it makes ONE ResellerClub call per run. Transfers take days, so 10 minutes is plenty.
-What NOT to do: a never-ending process (daemon / queue worker loop) - it needs a supervisor and gains nothing here.
-Safety net on top of cron: opening My Domains and the Check status buttons also re-check (throttled).
+## 5b. Is a cron job needed?
+**No - it is optional.** A registration is finished the moment you buy it, so its status is saved immediately and the Manage
+page just reads ResellerClub live. A transfer is different: it finishes days LATER, so our own status
+(`transfer_submitted` -> `transferred`) has to be refreshed from ResellerClub by something. Without cron that "something" is
+the people using the site, and it already works:
+- customer opens **My Store**, **My Domains** or the **order details** page -> their pending transfers are re-checked
+  (at most once per 2 minutes per customer)
+- admin opens the **Orders** page -> every pending transfer is re-checked (one call, at most every 5 minutes)
+- **Check status** (customer) and **Sync with ResellerClub** (admin) buttons -> immediate re-check
+So a finished transfer turns into Success + Manage the next time anyone looks at it.
+What cron adds: the status is also correct when nobody opens the site (admin order list, counts), and it is where a future
+"your transfer is complete" e-mail would be sent from. If you do add it, it is cheap: one entry that starts Laravel's scheduler
+every minute; `transfers:sync` then runs every 10 minutes (no pending transfer = one small DB query, no API call; otherwise ONE
+ResellerClub call per run).
+What NOT to do: a never-ending process (daemon / queue worker loop) - needs a supervisor, gains nothing.
+IMPORTANT if you add cron: use the SAME PHP version the website runs on (cPanel > MultiPHP Manager). This is a Laravel 6 app:
+it runs on PHP 8.0 (and 7.x) but NOT on 8.1+ / 8.4. Example: `/opt/cpanel/ea-php80/root/usr/bin/php artisan schedule:run`.
+
+## 5c. Deploying to cPanel
+1. Back up the database, then run `database/transfer_sync.sql` (steps in order).
+2. Upload the changed files (keep the folder structure) - the list is in `CHANGED_FILES.txt`. Do not upload `tests/` unless you run tests there.
+3. If the site caches config/routes/views, clear them (a new route was added): over SSH `php artisan route:clear && php artisan config:clear && php artisan view:clear`;
+   without SSH, delete the files inside `bootstrap/cache/` (except `.gitignore`) and `storage/framework/views/`.
+4. Hard-refresh the browser (Ctrl+F5): `public/css/store.css` and `public/js/site-spinner.js` changed.
+5. Open My Domains: the finished transfer shows Success + Manage. Check `storage/logs/laravel.log` for "Domain transfer sync evaluated".
 
 ## 6. Admin
 Orders page > "Sync with ResellerClub" reads the real status. The status dropdown (Success) stays as a manual override: it also marks the transfer items `transferred` and writes

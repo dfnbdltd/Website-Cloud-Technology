@@ -29,10 +29,32 @@ class MyStoreController extends Controller
     }
 
     /**
+     * ResellerClub finishes a transfer days after we submit it. When the customer opens
+     * My Store, re-check THEIR pending transfers so a finished one shows as Success and
+     * gets its Manage button without anyone clicking anything (and without cron).
+     *
+     * Throttled (once per 2 minutes per customer), a no-op when nothing is pending or
+     * ResellerClub is not configured, and never allowed to break the page.
+     */
+    private function refreshPendingTransfers(Request $request)
+    {
+        try {
+            $userId = (int) ($request->user() ? $request->user()->id : $request->session()->get('customer.id'));
+            if ($userId > 0) {
+                app(DomainTransferSyncService::class)->syncPendingForUser($userId);
+            }
+        } catch (\Throwable $exception) {
+            \Log::warning('Transfer status refresh failed', ['error' => $exception->getMessage()]);
+        }
+    }
+
+    /**
      * All Items: the balance row and the seven section cards, in serial order.
      */
     public function index(Request $request)
     {
+        $this->refreshPendingTransfers($request);
+
         $inventory = $this->inventory($request);
 
         $items = [
@@ -60,15 +82,7 @@ class MyStoreController extends Controller
      */
     public function domains(Request $request)
     {
-        // ResellerClub finishes transfers on its own schedule: re-check this
-        // customer's pending ones (throttled; a no-op when none are pending or
-        // ResellerClub is not configured) before listing, so a finished
-        // transfer shows as Success and gets its Manage button right away.
-        try {
-            app(DomainTransferSyncService::class)->syncPendingForUser((int) $request->session()->get('customer.id'));
-        } catch (\Throwable $exception) {
-            \Log::warning('Transfer status refresh failed while listing domains', ['error' => $exception->getMessage()]);
-        }
+        $this->refreshPendingTransfers($request);
 
         $inventory = $this->inventory($request);
 

@@ -49,6 +49,18 @@ class AdminController extends Controller
     public function dashboard(Request $request)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        // Opening the Orders page re-checks every pending transfer with ResellerClub (one
+        // call, at most every 5 minutes), so the statuses shown here are real even when
+        // the scheduler cron is not installed.
+        try {
+            if (\Cache::add('transfer-sync.admin-orders', 1, 300)) {
+                app(\App\Services\DomainTransferSyncService::class)->syncAllPending();
+            }
+        } catch (\Throwable $exception) {
+            \Log::warning('Transfer status refresh failed on the admin orders page', ['error' => $exception->getMessage()]);
+        }
+
         return view('admin.dashboard', [
             'orders' => DomainOrder::with('items')->latest()->take(50)->get(),
             'tickets' => SupportTicket::latest()->take(20)->get(),

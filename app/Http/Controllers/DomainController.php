@@ -493,6 +493,21 @@ class DomainController extends Controller
         }
         $databaseOrder = $query->first();
 
+        // A transfer still waiting on the registrar: ask ResellerClub before showing its
+        // status, so this page does not say "Pending" about a transfer that has finished
+        // (throttled to once per 2 minutes per order; never allowed to break the page).
+        if ($databaseOrder && $databaseOrder->status === 'transfer_pending' && $databaseOrder->payment_status === 'paid') {
+            try {
+                if (\Cache::add('transfer-sync.order.' . $databaseOrder->id, 1, 120)) {
+                    $sync = app(\App\Services\DomainTransferSyncService::class);
+                    $sync->syncItems($sync->pendingItems()->where('domain_order_id', $databaseOrder->id));
+                    $databaseOrder = $databaseOrder->fresh(['items', 'payments']) ?: $databaseOrder;
+                }
+            } catch (\Throwable $exception) {
+                \Log::warning('Transfer status refresh failed on the order page', ['error' => $exception->getMessage()]);
+            }
+        }
+
         if (!$order || ($order['reference'] ?? null) !== $reference) {
             if (!$user || !$databaseOrder) {
                 return redirect()->route('domains.index')->withErrors(['payment' => 'Order not found in this session.']);

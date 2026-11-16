@@ -64,7 +64,7 @@ class DomainTransferSyncTest extends TestCase
         ]);
     }
 
-    private function session(User $user)
+    private function customerSession(User $user)
     {
         return ['customer' => [
             'id' => $user->id, 'uid' => 'CT-000001', 'name' => $user->name, 'initials' => 'TT',
@@ -240,7 +240,7 @@ class DomainTransferSyncTest extends TestCase
         $client->shouldReceive('modifyNameservers')->once()
             ->with(self::RC_ORDER, ['ns1.example.com', 'ns2.example.com'])
             ->andReturn(['status' => 'SUCCESS']);
-        $session = $this->session($user);
+        $session = $this->customerSession($user);
 
         $this->withSession($session)->get(route('mystore.domains.details', $item))
             ->assertOk()
@@ -265,7 +265,7 @@ class DomainTransferSyncTest extends TestCase
         [$order, $item] = $this->submittedTransfer($user);
         $this->resellerClub([], null);
 
-        $this->withSession($this->session($user))
+        $this->withSession($this->customerSession($user))
             ->get(route('mystore.domains.details', $item))
             ->assertNotFound();
     }
@@ -276,7 +276,7 @@ class DomainTransferSyncTest extends TestCase
         [$order, $item] = $this->submittedTransfer($user);
         $this->resellerClub([$this->transferAction('Success')], ['currentstatus' => 'Active', 'endtime' => '1834272000']);
 
-        $this->withSession($this->session($user))->get('/mystore/domains')
+        $this->withSession($this->customerSession($user))->get('/mystore/domains')
             ->assertOk()
             ->assertSee('Success')
             ->assertSee('data-spinner-title="Loading domain details', false)
@@ -291,7 +291,7 @@ class DomainTransferSyncTest extends TestCase
         [$order, $item] = $this->submittedTransfer($user);
         $this->resellerClub([$this->transferAction('Pending')], ['currentstatus' => 'InActive']);
 
-        $this->withSession($this->session($user))->get('/mystore/domains')
+        $this->withSession($this->customerSession($user))->get('/mystore/domains')
             ->assertOk()
             ->assertSee('Check status')
             ->assertSee('data-spinner="transfer"', false)
@@ -305,11 +305,11 @@ class DomainTransferSyncTest extends TestCase
         [$order, $item] = $this->submittedTransfer($owner);
         $this->resellerClub([$this->transferAction('Success')], ['currentstatus' => 'Active']);
 
-        $this->withSession($this->session($this->user()))
+        $this->withSession($this->customerSession($this->user()))
             ->post(route('mystore.domains.transfer-sync', $item))
             ->assertNotFound();
 
-        $this->withSession($this->session($owner))
+        $this->withSession($this->customerSession($owner))
             ->post(route('mystore.domains.transfer-sync', $item))
             ->assertRedirect(route('mystore.domains'))
             ->assertSessionHas('success');
@@ -326,6 +326,38 @@ class DomainTransferSyncTest extends TestCase
 
         $this->assertSame('transferred', $item->fresh()->registration_status);
         $this->assertSame('active', $order->fresh()->status);
+    }
+
+    public function testAdminOrdersPageRefreshesPendingTransfersSoCronIsOptional()
+    {
+        [$order, $item] = $this->submittedTransfer($this->user());
+        $this->resellerClub([$this->transferAction('Success')], ['currentstatus' => 'Active'], $this->pendingList([]));
+
+        $this->withSession(['admin' => ['email' => 'admin@example.test']])
+            ->get(route('admin.orders'))
+            ->assertOk();
+
+        $this->assertSame('transferred', $item->fresh()->registration_status);
+        $this->assertSame('active', $order->fresh()->status);
+    }
+
+    public function testMyStoreHomeAndTheOrderPageAlsoRefreshPendingTransfers()
+    {
+        $user = $this->user();
+        [$order, $item] = $this->submittedTransfer($user);
+        $this->resellerClub([$this->transferAction('Success')], ['currentstatus' => 'Active'], $this->pendingList([]));
+
+        $this->withSession($this->customerSession($user))->get('/mystore')->assertOk();
+
+        $this->assertSame('transferred', $item->fresh()->registration_status);
+
+        // the order page of a second, still-pending transfer refreshes it too
+        [$order2, $item2] = $this->submittedTransfer($user, 'SYNC-ORDER-2', 'second-domain.com');
+        $this->withSession($this->customerSession($user))
+            ->get(route('domains.confirmation', $order2->reference))
+            ->assertOk();
+
+        $this->assertSame('transferred', $item2->fresh()->registration_status);
     }
 
     public function testManualAdminCompletionAlsoUnlocksManagement()
