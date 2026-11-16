@@ -6,6 +6,15 @@ class DomainTransferStatus
 {
     public static function forOrderItem($orderStatus, $paymentStatus, $itemStatus)
     {
+        // ResellerClub finished this very transfer (set by DomainTransferSyncService).
+        if ($itemStatus === 'transferred') {
+            return [
+                'key' => 'success',
+                'label' => 'Success',
+                'message' => 'The domain transfer is complete.',
+            ];
+        }
+
         if ($orderStatus === 'active') {
             return [
                 'key' => 'success',

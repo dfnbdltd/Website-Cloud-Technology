@@ -74,6 +74,13 @@
                                 <button type="submit">Retry registration</button>
                             </form>
                         @endif
+                        @if($order->payment_status === 'paid' && $transferItems->where('registration_status', 'transfer_submitted')->isNotEmpty())
+                            <form method="POST" action="{{ route('admin.orders.sync-transfer', $order) }}" data-spinner>
+                                @csrf
+                                <button type="submit">Sync with ResellerClub</button>
+                                <small class="admin-domain">Reads the transfer's real status from ResellerClub and updates this order.</small>
+                            </form>
+                        @endif
                         @if($order->payment_status === 'paid' && $order->status === 'transfer_failed' && $transferItems->isNotEmpty())
                             <form method="POST" action="{{ route('admin.orders.retry-transfer', $order) }}">
                                 @csrf

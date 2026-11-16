@@ -164,6 +164,10 @@
 .store-domain-manage button{margin-top:10px;padding:10px 14px;border:0;border-radius:5px;background:#3c7ff0;color:#fff;font:700 11px 'DM Sans';cursor:pointer}
 .store-domain-manage-link{display:inline-flex;align-items:center;padding:11px 20px;border:1px solid #2f7ae5;border-radius:8px;color:#246acb;background:#fff;font:800 14px 'DM Sans';text-decoration:none;transition:background .18s ease,color .18s ease,box-shadow .18s ease}
 .store-domain-manage-link:hover{background:#2f7ae5;color:#fff;box-shadow:0 8px 18px #2f7ae53d}
+.store-transfer-sync-form{display:inline-flex;margin:0}
+button.store-domain-manage-link{cursor:pointer}
+.store-transfer-note{margin:10px 0 0;color:#516a8a;font-size:13px;line-height:1.55}
+.store-transfer-note.is-failed{color:#b42318}
 .store-domain-detail-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:12px 0 24px}
 .store-domain-detail-head .workspace-title{margin:5px 0 6px}
 .store-domain-detail-status{display:flex;align-items:center;gap:12px}

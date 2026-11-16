@@ -64,24 +64,31 @@ $consentSuccess = session('consent_success');
         <section class="store-detail-panel">
             <div class="store-detail-panel-head">
                 <div>
-                    <span class="domain-kicker">DOMAIN REGISTRATION</span>
+                    <span class="domain-kicker">{{ !empty($isTransfer) ? 'DOMAIN TRANSFER' : 'DOMAIN REGISTRATION' }}</span>
                     <h2>{{ $item->domain }}</h2>
-                    <p>Order {{ $order->reference }} · {{ max(1, (int) $item->years) }} year registration</p>
+                    <p>Order {{ $order->reference }} · {{ !empty($isTransfer) ? 'transferred in with ' . max(1, (int) $item->years) . ' year renewal' : max(1, (int) $item->years) . ' year registration' }}</p>
                 </div>
                 @if($invoice)
                 <a class="store-ghost-link" href="{{ route('invoices.view', $invoice) }}?back={{ urlencode(\App\Support\ReturnTo::path()) }}">View Invoice</a>
                 @endif
             </div>
+            @php
+                $isTransferItem = !empty($isTransfer);
+                $startedAt = $isTransferItem ? ($item->transfer_completed_at ?: $order->created_at) : $order->created_at;
+                $expiresAt = $isTransferItem
+                    ? ($item->expires_at ?: ($startedAt ? $startedAt->copy()->addYears(max(1, (int) $item->years)) : null))
+                    : ($order->created_at ? $order->created_at->copy()->addYears(max(1, (int) $item->years)) : null);
+            @endphp
             <div class="store-detail-facts store-detail-facts--inline">
                 <div>
-                    <small>REGISTERED</small>
-                    @if($order->created_at)<span class="store-fact-join">on</span>@endif
-                    <strong>{{ optional($order->created_at)->format('d M Y') ?: '—' }}</strong>
+                    <small>{{ $isTransferItem ? 'TRANSFERRED' : 'REGISTERED' }}</small>
+                    @if($startedAt)<span class="store-fact-join">on</span>@endif
+                    <strong>{{ $startedAt ? $startedAt->format('d M Y') : '—' }}</strong>
                 </div>
                 <div>
                     <small>EXPIRES</small>
-                    @if($order->created_at)<span class="store-fact-join">on</span>@endif
-                    <strong>{{ $order->created_at ? $order->created_at->copy()->addYears(max(1, (int) $item->years))->format('d M Y') : '—' }}</strong>
+                    @if($expiresAt)<span class="store-fact-join">on</span>@endif
+                    <strong>{{ $expiresAt ? $expiresAt->format('d M Y') : '—' }}</strong>
                 </div>
                 <div><small>RENEWAL PRICE</small><strong>৳
                         {{ number_format((float) $item->renewal_price, 2) }}<i>/year</i></strong></div>

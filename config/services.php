@@ -53,6 +53,11 @@ return [
             : 'https://api.resellerclub.com/v2'),
         'price_currency' => env('RESELLERCLUB_PRICE_CURRENCY', 'USD'),
 
+        // Also re-check a customer's pending transfers when they open My
+        // Domains (at most every 2 minutes). The `transfers:sync` scheduler is
+        // the reliable path; this is the safety net while cron is not set up.
+        'transfer_sync_on_view' => env('RESELLERCLUB_TRANSFER_SYNC_ON_VIEW', true),
+
         // SSL certificate prices shown to customers come from ResellerClub's
         // selling price (USD/month) converted to BDT by ExchangeRateService.
         // Flip this to false to fall back to the BDT prices typed in

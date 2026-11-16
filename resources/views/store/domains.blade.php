@@ -11,18 +11,57 @@
         <div class="store-item-title">
             <h2>{{ $transfer['domain'] }}</h2>
         </div>
-        <span class="table-status {{ $transfer['status'] }}">{{ $transfer['status_label'] }}</span>
+        <div class="store-item-actions">
+            <span class="table-status {{ $transfer['status'] }}">{{ $transfer['status_label'] }}</span>
+            @if($transfer['manageable'] && !isset(config('services.test_domains')[$transfer['domain']]))
+            {{-- A finished transfer is managed exactly like a registered domain. --}}
+            <a class="store-domain-manage-link"
+                href="{{ route('mystore.domains.details', $transfer['item_id']) }}"
+                data-spinner-link
+                data-spinner-title="Loading domain details…">Manage</a>
+            @elseif($transfer['registration_status'] === 'transfer_submitted')
+            <form method="POST" action="{{ route('mystore.domains.transfer-sync', $transfer['item_id']) }}"
+                class="store-transfer-sync-form" data-spinner="transfer"
+                data-spinner-title="Checking transfer status…">
+                @csrf
+                <button type="submit" class="store-domain-manage-link">Check status</button>
+            </form>
+            @endif
+        </div>
     </header>
     <div class="store-facts store-facts--transfer store-facts--inline">
         <div class="store-fact">
             <small>TRANSFER</small>
             <strong>{{ $transfer['status_label'] }}</strong>
         </div>
+        @if($transfer['manageable'])
+        <div class="store-fact">
+            <small>TRANSFERRED</small>
+            @if($transfer['transferred_at'])
+            <span class="store-fact-join">on</span>
+            @endif
+            <strong>{{ $transfer['transferred_at'] ? $transfer['transferred_at']->format('d M Y') : '—' }}</strong>
+        </div>
+        <div class="store-fact">
+            <small>EXPIRES</small>
+            @if($transfer['expires_at'])
+            <span class="store-fact-join">on</span>
+            @endif
+            <strong>{{ $transfer['expires_at'] ? $transfer['expires_at']->format('d M Y') : '—' }}</strong>
+        </div>
+        <div class="store-fact">
+            <small>RENEWAL</small>
+            <strong>৳ {{ number_format($transfer['renewal_price'], 2) }}<i>/year</i></strong>
+        </div>
+        @endif
         <div class="store-fact">
             <small>PAID</small>
             <strong>৳ {{ number_format($transfer['price'], 2) }}</strong>
         </div>
     </div>
+    @if(!$transfer['manageable'])
+    <p class="store-transfer-note {{ $transfer['status'] === 'failed' ? 'is-failed' : '' }}">{{ $transfer['status_message'] }}</p>
+    @endif
     <footer class="store-item-foot">
         <div class="store-item-links">
             @if($transfer['invoice'])

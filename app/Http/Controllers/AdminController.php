@@ -208,7 +208,19 @@ class AdminController extends Controller
             if ($order->payment_status !== 'paid') {
                 return redirect()->route('admin.dashboard')->withErrors(['status' => 'A transfer cannot be marked complete before payment is confirmed.']);
             }
-            $order->items()->where('order_type', 'transfer')->update(['transfer_auth_code' => null]);
+            // Manual override (ResellerClub unreachable, or a transfer done outside the API):
+            // the items become "transferred" too, so the customer gets the same manage features.
+            // Prefer "Sync with ResellerClub", which only records what the registrar reports.
+            \Log::notice('Admin manually marked a domain transfer complete', [
+                'order' => $order->reference,
+                'admin' => (string) data_get($request->session()->get('admin'), 'email'),
+                'domains' => $order->items()->where('order_type', 'transfer')->pluck('domain')->all(),
+            ]);
+            $order->items()->where('order_type', 'transfer')->update([
+                'transfer_auth_code' => null,
+                'registration_status' => \App\Models\DomainOrderItem::STATUS_TRANSFERRED,
+                'transfer_completed_at' => now(),
+            ]);
         }
         $order->update(['status' => $data['status']]);
 
@@ -265,6 +277,33 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.orders')->withErrors(['transfer' => $message]);
+    }
+
+    /**
+     * Ask ResellerClub how this order's submitted transfers are doing right now.
+     * Preferred over marking the order Success by hand: it only ever records
+     * what the registrar itself reports.
+     */
+    public function syncOrderTransfer(Request $request, DomainOrder $order)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $sync = app(\App\Services\DomainTransferSyncService::class);
+        $items = $sync->pendingItems()->where('domain_order_id', $order->id);
+        if ($items->isEmpty()) {
+            return redirect()->route('admin.orders')->withErrors(['transfer' => 'This order has no submitted transfer waiting on ResellerClub.']);
+        }
+
+        $counts = $sync->syncItems($items);
+        $summary = collect($counts)->map(function ($count, $outcome) {
+            return $count . ' ' . $outcome;
+        })->implode(', ');
+
+        if (isset($counts[\App\Services\DomainTransferSyncService::OUTCOME_UNAVAILABLE])) {
+            return redirect()->route('admin.orders')->withErrors(['transfer' => 'ResellerClub could not be read just now (' . $summary . '). Check the log and try again.']);
+        }
+
+        return redirect()->route('admin.orders')->with('success', 'Transfer status checked with ResellerClub: ' . $summary . '.');
     }
 
     public function retryOrderRegistration(Request $request, DomainOrder $order)

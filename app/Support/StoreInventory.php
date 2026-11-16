@@ -187,7 +187,8 @@ class StoreInventory
 
     public function domainCount()
     {
-        return $this->domains()->count() + $this->transfers()->where('status', 'transferred')->count();
+        // A transfer counts as a domain once it has succeeded (status key 'success').
+        return $this->domains()->count() + $this->transfers()->where('status', 'success')->count();
     }
 
     public function paidToDate()
@@ -269,14 +270,25 @@ class StoreInventory
                     $item->registration_status
                 );
 
+                $years = max(1, (int) $item->years);
+                $transferred = $item->transfer_completed_at;
+                $expires = $item->expires_at
+                    ?: ($transferred ? $transferred->copy()->addYears($years) : null);
+
                 return [
                     'item_id' => $item->id,
                     'domain' => $item->domain,
                     'tld' => $item->tld,
+                    'registration_status' => $item->registration_status,
                     'status' => $transferStatus['key'],
                     'status_label' => $transferStatus['label'],
                     'status_message' => $transferStatus['message'],
                     'price' => (float) $item->price,
+                    'renewal_price' => (float) $item->renewal_price,
+                    'transferred_at' => $transferred,
+                    'expires_at' => $expires,
+                    // Same manage features as a registration, once ResellerClub finished the transfer.
+                    'manageable' => $item->registration_status === 'transferred',
                     'order' => $order,
                     'invoice' => $this->invoiceMap()->get($order->id),
                     'payments' => $this->orderPayments($order->id),

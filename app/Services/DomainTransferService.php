@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DomainOrder;
+use App\Support\ResellerClubOrderId;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -89,13 +90,21 @@ class DomainTransferService
             unset($authCode);
 
             if ($this->transferSubmitted($response)) {
-                $item->update([
+                $update = [
                     'registration_status' => 'transfer_submitted',
                     'transfer_auth_code' => null,
-                ]);
+                ];
+                // Keep ResellerClub's order ID from the response: it lets the sync read this
+                // transfer's progress (and a rejection) straight away instead of guessing it later.
+                $resellerOrderId = ResellerClubOrderId::fromResponse($response);
+                if ($resellerOrderId !== null) {
+                    $update['reseller_order_id'] = $resellerOrderId;
+                }
+                $item->update($update);
                 Log::info('ResellerClub domain transfer submitted', [
                     'order' => $order->reference,
                     'domain' => $item->domain,
+                    'reseller_order_id' => $resellerOrderId,
                 ]);
             } else {
                 $item->update([
@@ -223,7 +232,9 @@ class DomainTransferService
 
         $status = strtoupper((string) ($response['status'] ?? ''));
 
-        return $status === 'SUCCESS'
+        // ResellerClub answers NoError when the transfer was accepted but is waiting on the
+        // admin contact's approval or the registry (see the transfer.json "Response" note).
+        return in_array($status, ['SUCCESS', 'NOERROR'], true)
             && !isset($response['error'])
             && !isset($response['errorCode']);
     }

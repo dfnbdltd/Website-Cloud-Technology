@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\DomainOrderItem;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Services\DomainTransferSyncService;
 use App\Services\ResellerClubClient;
+use App\Support\DomainActivity;
 use App\Support\StoreInventory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -58,6 +60,16 @@ class MyStoreController extends Controller
      */
     public function domains(Request $request)
     {
+        // ResellerClub finishes transfers on its own schedule: re-check this
+        // customer's pending ones (throttled; a no-op when none are pending or
+        // ResellerClub is not configured) before listing, so a finished
+        // transfer shows as Success and gets its Manage button right away.
+        try {
+            app(DomainTransferSyncService::class)->syncPendingForUser((int) $request->session()->get('customer.id'));
+        } catch (\Throwable $exception) {
+            \Log::warning('Transfer status refresh failed while listing domains', ['error' => $exception->getMessage()]);
+        }
+
         $inventory = $this->inventory($request);
 
         return view('store.domains', [
@@ -77,6 +89,17 @@ class MyStoreController extends Controller
         // This domain's own ResellerClub order, resolved once and reused below.
         $resellerOrderId = $this->resellerOrderId($item);
 
+        // A transfer carries the expiry ResellerClub reported when it finished;
+        // if that was never stored (e.g. an admin marked it complete by hand),
+        // read it once now and keep it.
+        if ($item->isTransfer() && $item->expires_at === null && $resellerOrderId !== null && !$this->isTestDomain($item->domain)) {
+            $details = $this->resellerClub->domainDetails($resellerOrderId);
+            $expiresAt = is_array($details) && isset($details['endtime']) ? DomainActivity::timestamp($details['endtime']) : null;
+            if ($expiresAt) {
+                $item->update(['expires_at' => Carbon::createFromTimestamp($expiresAt)]);
+            }
+        }
+
         $nameservers = $this->resellerClub->nameservers($resellerOrderId);
         if (!$nameservers) {
             $nameservers = array_values(array_filter(array_map('trim', (array) config('services.resellerclub.nameservers', []))));
@@ -91,6 +114,7 @@ class MyStoreController extends Controller
             'latestActivities' => $activity['items']->take(3)->values(),
             'activitiesUnavailable' => !$activity['available'],
             'nameservers' => $nameservers,
+            'isTransfer' => $item->isTransfer(),
         ]);
     }
 
@@ -108,7 +132,8 @@ class MyStoreController extends Controller
             'activities' => $activity['items'],
             'activitiesUnavailable' => !$activity['available'],
             'orderUrl' => route('domains.confirmation', $order->reference),
-            'orderHistory' => $this->orderHistory($order, $invoice),
+            'orderHistory' => $this->orderHistory($order, $invoice, $item->isTransfer()),
+            'isTransfer' => $item->isTransfer(),
         ]);
     }
 
@@ -117,12 +142,10 @@ class MyStoreController extends Controller
         $userId = (int) ($request->user()
             ? $request->user()->id
             : $request->session()->get('customer.id'));
-        $item = DomainOrderItem::whereKey($itemId)
-            ->where('registration_status', 'registered')
+        $item = DomainOrderItem::manageable()
+            ->whereKey($itemId)
             ->whereHas('order', function ($query) use ($userId) {
-                $query->where('user_id', $userId)
-                    ->where('payment_status', 'paid')
-                    ->where('status', 'active');
+                $query->where('user_id', $userId);
             })
             ->firstOrFail();
 
@@ -347,16 +370,53 @@ class MyStoreController extends Controller
             ? $request->user()->id
             : $request->session()->get('customer.id'));
 
-        return DomainOrderItem::with('order')
+        // Registrations and finished transfers are managed the same way.
+        return DomainOrderItem::manageable()
+            ->with('order')
             ->whereKey($itemId)
-            ->where('order_type', 'registration')
-            ->where('registration_status', 'registered')
             ->whereHas('order', function ($query) use ($userId) {
-                $query->where('user_id', $userId)
-                    ->where('payment_status', 'paid')
-                    ->where('status', 'active');
+                $query->where('user_id', $userId);
             })
             ->firstOrFail();
+    }
+
+    /**
+     * "Check status" on a pending transfer: ask ResellerClub now instead of
+     * waiting for the scheduler. Only the owner's own submitted transfer.
+     */
+    public function syncTransfer(Request $request, $itemId)
+    {
+        $userId = (int) ($request->user()
+            ? $request->user()->id
+            : $request->session()->get('customer.id'));
+
+        $item = DomainOrderItem::with('order')
+            ->whereKey($itemId)
+            ->where('order_type', 'transfer')
+            ->whereHas('order', function ($query) use ($userId) {
+                $query->where('user_id', $userId)->where('payment_status', 'paid');
+            })
+            ->firstOrFail();
+
+        if ($item->registration_status === 'transferred') {
+            return redirect()->route('mystore.domains')->with('success', $item->domain . ' has been transferred to your account.');
+        }
+
+        $outcome = app(DomainTransferSyncService::class)->syncItem($item);
+
+        $messages = [
+            DomainTransferSyncService::OUTCOME_COMPLETED => $item->domain . ' has been transferred to your account. You can manage it now.',
+            DomainTransferSyncService::OUTCOME_FAILED => 'The transfer of ' . $item->domain . ' did not complete. Please contact support with your order reference.',
+            DomainTransferSyncService::OUTCOME_PENDING => 'The transfer of ' . $item->domain . ' is still in progress at the registrar. This usually takes 5–7 days.',
+            DomainTransferSyncService::OUTCOME_UNAVAILABLE => 'We could not reach the registrar just now. Please try again shortly.',
+            DomainTransferSyncService::OUTCOME_SKIPPED => 'This transfer is already up to date.',
+        ];
+
+        $redirect = redirect()->route('mystore.domains');
+
+        return $outcome === DomainTransferSyncService::OUTCOME_FAILED || $outcome === DomainTransferSyncService::OUTCOME_UNAVAILABLE
+            ? $redirect->withErrors(['transfer' => $messages[$outcome]])
+            : $redirect->with('success', $messages[$outcome]);
     }
 
     /**
@@ -434,7 +494,7 @@ class MyStoreController extends Controller
      * Our own record of the order (placed, paid, invoiced), newest first.
      * Shown under the ResellerClub timeline on the full activity page.
      */
-    private function orderHistory($order, $invoice)
+    private function orderHistory($order, $invoice, $isTransfer = false)
     {
         $history = collect();
         $orderLink = $invoice
@@ -445,7 +505,7 @@ class MyStoreController extends Controller
         if ($order->created_at) {
             $history->push([
                 'at' => $order->created_at,
-                'title' => 'Domain order placed',
+                'title' => $isTransfer ? 'Domain transfer ordered' : 'Domain order placed',
                 'description' => 'Order ' . $order->reference,
                 'link' => $orderLink,
                 'link_label' => $orderLinkLabel,

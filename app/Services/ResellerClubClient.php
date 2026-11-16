@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\DomainActivity;
+use App\Support\PendingTransferList;
 use App\Support\ResellerClubDomainContacts;
 
 class ResellerClubClient
@@ -788,6 +789,74 @@ class ResellerClubClient
         return array_values(array_unique(array_filter(array_map(function ($value) {
             return is_scalar($value) ? strtolower(trim((string) $value)) : '';
         }, $values))));
+    }
+
+    /**
+     * Inbound transfers that are still in progress at ResellerClub
+     * (v2 GET /domain-transfers/pending), keyed by lowercase domain name.
+     *
+     * Pass $domainName to ask about one domain; omit it to page through all of
+     * them. Returns null when the list could not be read (not configured, HTTP
+     * or API error) — never an empty list for a failure, because "nothing is
+     * pending" would then look like "the transfer finished".
+     *
+     * @param  string|null  $domainName
+     * @param  int  $page
+     * @param  int  $size
+     * @return array|null  see PendingTransferList::parse()
+     */
+    public function pendingTransfers($domainName = null, $page = 1, $size = 100)
+    {
+        if (!$this->isConfigured()) {
+            return null;
+        }
+
+        $query = [
+            'size' => max(1, min(500, (int) $size)),
+            'page' => max(1, (int) $page),
+        ];
+        if ($domainName !== null && trim((string) $domainName) !== '') {
+            $query['domainName'] = strtolower(trim((string) $domainName));
+        }
+
+        return PendingTransferList::parse($this->v2Request('GET', '/domain-transfers/pending', $query));
+    }
+
+    /**
+     * Order details of one domain order (status, creation and expiry time).
+     *
+     * Legacy HTTP API: GET /api/domains/details.json?options=OrderDetails.
+     * The fields used by the transfer sync are `currentstatus` ("Active" once
+     * the domain is in the reseller account), `creationtime` and `endtime`
+     * (Unix seconds).
+     *
+     * Returns the decoded record, or null when it could not be read (not
+     * configured, bad order ID, API error) — never a partial or error body.
+     *
+     * @param  string|int  $orderId
+     * @return array|null
+     */
+    public function domainDetails($orderId)
+    {
+        if (!$this->isConfigured() || !is_scalar($orderId) || !ctype_digit((string) $orderId) || (int) $orderId < 1) {
+            return null;
+        }
+
+        $response = $this->request('/domains/details.json', [
+            'order-id' => (string) $orderId,
+            'options' => 'OrderDetails',
+        ], 'GET', false, false, true);
+
+        if (
+            !is_array($response)
+            || isset($response['error'])
+            || isset($response['errorcode'])
+            || strtoupper((string) (isset($response['status']) && is_scalar($response['status']) ? $response['status'] : '')) === 'ERROR'
+        ) {
+            return null;
+        }
+
+        return $response;
     }
 
     /**

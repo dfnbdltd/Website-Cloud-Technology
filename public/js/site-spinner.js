@@ -304,7 +304,8 @@
         for (var i = 0; i < forms.length; i++) {
             (function (form) {
                 form.addEventListener('submit', function () {
-                    var label = form.dataset.spinner === 'search' ? 'Searching…' : 'Loading…';
+                    var label = form.dataset.spinnerTitle ||
+                        (form.dataset.spinner === 'search' ? 'Searching…' : 'Loading…');
                     armHandoff(label);
                     show({ title: label });
                 });

@@ -165,6 +165,10 @@ Route::middleware(['web', 'customer'])->group(function () {
         ->where('item', '[0-9]+')
         ->middleware('throttle:5,1')
         ->name('mystore.domains.organization-consent');
+    Route::post('/mystore/domains/{item}/transfer-sync', [MyStoreController::class, 'syncTransfer'])
+        ->where('item', '[0-9]+')
+        ->middleware('throttle:6,1')
+        ->name('mystore.domains.transfer-sync');
     Route::get('/mystore/hosting', [MyStoreController::class, 'hosting'])->name('mystore.hosting');
     Route::get('/mystore/{service}', [MyStoreController::class, 'service'])
         ->where('service', 'ssl|email|sms')
@@ -206,6 +210,7 @@ Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.lo
 Route::post('/admin/orders/{order}/status', [AdminController::class, 'updateOrder'])->name('admin.orders.status');
 Route::post('/admin/orders/{order}/retry-registration', [AdminController::class, 'retryOrderRegistration'])->name('admin.orders.retry-registration');
 Route::post('/admin/orders/{order}/retry-transfer', [AdminController::class, 'retryOrderTransfer'])->name('admin.orders.retry-transfer');
+Route::post('/admin/orders/{order}/sync-transfer', [AdminController::class, 'syncOrderTransfer'])->name('admin.orders.sync-transfer');
 Route::get('/admin/customers', [AdminController::class, 'customers'])->name('admin.customers');
 Route::get('/admin/customers/{customer}/edit', [AdminController::class, 'editCustomer'])->name('admin.customers.edit');
 Route::post('/admin/customers/{customer}', [AdminController::class, 'updateCustomer'])->name('admin.customers.update');

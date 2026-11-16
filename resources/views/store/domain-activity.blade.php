@@ -5,7 +5,7 @@
         <div>
             <a class="store-back" href="{{ route('mystore.domains.details', $item->id) }}">← Back to Domain Management</a>
             <span class="domain-kicker">DOMAIN ACTIVITY</span>
-            <h1 class="workspace-title">Actions for Domain Registration</h1>
+            <h1 class="workspace-title">Actions for Domain {{ !empty($isTransfer) ? 'Transfer' : 'Registration' }}</h1>
             <p class="workspace-subtitle">{{ $item->domain }}</p>
         </div>
     </div>
@@ -27,7 +27,7 @@
                             @if($activity['description'] !== '')
                                 <small class="store-action-desc is-{{ $activity['state'] }}">{{ $activity['description'] }}</small>
                             @endif
-                            <p><span>DOMAIN REGISTRATION</span><b></b><a href="{{ $orderUrl }}">View Order</a></p>
+                            <p><span>{{ !empty($isTransfer) ? 'DOMAIN TRANSFER' : 'DOMAIN REGISTRATION' }}</span><b></b><a href="{{ $orderUrl }}">View Order</a></p>
                         </div>
                         <div class="store-action-meta">
                             <small class="store-action-state is-{{ $activity['state'] }}">{{ strtoupper($activity['state_label']) }}</small>
