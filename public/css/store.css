@@ -621,3 +621,13 @@
   .store-ns-help-copy,.store-child-help-copy{flex:1 1 180px;order:2}
   .store-ns-help-link,.store-child-help-link{order:3;flex:1 1 100%;justify-content:center}
 }
+
+/* ---------------------------------------------------------------------------
+   Organization Name Consent feedback (page level)
+   One alert sits under the page title, above the domain cards. It replaces
+   the old inline box inside the grey consent panel and keeps a short shake so
+   the result of "Yes, I agree" / "Cancel" is noticed.
+   --------------------------------------------------------------------------- */
+.store-ns-alert.store-consent-alert{margin:0 0 20px;animation:storeNsAlertIn .24s ease,storeConsentShake .5s cubic-bezier(.36,.07,.19,.97) .24s}
+@keyframes storeConsentShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-5px)}30%{transform:translateX(4px)}45%{transform:translateX(-3px)}60%{transform:translateX(2px)}75%{transform:translateX(-1px)}}
+@media(prefers-reduced-motion:reduce){.store-ns-alert.store-consent-alert{animation:storeNsAlertIn .24s ease}}

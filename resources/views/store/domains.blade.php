@@ -49,7 +49,9 @@
             @if($domain['registration_status'] === 'registered' && $domain['order']->status === 'active' &&
             !isset(config('services.test_domains')[$domain['domain']]))
             <a class="store-domain-manage-link"
-                href="{{ route('mystore.domains.details', $domain['item_id']) }}">Manage</a>
+                href="{{ route('mystore.domains.details', $domain['item_id']) }}"
+                data-spinner-link
+                data-spinner-title="Loading domain details…">Manage</a>
             @endif
         </div>
     </header>

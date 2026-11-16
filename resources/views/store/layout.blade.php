@@ -7,6 +7,7 @@
     @stack('head')
 </head>
 <body class="domain-app">
+@include('partials.spinner-overlay')
 @include('partials.sidebar', ['active' => $navActive, 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])
 <main class="domain-main">
     @include('partials.topbar', ['title' => $topbarTitle, 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])

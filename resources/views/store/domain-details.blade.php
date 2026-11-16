@@ -11,6 +11,14 @@ $oldNameservers = is_array($oldNameservers)
 ? array_values(array_filter(array_map('trim', $oldNameservers), function ($value) { return $value !== ''; }))
 : [];
 $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.example.com']);
+
+// Only nameserver validation may open the nameserver editor. A consent
+// failure lives in the same error bag, and it belongs at the top of the page.
+$nameserverError = collect($errors->keys())->contains(function ($key) {
+    return $key === 'nameservers' || strpos($key, 'nameservers.') === 0;
+});
+$consentError = $errors->first('consent');
+$consentSuccess = session('consent_success');
 @endphp
 <div class="store-domain-detail-head">
     <div>
@@ -21,9 +29,35 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
     </div>
     <div class="store-domain-detail-status">
         <span class="table-status paid">Active</span>
-        <a class="store-ghost-link" href="{{ route('mystore.domains.activity', $item->id) }}">View All Activity</a>
+        <a class="store-ghost-link" href="{{ route('mystore.domains.activity', $item->id) }}"
+            data-spinner-link data-spinner-title="Loading activity…">View All Activity</a>
     </div>
 </div>
+
+{{-- Organization Name Consent feedback: one alert at the top of the page,
+     with a short shake so the result of Yes/Cancel is noticed. --}}
+@if($consentError || $consentSuccess)
+<div class="store-ns-alert store-consent-alert {{ $consentError ? 'is-error' : 'is-success' }}"
+    role="{{ $consentError ? 'alert' : 'status' }}">
+    @if($consentError)
+    <span class="store-ns-alert-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7.5v5.5"></path>
+            <path d="M12 16.4h.01"></path>
+        </svg>
+    </span>
+    @else
+    <span class="store-ns-alert-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m8.2 12.3 2.6 2.6 5-5.2"></path>
+        </svg>
+    </span>
+    @endif
+    <span class="store-ns-alert-text">{{ $consentError ?: $consentSuccess }}</span>
+</div>
+@endif
 
 <div class="store-domain-detail-grid">
     <main>
@@ -65,11 +99,6 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                     <p>By clicking <strong>"Yes, I agree"</strong>, you consent to its publication in the public RDDS (formerly WHOIS). You can withdraw this consent at any time.</p>
                 </div>
             </div>
-            @if($errors->has('consent'))
-                <div class="store-ns-alert is-error" role="alert">{{ $errors->first('consent') }}</div>
-            @elseif(session('consent_success'))
-                <div class="store-ns-alert is-success" role="status">{{ session('consent_success') }}</div>
-            @endif
             <div class="store-ns-actions">
                 <form method="POST" action="{{ route('mystore.domains.organization-consent', $item->id) }}">
                     @csrf
@@ -101,8 +130,8 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                     <h2>NAMESERVERS &amp; DNS</h2>
                     <p class="store-ns-subtitle">Choose where this domain points on the internet.</p>
                     <div class="store-ns-actions">
-                        <details class="store-ns-edit @if($errors->any() || old('nameservers')) is-editing @endif"
-                            @if($errors->any() || old('nameservers') || session('success')) open @endif>
+                        <details class="store-ns-edit @if($nameserverError || old('nameservers')) is-editing @endif"
+                            @if($nameserverError || old('nameservers') || session('success')) open @endif>
                             <summary class="store-ns-btn store-ns-btn-primary">
                                 <span>Edit Nameservers</span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
@@ -119,7 +148,7 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                                     <div class="store-ns-modal-main">
                                         <h3>NAMESERVERS &amp; DNS</h3>
                                         <p class="store-ns-modal-domain">For: <strong>{{ $item->domain }}</strong></p>
-                                        @if($errors->any())
+                                        @if($nameserverError)
                                         <div class="store-ns-alert is-error" role="alert">
                                             <span class="store-ns-alert-icon" aria-hidden="true">
                                                 <svg viewBox="0 0 24 24">
@@ -128,7 +157,7 @@ $editNameservers = $oldNameservers ?: ($nameservers ?: ['ns1.example.com', 'ns2.
                                                     <path d="M12 16.4h.01"></path>
                                                 </svg>
                                             </span>
-                                            <span class="store-ns-alert-text">{{ $errors->first() }}</span>
+                                            <span class="store-ns-alert-text">{{ $errors->first('nameservers') ?: $errors->first('nameservers.*') }}</span>
                                         </div>
                                         @elseif(session('success'))
                                         <div class="store-ns-alert is-success" role="status">

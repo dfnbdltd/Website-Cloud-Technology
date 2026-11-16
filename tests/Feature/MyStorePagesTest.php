@@ -127,6 +127,67 @@ class MyStorePagesTest extends TestCase
             ->assertRedirect(route('mystore.domains.details', $item));
     }
 
+    /**
+     * A consent result belongs to the page, not to the grey consent card and
+     * not to the nameserver editor: one alert under the page title, and the
+     * nameserver panel stays closed.
+     */
+    public function testOrganizationConsentFeedbackAppearsAtTheTopOfThePage()
+    {
+        $user = $this->user();
+        $order = $this->paidOrder($user, 'CONSENT-FEEDBACK-ORDER', 'consent-feedback.test');
+        $order->update(['status' => 'active']);
+        $item = $order->items()->first();
+        $item->update(['registration_status' => 'registered']);
+        $session = $this->customerSession($user);
+
+        $this->withSession($session)
+            ->post("/mystore/domains/{$item->id}/organization-consent", ['consent' => 'maybe'])
+            ->assertRedirect(route('mystore.domains.details', $item))
+            ->assertSessionHasErrors('consent');
+
+        $this->withSession($session)
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertSeeInOrder(['store-consent-alert', 'DOMAIN REGISTRATION'], false)
+            ->assertSee('Choose Yes, I agree or Cancel.')
+            ->assertDontSee('store-ns-edit is-editing', false);
+
+        $this->withSession($session + ['consent_success' => 'Organization publication consent accepted.'])
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertSee('store-consent-alert is-success', false)
+            ->assertSee('Organization publication consent accepted.');
+    }
+
+    /**
+     * Opening a domain (and its activity) reads live data from ResellerClub,
+     * so both links must use the shared site spinner: the overlay is
+     * pre-painted by store.layout and the link arms the handoff.
+     */
+    public function testDomainPagesUseTheSharedSiteSpinner()
+    {
+        $user = $this->user();
+        $order = $this->paidOrder($user, 'MANAGE-SPINNER-ORDER', 'manage-spinner.test');
+        $order->update(['status' => 'active']);
+        $item = $order->items()->first();
+        $item->update(['registration_status' => 'registered']);
+        $session = $this->customerSession($user);
+
+        $this->withSession($session)
+            ->get('/mystore/domains')
+            ->assertOk()
+            ->assertSee('data-spinner-link', false)
+            ->assertSee('data-spinner-title="Loading domain details', false)
+            ->assertSee('sspin-overlay', false);
+
+        $this->withSession($session)
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertSee('data-spinner-title="Loading activity', false)
+            ->assertSee('sspin-overlay', false);
+    }
+
     public function testDomainPageListsPaidTransferRequestsSeparatelyFromOwnedDomains()
     {
         $user = $this->user();

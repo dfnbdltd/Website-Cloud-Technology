@@ -136,9 +136,9 @@
     display: grid;
     place-items: center;
     flex: none;
-    /* Sized to match the topbar's "+" chip exactly (.profile-caret in
+    /* Sized to match the topbar's "+" chip exactly (see .profile-caret in
        domains.css): an 18px circle with 8px bars at a 1.5px stroke. The
-       previous 26px / 14px / 2px read as a heavy button beside it. */
+       previous 26px / 14px / 2px read as a heavy button next to it. */
     width: 18px;
     height: 18px;
     min-width: 18px;
@@ -148,7 +148,7 @@
     border: 1px solid #c8d5e4;
     border-radius: 50%;
     background: #fff;
-    box-shadow: 0 2px 6px rgba(32, 75, 120, .08);
+    box-shadow: 0 1px 4px rgba(32, 75, 120, .08);
     color: #3f5d7d;
     font-size: 0;              /* the old text glyph is no longer used */
     font-style: normal;
