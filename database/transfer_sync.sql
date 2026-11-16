@@ -33,6 +33,10 @@ FROM domain_order_items i
 JOIN domain_orders o ON o.id = i.domain_order_id
 WHERE i.order_type = 'transfer';
 
+-- STEP 4 (optional, netsgoods.com only) - store ResellerClub's real expiry now.
+-- If you skip it, the site reads it from ResellerClub by itself the first time the customer opens My Domains.
+UPDATE domain_order_items SET expires_at = '2028-02-15 00:00:00' WHERE domain = 'netsgoods.com' AND order_type = 'transfer';
+
 -- OPTIONAL - only if you ever run `php artisan migrate` later. The migration is
 -- already safe to re-run (it skips existing columns), so this is not required.
 INSERT INTO migrations (migration, batch)

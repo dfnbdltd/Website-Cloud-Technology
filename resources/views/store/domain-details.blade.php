@@ -75,8 +75,9 @@ $consentSuccess = session('consent_success');
             @php
                 $isTransferItem = !empty($isTransfer);
                 $startedAt = $isTransferItem ? ($item->transfer_completed_at ?: $order->created_at) : $order->created_at;
+                // A transfer shows ResellerClub's real expiry only (it extends the old expiry by a year).
                 $expiresAt = $isTransferItem
-                    ? ($item->expires_at ?: ($startedAt ? $startedAt->copy()->addYears(max(1, (int) $item->years)) : null))
+                    ? $item->expires_at
                     : ($order->created_at ? $order->created_at->copy()->addYears(max(1, (int) $item->years)) : null);
             @endphp
             <div class="store-detail-facts store-detail-facts--inline">

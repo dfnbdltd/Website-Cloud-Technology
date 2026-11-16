@@ -92,6 +92,11 @@ it runs on PHP 8.0 (and 7.x) but NOT on 8.1+ / 8.4. Example: `/opt/cpanel/ea-php
 4. Hard-refresh the browser (Ctrl+F5): `public/css/store.css` and `public/js/site-spinner.js` changed.
 5. Open My Domains: the finished transfer shows Success + Manage. Check `storage/logs/laravel.log` for "Domain transfer sync evaluated".
 
+## 5d. Expiry date of a transferred domain
+A transfer extends the OLD expiry by a year, so the site never guesses it. It shows ResellerClub's real `endtime`,
+stored in `expires_at`. Domains already marked transferred without a date get it filled automatically
+(max 5 per customer visit, once per 10 minutes). SQL STEP 4 can set netsgoods.com (15 Feb 2028) immediately.
+
 ## 6. Admin
 Orders page > "Sync with ResellerClub" reads the real status. The status dropdown (Success) stays as a manual override: it also marks the transfer items `transferred` and writes
 "Admin manually marked a domain transfer complete" (with the admin e-mail) to laravel.log. Use it only when ResellerClub itself

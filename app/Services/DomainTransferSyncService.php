@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DomainOrder;
 use App\Models\DomainOrderItem;
+use App\Support\DomainActivity;
 use App\Support\DomainTransferProgress;
 use App\Support\PendingTransferList;
 use Carbon\Carbon;
@@ -104,6 +105,48 @@ class DomainTransferSyncService
         }
 
         return $this->syncItems($items);
+    }
+
+    /**
+     * Transferred domains whose expiry is not stored yet (an admin marked them complete by hand,
+     * or they were promoted by the SQL step): read it once from ResellerClub and keep it.
+     * At most 5 per call and once per 10 minutes per customer.
+     *
+     * @return int  how many expiry dates were filled
+     */
+    public function backfillExpiry($userId, $limit = 5)
+    {
+        if (!$this->resellerClub->isConfigured() || !Cache::add('transfer-expiry-backfill.user.' . (int) $userId, 1, 600)) {
+            return 0;
+        }
+
+        $items = DomainOrderItem::with('order')
+            ->where('order_type', 'transfer')
+            ->where('registration_status', DomainOrderItem::STATUS_TRANSFERRED)
+            ->whereNull('expires_at')
+            ->whereHas('order', function ($order) use ($userId) {
+                $order->where('user_id', (int) $userId)->where('payment_status', 'paid');
+            })
+            ->orderBy('id')
+            ->limit((int) $limit)
+            ->get();
+
+        $filled = 0;
+        foreach ($items as $item) {
+            if (array_key_exists($item->domain, (array) config('services.test_domains', []))) {
+                continue;
+            }
+
+            $orderId = $this->resellerOrderId($item);
+            $details = $orderId === null ? null : $this->resellerClub->domainDetails($orderId);
+            $endTime = is_array($details) && isset($details['endtime']) ? DomainActivity::timestamp($details['endtime']) : null;
+            if ($endTime) {
+                $item->update(['expires_at' => Carbon::createFromTimestamp($endTime)]);
+                $filled++;
+            }
+        }
+
+        return $filled;
     }
 
     /**

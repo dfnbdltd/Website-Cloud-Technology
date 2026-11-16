@@ -41,7 +41,9 @@ class MyStoreController extends Controller
         try {
             $userId = (int) ($request->user() ? $request->user()->id : $request->session()->get('customer.id'));
             if ($userId > 0) {
-                app(DomainTransferSyncService::class)->syncPendingForUser($userId);
+                $sync = app(DomainTransferSyncService::class);
+                $sync->syncPendingForUser($userId);
+                $sync->backfillExpiry($userId);
             }
         } catch (\Throwable $exception) {
             \Log::warning('Transfer status refresh failed', ['error' => $exception->getMessage()]);

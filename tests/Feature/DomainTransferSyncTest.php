@@ -360,6 +360,23 @@ class DomainTransferSyncTest extends TestCase
         $this->assertSame('transferred', $item2->fresh()->registration_status);
     }
 
+    public function testAnUnknownExpiryOfATransferredDomainIsReadFromResellerClubNotGuessed()
+    {
+        $user = $this->user();
+        [$order, $item] = $this->submittedTransfer($user);
+        $order->update(['status' => 'active']);
+        $item->update(['registration_status' => 'transferred', 'transfer_completed_at' => now(), 'reseller_order_id' => self::RC_ORDER]);
+        // endtime 1834272000 = 15 Feb 2028; "transfer date + 1 year" would be Nov 2027
+        $this->resellerClub([], ['currentstatus' => 'Active', 'endtime' => '1834272000']);
+        $session = $this->customerSession($user);
+
+        $this->withSession($session)->get('/mystore/domains')
+            ->assertOk()
+            ->assertSee('15 Feb 2028');
+
+        $this->assertSame(1834272000, $item->fresh()->expires_at->timestamp);
+    }
+
     public function testManualAdminCompletionAlsoUnlocksManagement()
     {
         $user = $this->user();

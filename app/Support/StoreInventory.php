@@ -270,10 +270,10 @@ class StoreInventory
                     $item->registration_status
                 );
 
-                $years = max(1, (int) $item->years);
                 $transferred = $item->transfer_completed_at;
-                $expires = $item->expires_at
-                    ?: ($transferred ? $transferred->copy()->addYears($years) : null);
+                // Only ResellerClub's real expiry: a transfer extends the OLD expiry by a year, so
+                // "transfer date + 1 year" would be wrong. Filled by DomainTransferSyncService.
+                $expires = $item->expires_at;
 
                 return [
                     'item_id' => $item->id,
