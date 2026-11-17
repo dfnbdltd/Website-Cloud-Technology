@@ -66,6 +66,10 @@ class AuthController extends Controller
             return route('domains.checkout', [], false);
         }
 
+        if (!empty($request->session()->get('ssl_cart.domain'))) {
+            return route('ssl.checkout', [], false);
+        }
+
         return null;
     }
 

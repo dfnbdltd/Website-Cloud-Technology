@@ -1,0 +1,423 @@
+/* ===========================================================================
+   SSL purchase flow — connect domain, checkout, order saved.
+   Views: resources/views/ssl/{connect,checkout,order}.blade.php
+   Behaviour: public/js/ssl-checkout.js
+
+   Loaded on top of the shared .cs-page shell (navbar + footer come from the
+   site partials). Everything is scoped under .sslx so it cannot leak out.
+   One accent (blue), one success colour (green), one error colour (red).
+   =========================================================================== */
+
+.sslx {
+    --x-ink: #0f2340;
+    --x-body: #5c7590;
+    --x-mute: #8da0b5;
+    --x-line: #e2eaf4;
+    --x-soft: #f3f8ff;
+    --x-blue: #1f6fe5;
+    --x-blue-deep: #175ac4;
+    --x-green: #0f9d76;
+    --x-green-soft: #e7f7f1;
+    --x-red: #c93c3c;
+    --x-red-soft: #fff1f1;
+
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    color: var(--x-ink);
+}
+
+.sslx *,
+.sslx *::before,
+.sslx *::after { box-sizing: border-box; }
+
+.sslx-wrap {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 32px);
+}
+
+/* ---------- breadcrumb ---------- */
+.sslx-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 0;
+    color: var(--x-mute);
+    font-size: 13px;
+}
+.sslx-crumbs a { color: var(--x-body); }
+.sslx-crumbs a:hover { color: var(--x-blue); }
+.sslx-crumbs strong { color: var(--x-ink); font-weight: 600; }
+
+/* ---------- step 1: connect domain ---------- */
+.sslx-hero {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(24px, 6vh, 64px) 0 clamp(32px, 8vh, 80px);
+    text-align: center;
+}
+
+.sslx-shield {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 20px;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #e6f1ff, #e3f8ef);
+    color: var(--x-blue);
+    box-shadow: 0 14px 30px rgba(31, 111, 229, .14);
+}
+.sslx-shield svg { width: 30px; height: 30px; }
+
+.sslx-hero h1 {
+    margin: 0 0 8px;
+    font: 800 clamp(26px, 4vw, 38px)/1.15 'Manrope', sans-serif;
+    letter-spacing: -1px;
+}
+.sslx-hero > p { margin: 0 0 28px; color: var(--x-body); font-size: 16px; }
+
+.sslx-form { width: 100%; max-width: 560px; }
+
+.sslx-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1.5px solid var(--x-line);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(31, 70, 120, .07);
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+.sslx-field:focus-within {
+    border-color: var(--x-blue);
+    box-shadow: 0 0 0 4px rgba(31, 111, 229, .12), 0 10px 30px rgba(31, 70, 120, .07);
+}
+.sslx-field.is-valid { border-color: var(--x-green); }
+.sslx-field.is-valid:focus-within { box-shadow: 0 0 0 4px rgba(15, 157, 118, .14), 0 10px 30px rgba(31, 70, 120, .07); }
+.sslx-field.is-invalid { border-color: var(--x-red); }
+.sslx-field.is-invalid:focus-within { box-shadow: 0 0 0 4px rgba(201, 60, 60, .12), 0 10px 30px rgba(31, 70, 120, .07); }
+
+.sslx-field-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    color: var(--x-mute);
+}
+.sslx-field-icon svg { width: 20px; height: 20px; }
+
+.sslx-field input {
+    flex: 1;
+    min-width: 0;
+    height: 58px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--x-ink);
+    font: 500 17px 'DM Sans', sans-serif;
+}
+.sslx-field input::placeholder { color: #a7b6c7; }
+
+.sslx-field-state {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    font-weight: 800;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+.sslx-field.is-valid .sslx-field-state,
+.sslx-field.is-invalid .sslx-field-state { opacity: 1; }
+.sslx-field.is-valid .sslx-field-state { color: var(--x-green); }
+.sslx-field.is-invalid .sslx-field-state { color: var(--x-red); }
+
+.sslx-hint { min-height: 22px; margin: 10px 4px 0; color: var(--x-body); font-size: 13.5px; text-align: left; }
+.sslx-hint strong { color: var(--x-ink); }
+.sslx-error { margin: 10px 4px 0; color: var(--x-red); font-size: 13.5px; font-weight: 600; text-align: left; }
+
+.sslx-points {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 22px;
+    margin: 30px 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--x-body);
+    font-size: 13.5px;
+}
+.sslx-points li { display: inline-flex; align-items: center; gap: 8px; }
+.sslx-points li::before {
+    content: '✓';
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--x-green-soft);
+    color: var(--x-green);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+/* ---------- bottom bar (plan + price + continue) ---------- */
+.sslx-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin-top: auto;
+    background: rgba(255, 255, 255, .96);
+    border-top: 1px solid var(--x-line);
+    box-shadow: 0 -12px 32px rgba(31, 70, 120, .07);
+    backdrop-filter: blur(10px);
+}
+.sslx-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+.sslx-bar-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--x-soft);
+    color: var(--x-blue);
+}
+.sslx-bar-icon svg { width: 22px; height: 22px; }
+.sslx-bar-plan { min-width: 0; margin-right: auto; }
+.sslx-bar-plan strong { display: block; font-size: 15.5px; }
+.sslx-bar-plan small { color: var(--x-mute); font-size: 12.5px; }
+.sslx-bar-price { text-align: right; line-height: 1.2; }
+.sslx-bar-price strong { font: 800 24px 'Manrope', sans-serif; letter-spacing: -.5px; }
+.sslx-bar-price small { display: block; color: var(--x-mute); font-size: 12px; }
+
+/* ---------- buttons ---------- */
+.sslx-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--x-blue);
+    color: #fff;
+    font: 700 15px 'DM Sans', sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 10px 22px rgba(31, 111, 229, .22);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.sslx-btn:hover { background: var(--x-blue-deep); transform: translateY(-1px); box-shadow: 0 14px 26px rgba(31, 111, 229, .28); }
+.sslx-btn:disabled,
+.sslx-btn[aria-disabled="true"] {
+    background: #e9eef5;
+    color: #9db0c4;
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+}
+.sslx-btn.is-wide { width: 100%; }
+.sslx-btn.is-ghost { background: #fff; color: var(--x-blue); border: 1.5px solid #cfe0f7; box-shadow: none; }
+.sslx-btn.is-ghost:hover { background: var(--x-soft); transform: none; box-shadow: none; }
+
+/* ---------- step 2: checkout ---------- */
+.sslx-head { padding: 6px 0 26px; }
+.sslx-head h1 { margin: 0 0 6px; font: 800 clamp(26px, 3.4vw, 34px)/1.15 'Manrope', sans-serif; letter-spacing: -1px; }
+.sslx-head p { margin: 0; color: var(--x-body); }
+
+.sslx-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 28px;
+    align-items: start;
+    padding-bottom: clamp(40px, 6vw, 72px);
+}
+
+.sslx-card {
+    padding: clamp(20px, 3vw, 30px);
+    background: #fff;
+    border: 1px solid var(--x-line);
+    border-radius: 18px;
+    box-shadow: 0 18px 44px rgba(31, 70, 120, .07);
+}
+.sslx-card + .sslx-card { margin-top: 18px; }
+.sslx-card h2 { margin: 0 0 4px; font: 800 19px 'Manrope', sans-serif; letter-spacing: -.3px; }
+.sslx-card > .sslx-sub { margin: 0 0 18px; color: var(--x-body); font-size: 14px; }
+
+.sslx-alert {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border: 1px solid #f3c9c9;
+    border-radius: 12px;
+    background: var(--x-red-soft);
+    color: var(--x-red);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* "Who are you buying for" choices */
+.sslx-choice {
+    display: block;
+    margin-top: 10px;
+    padding: 16px 18px;
+    border: 1.5px solid var(--x-line);
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.sslx-choice:hover { border-color: #bcd4f5; }
+.sslx-choice:has(input:checked) { border-color: var(--x-blue); background: #f7faff; box-shadow: 0 8px 22px rgba(31, 111, 229, .1); }
+.sslx-choice-row { display: flex; align-items: center; gap: 12px; }
+.sslx-choice input[type="radio"] { width: 18px; height: 18px; margin: 0; accent-color: var(--x-blue); flex: none; }
+.sslx-choice strong { display: block; font-size: 15.5px; }
+.sslx-choice small { display: block; margin-top: 2px; color: var(--x-body); font-size: 13.5px; word-break: break-all; }
+
+.sslx-customer { display: none; margin: 14px 0 0 30px; }
+.sslx-choice:has(input:checked) .sslx-customer { display: block; }
+.sslx-customer-row { display: flex; gap: 10px; }
+.sslx-customer-row input {
+    flex: 1;
+    min-width: 0;
+    height: 46px;
+    padding: 0 14px;
+    border: 1.5px solid var(--x-line);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--x-ink);
+    font: 500 15px 'DM Sans', sans-serif;
+    outline: 0;
+}
+.sslx-customer-row input:focus { border-color: var(--x-blue); box-shadow: 0 0 0 4px rgba(31, 111, 229, .12); }
+.sslx-customer-row input.is-invalid { border-color: var(--x-red); }
+.sslx-customer-row input.is-valid { border-color: var(--x-green); }
+.sslx-customer-row .sslx-btn { min-height: 46px; padding: 0 20px; box-shadow: none; }
+.sslx-customer-status { min-height: 20px; margin: 8px 2px 0; font-size: 13.5px; font-weight: 600; }
+.sslx-customer-status.is-ok { color: var(--x-green); }
+.sslx-customer-status.is-bad { color: var(--x-red); }
+
+/* payment methods */
+.sslx-pay { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.sslx-pay label,
+.sslx-pay .sslx-pay-static {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    padding: 12px 16px;
+    border: 1.5px solid var(--x-line);
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.sslx-pay .sslx-pay-static { cursor: default; }
+.sslx-pay label:hover { border-color: #bcd4f5; }
+.sslx-pay label:has(input:checked) { border-color: var(--x-blue); background: #f7faff; box-shadow: 0 8px 22px rgba(31, 111, 229, .1); }
+.sslx-pay input { width: 18px; height: 18px; margin: 0; accent-color: var(--x-blue); flex: none; }
+.sslx-pay img { display: block; height: 30px; width: auto; max-width: 96px; object-fit: contain; }
+.sslx-pay span { font-weight: 700; font-size: 14.5px; }
+
+.sslx-note { margin: 14px 0 0; color: var(--x-mute); font-size: 12.5px; line-height: 1.55; }
+
+/* guest sign-in cards */
+.sslx-auth { display: grid; gap: 12px; margin-top: 8px; }
+.sslx-auth a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1.5px solid var(--x-line);
+    border-radius: 14px;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.sslx-auth a:hover { border-color: #bcd4f5; background: var(--x-soft); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(31, 111, 229, .1); }
+.sslx-auth-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #e8f2ff;
+    color: var(--x-blue);
+    font-size: 18px;
+}
+.sslx-auth a.is-alt .sslx-auth-icon { background: var(--x-green-soft); color: var(--x-green); }
+.sslx-auth strong { display: block; font-size: 15.5px; }
+.sslx-auth small { display: block; margin-top: 2px; color: var(--x-body); font-size: 13px; }
+.sslx-auth b { margin-left: auto; color: var(--x-blue); font-size: 18px; }
+
+/* order summary */
+.sslx-summary { position: sticky; top: 90px; overflow: hidden; padding-top: 30px; }
+.sslx-summary::before { content: ''; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--x-blue), var(--x-green)); }
+.sslx-kicker { color: var(--x-blue); font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; }
+.sslx-summary h2 { margin: 6px 0 14px; font-size: 22px; }
+.sslx-line { display: flex; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px dashed #e4ecf5; font-size: 14.5px; }
+.sslx-line span { color: var(--x-body); }
+.sslx-line b { text-align: right; word-break: break-all; }
+.sslx-line a { margin-left: 6px; font-size: 12.5px; font-weight: 700; color: var(--x-blue); }
+.sslx-total { display: flex; align-items: baseline; justify-content: space-between; margin-top: 16px; }
+.sslx-total span { color: var(--x-body); font-weight: 600; }
+.sslx-total strong { font: 800 28px 'Manrope', sans-serif; letter-spacing: -.8px; }
+.sslx-renew { margin: 6px 0 0; color: var(--x-mute); font-size: 12.5px; text-align: right; }
+.sslx-secure { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: var(--x-green-soft); color: #17795b; font-size: 13px; font-weight: 600; }
+
+.sslx-submit { margin-top: 22px; }
+
+/* ---------- step 3: order saved ---------- */
+.sslx-done { flex: 1 0 auto; display: grid; place-items: start center; padding: clamp(24px, 6vh, 56px) 0 clamp(40px, 7vw, 80px); }
+.sslx-done-card { width: 100%; max-width: 620px; padding: clamp(24px, 4vw, 40px); text-align: center; background: #fff; border: 1px solid var(--x-line); border-radius: 22px; box-shadow: 0 22px 60px rgba(31, 70, 120, .1); position: relative; overflow: hidden; }
+.sslx-done-card::before { content: ''; position: absolute; inset: 0 0 auto; height: 5px; background: linear-gradient(90deg, var(--x-blue), var(--x-green)); }
+.sslx-done-icon { display: grid; place-items: center; width: 68px; height: 68px; margin: 0 auto 18px; border-radius: 50%; background: var(--x-green-soft); color: var(--x-green); font-size: 32px; box-shadow: 0 0 0 9px #f2fcf8; }
+.sslx-done-card h1 { margin: 0 0 8px; font: 800 clamp(24px, 3.6vw, 32px)/1.15 'Manrope', sans-serif; letter-spacing: -1px; }
+.sslx-done-card > p { margin: 0 auto; max-width: 460px; color: var(--x-body); font-size: 15px; line-height: 1.65; }
+.sslx-ref { margin: 22px 0 6px; padding: 14px 18px; border: 1px solid #dbe8f5; border-radius: 14px; background: linear-gradient(135deg, #f7fbff, #eef6ff); }
+.sslx-ref span { display: block; color: var(--x-mute); font-size: 11px; font-weight: 800; letter-spacing: 1.4px; }
+.sslx-ref strong { display: block; margin-top: 4px; font-size: 20px; letter-spacing: .3px; }
+.sslx-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 8px 0 24px; text-align: left; }
+.sslx-facts div { padding: 13px 0; border-bottom: 1px solid #edf2f8; }
+.sslx-facts small { display: block; color: var(--x-mute); font-size: 12px; }
+.sslx-facts strong { display: block; margin-top: 3px; font-size: 14.5px; word-break: break-all; }
+.sslx-facts img { display: inline-block; height: 20px; width: auto; vertical-align: middle; margin-right: 6px; }
+.sslx-status { display: inline-block; padding: 3px 10px; border-radius: 99px; background: #fff6e5; color: #a56a00; font-size: 12.5px; font-weight: 700; }
+.sslx-actions { display: grid; gap: 10px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 880px) {
+    .sslx-grid { grid-template-columns: minmax(0, 1fr); }
+    .sslx-summary { position: static; order: -1; }
+}
+@media (max-width: 560px) {
+    .sslx-bar-inner { flex-wrap: wrap; row-gap: 10px; }
+    .sslx-bar-icon { display: none; }
+    .sslx-bar-plan { flex: 1 1 100%; }
+    .sslx-bar-price { text-align: left; margin-right: auto; }
+    .sslx-pay { grid-template-columns: minmax(0, 1fr); }
+    .sslx-customer { margin-left: 0; }
+    .sslx-customer-row { flex-direction: column; }
+    .sslx-facts { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sslx * { transition: none !important; }
+}

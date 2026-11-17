@@ -12,6 +12,7 @@ use App\Services\DomainTransferService;
 use App\Models\DomainOrder;
 use App\Models\DomainOrderItem;
 use App\Models\Payment;
+use App\Support\CustomerLookup;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -253,15 +254,15 @@ class DomainController extends Controller
 
     public function lookupCustomer(Request $request)
     {
-        $data = $request->validate(['identifier' => ['required', 'string', 'max:255']]);
-        $identifier = trim($data['identifier']);
-        $customerQuery = User::whereNotNull('email_verified_at');
-        $customer = filter_var($identifier, FILTER_VALIDATE_EMAIL)
-            ? $customerQuery->where('email', $identifier)->first()
-            : $customerQuery->where('customer_uid', $identifier)->first();
+        // Only a signed-in customer may check whether someone else has an account.
+        if (!($request->user() ?: User::find(session('customer.id')))) {
+            return response()->json(['message' => 'Please sign in to continue.'], 401);
+        }
 
-        if (!$customer) {
-            return response()->json(['message' => 'No customer account was found for that email.'], 404);
+        $data = $request->validate(['identifier' => ['required', 'string', 'max:255']]);
+
+        if (!CustomerLookup::find($data['identifier'])) {
+            return response()->json(['message' => CustomerLookup::NOT_FOUND], 404);
         }
 
         return response()->json(['verified' => true]);
@@ -336,6 +337,13 @@ class DomainController extends Controller
             && !empty($accountDetails['name'])
             && !empty($accountDetails['email']);
         $buyingForCustomer = $purchaseFor === 'customer';
+        if ($buyingForCustomer && !$user) {
+            // Buying for someone else needs a signed-in buyer (they pay, and the order is theirs to open).
+            \App\Support\AuthIntent::remember($request->session(), route('domains.checkout', [], false));
+
+            return redirect()->route('login', ['return_to' => route('domains.checkout', [], false)])
+                ->with('success', 'Please sign in to buy for a customer.');
+        }
         $data = $request->validate([
             'payment_method' => ['required', 'in:' . implode(',', $allowedMethods)],
             'full_name' => $useAccountDetails || $buyingForCustomer ? ['nullable'] : ['required', 'string', 'max:120'],
@@ -343,19 +351,17 @@ class DomainController extends Controller
             'phone' => $useAccountDetails || $buyingForCustomer ? ['nullable'] : ['required', 'string', 'max:30'],
             'purchase_for' => ['required', 'in:myself,customer'],
             'customer_identifier' => $buyingForCustomer ? ['required', 'string', 'max:255'] : ['nullable'],
+        ], [
+            'customer_identifier.required' => 'Enter the email or ID of the customer you are buying for.',
         ]);
         if ($useAccountDetails) {
             $data['full_name'] = $accountDetails['name'];
             $data['email'] = $accountDetails['email'];
             $data['phone'] = $accountDetails['phone'];
         } elseif ($buyingForCustomer) {
-            $identifier = trim($data['customer_identifier']);
-            $customerQuery = User::whereNotNull('email_verified_at');
-            $selectedCustomer = filter_var($identifier, FILTER_VALIDATE_EMAIL)
-                ? $customerQuery->where('email', $identifier)->first()
-                : $customerQuery->where('customer_uid', $identifier)->first();
+            $selectedCustomer = CustomerLookup::find($data['customer_identifier']);
             if (!$selectedCustomer) {
-                return back()->withInput()->withErrors(['customer_identifier' => 'No verified customer account was found for that email or ID.']);
+                return back()->withInput()->withErrors(['customer_identifier' => CustomerLookup::NOT_FOUND]);
             }
             $data['full_name'] = $selectedCustomer->name;
             $data['email'] = $selectedCustomer->email;
@@ -400,7 +406,10 @@ class DomainController extends Controller
                 $order['payment']['message'] = 'Paid from wallet balance.';
             }
 
-            $model = DomainOrder::create([
+            $model = DomainOrder::create(array_merge(
+                // Who placed (and paid for) the order, when that is not its owner.
+                DomainOrder::hasPlacedByColumn() ? ['placed_by_user_id' => $user ? $user->id : null] : [],
+                [
                 'reference' => $order['reference'],
                 'user_id' => $orderUser ? $orderUser->id : null,
                 'total' => $order['total'],
@@ -412,7 +421,8 @@ class DomainController extends Controller
                 'customer_phone' => $data['phone'],
                 'customer_email' => $data['customer_email'],
                 'payload' => json_encode($order),
-            ]);
+                ]
+            ));
             foreach ($cart as $item) {
                 $parts = explode('.', $item['domain']);
                 DomainOrderItem::create([
@@ -489,7 +499,8 @@ class DomainController extends Controller
         $user = $request->user() ?: User::find(session('customer.id'));
         $query = DomainOrder::with(['items', 'payments'])->where('reference', $reference);
         if ($user) {
-            $query->where('user_id', $user->id);
+            // The owner, or the customer who placed it for them.
+            $query->visibleTo($user->id);
         }
         $databaseOrder = $query->first();
 
@@ -531,7 +542,7 @@ class DomainController extends Controller
                 ],
                 'database_id' => $databaseOrder->id,
             ];
-        } elseif ($user && (!$databaseOrder || (int) $databaseOrder->user_id !== (int) $user->id)) {
+        } elseif ($user && (!$databaseOrder || !$databaseOrder->isVisibleTo($user->id))) {
             return redirect()->route('domains.index')->withErrors(['payment' => 'Order not found in this account.']);
         }
 

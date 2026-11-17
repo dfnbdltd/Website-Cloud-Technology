@@ -50,6 +50,10 @@
         </div>
     </header>
 
+    @if($errors->has('ssl'))
+        <p class="ssl-notice" role="alert" style="max-width:640px;margin:18px auto 0;padding:12px 16px;border:1px solid #f3c9c9;border-radius:12px;background:#fff1f1;color:#c93c3c;font-weight:600;font-size:14px">{{ $errors->first('ssl') }}</p>
+    @endif
+
     <div class="ssl-grid">
         @foreach($sslPlans as $sslPlan)
             @php($sslTermId = 'sslTerm-' . $sslPlan['key'])
@@ -84,11 +88,9 @@
                     </select>
                 </div>
 
-                @if(!empty($sslPlan['buy_route']))
-                    <a class="ssl-buy" href="{{ route($sslPlan['buy_route']) }}" data-service="{{ $sslPlan['name'] }}">Buy Now</a>
-                @else
-                    <button class="ssl-buy coming-soon-trigger" type="button" data-service="{{ $sslPlan['name'] }}">Buy Now</button>
-                @endif
+                {{-- Buy Now starts the SSL purchase: connect a domain, then checkout.
+                     The inline script below keeps `term` in step with the select. --}}
+                <a class="ssl-buy" href="{{ route('ssl.connect', ['plan' => $sslPlan['key'], 'term' => $sslDefault['years']]) }}" data-ssl-buy data-service="{{ $sslPlan['name'] }}">Buy Now</a>
 
                 <p class="ssl-total" data-ssl-total>
                     ৳{{ \App\Support\SslPricing::money($sslDefault['total']) }}
@@ -146,9 +148,21 @@
                 }
             }
 
+            var buy = card.querySelector('[data-ssl-buy]');
+            function syncBuyLink() {
+                if (!buy) { return; }
+                try {
+                    var url = new URL(buy.getAttribute('href'), window.location.origin);
+                    url.searchParams.set('term', select.value);
+                    buy.setAttribute('href', url.pathname + url.search);
+                } catch (e) { /* keep the server-rendered link */ }
+            }
+
             select.addEventListener('change', function () {
                 apply(select.options[select.selectedIndex]);
+                syncBuyLink();
             });
+            syncBuyLink();
         });
     }());
 </script>

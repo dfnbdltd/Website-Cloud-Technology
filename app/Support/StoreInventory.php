@@ -92,7 +92,7 @@ class StoreInventory
                 'blurb' => 'Certificates that keep your visitors on a secure connection.',
                 'empty_short' => 'No certificates yet.',
                 'empty' => 'No SSL certificates yet. Once an SSL order is placed it will appear here with its validity period and invoice.',
-                'cta' => ['label' => 'SSL plans are coming soon', 'route' => null, 'params' => []],
+                'cta' => ['label' => 'Browse SSL plans', 'route' => 'services.coming-soon', 'params' => ['service' => 'ssl-certificate']],
             ],
             'email' => [
                 'key' => 'email',

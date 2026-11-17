@@ -85,8 +85,33 @@
         label.payment-option.is-disabled:hover { border-color:var(--line); background:#fff; box-shadow:none; transform:none; }
         .payment-methods-note { display:block; margin-top:13px; }
 
+        /* ---- Who are you buying for? ---- */
+        .buyfor { padding-bottom:24px; margin-bottom:26px; border-bottom:1px solid #edf2f8; }
+        .buyfor-choice { display:block; margin-top:10px; padding:14px 16px; border:1px solid #e0e9f4; border-radius:13px; background:#fff; cursor:pointer; transition:border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+        .buyfor-choice:hover { border-color:#c5d8f5; }
+        .buyfor-choice:has(input[type=radio]:checked) { border-color:#4389ee; background:#f5f9ff; box-shadow:0 10px 24px rgba(67,137,238,.13); }
+        .buyfor-row { display:flex; align-items:flex-start; gap:12px; }
+        .buyfor-row input { margin-top:4px; accent-color:#347bea; }
+        .buyfor-row strong { display:block; font:800 15px 'Manrope',sans-serif; color:var(--navy); }
+        .buyfor-row small { display:block; margin-top:2px; color:#7a8ca1; font-size:12.5px; }
+        .buyfor-customer { display:none; margin:14px 0 2px 28px; }
+        .buyfor-choice:has(input[value=customer]:checked) .buyfor-customer { display:block; }
+        .buyfor-customer-row { display:flex; gap:8px; }
+        .buyfor-customer-row input { flex:1; min-width:0; height:46px; padding:0 14px; border:1px solid #d6e2f0; border-radius:10px; font-size:14px; background:#fff; }
+        .buyfor-customer-row input:focus { outline:0; border-color:#4389ee; box-shadow:0 0 0 3px #4389ee22; }
+        .buyfor-customer-row input.is-valid { border-color:#26b883; }
+        .buyfor-customer-row input.is-invalid { border-color:#d93a3a; box-shadow:0 0 0 3px #d93a3a1a; }
+        .buyfor-confirm { flex:none; height:46px; padding:0 20px; border:0; border-radius:10px; background:#347bea; color:#fff; font-weight:800; cursor:pointer; }
+        .buyfor-confirm:disabled { opacity:.55; cursor:wait; }
+        .buyfor-status { display:block; min-height:18px; margin-top:8px; font-size:13px; font-weight:700; color:#6f8198; }
+        .buyfor-status.is-ok { color:#1f8a5f; }
+        .buyfor-status.is-bad { color:#d93a3a; }
+        .checkout-submit:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+
         @media(max-width:760px) {
             .checkout-auth-panel { padding:26px 20px; }
+            .buyfor-customer { margin-left:0; }
+            .buyfor-customer-row { flex-direction:column; }
             .checkout-head h1 { font-size:28px; }
         }
         @media (prefers-reduced-motion:reduce) {
@@ -174,13 +199,41 @@
     @endif
     <div class="checkout-grid">
         @if(session('customer'))
-            <form class="checkout-form checkout-card co-anim d1" method="POST" action="{{ route('domains.place-order') }}">
+            @php($purchaseFor = old('purchase_for', 'myself'))
+            <form class="checkout-form checkout-card co-anim d1" id="domainCheckoutForm" method="POST" action="{{ route('domains.place-order') }}" data-lookup-url="{{ route('domains.customer.lookup') }}" novalidate>
                 @csrf
-                <input type="hidden" name="purchase_for" value="myself">
                 @if(session('cart_added'))<div class="domain-alert success cart-added"><span>✓ <b>{{ session('cart_added') }}</b> was added to your cart.</span></div>@endif
-                @if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
+                {{-- A customer-lookup error is already shown under the customer field. --}}
+                @if($errors->any() && !$errors->has('customer_identifier'))<div class="domain-alert error">{{ $errors->first() }}</div>@endif
+
+                <section class="buyfor" aria-labelledby="buyforTitle">
+                    <h2 id="buyforTitle">Who are you buying for?</h2>
+                    <label class="buyfor-choice">
+                        <span class="buyfor-row">
+                            <input type="radio" name="purchase_for" value="myself" {{ $purchaseFor !== 'customer' ? 'checked' : '' }}>
+                            <span><strong>Myself</strong><small>{{ $accountDetails['email'] }}</small></span>
+                        </span>
+                    </label>
+                    <label class="buyfor-choice">
+                        <span class="buyfor-row">
+                            <input type="radio" name="purchase_for" value="customer" {{ $purchaseFor === 'customer' ? 'checked' : '' }}>
+                            <span><strong>Customer</strong><small>Register it directly in an existing CloudTechnology customer's account</small></span>
+                        </span>
+                        <span class="buyfor-customer" id="buyforCustomer">
+                            <span class="buyfor-customer-row">
+                                <input id="buyforIdentifier" name="customer_identifier" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"
+                                       placeholder="Email or ID of existing customer" value="{{ old('customer_identifier') }}"
+                                       class="{{ $errors->has('customer_identifier') ? 'is-invalid' : '' }}" aria-label="Customer email or ID">
+                                <button class="buyfor-confirm" id="buyforConfirm" type="button">Confirm</button>
+                            </span>
+                            <span class="buyfor-status {{ $errors->has('customer_identifier') ? 'is-bad' : '' }}" id="buyforStatus" role="status" aria-live="polite">{{ $errors->first('customer_identifier') }}</span>
+                        </span>
+                    </label>
+                </section>
+
                 <section
                     class="checkout-contact-section"
+                    id="checkoutContactSection"
                     data-account-details-complete="{{ $accountDetailsComplete ? 'true' : 'false' }}"
                 >
                     @if($accountDetailsComplete)
@@ -212,7 +265,7 @@
                         </label>
                     @endforeach
                 </div>
-                <button class="checkout-submit" type="submit">Place order · ৳ {{ number_format($total) }} <b>→</b></button>
+                <button class="checkout-submit" id="domainPlaceOrder" type="submit">Place order · ৳ {{ number_format($total) }} <b>→</b></button>
                 @if(isset($gatewayReady) && !$gatewayReady)
                     <small class="checkout-note payment-methods-note" style="color:#c9822f">bKash gateway is not configured on this server yet — bKash orders will be saved and processed manually by our billing team.</small>
                 @else
@@ -284,6 +337,98 @@ document.addEventListener('click', function (e) {
     var m = document.getElementById('accountMenu');
     if (m && !m.contains(e.target)) { m.classList.remove('open'); }
 });
+
+/* Who are you buying for? — instant feedback only; the server checks again on Place order. */
+(function () {
+    var form = document.getElementById('domainCheckoutForm');
+    if (!form) { return; }
+
+    var identifier = document.getElementById('buyforIdentifier');
+    var confirmBtn = document.getElementById('buyforConfirm');
+    var status = document.getElementById('buyforStatus');
+    var submit = document.getElementById('domainPlaceOrder');
+    var contact = document.getElementById('checkoutContactSection');
+    var token = document.querySelector('meta[name="csrf-token"]');
+    var lookupUrl = form.getAttribute('data-lookup-url');
+    var confirmed = null; // the identifier that was verified
+
+    var forCustomer = function () {
+        var checked = form.querySelector('input[name="purchase_for"]:checked');
+        return !!checked && checked.value === 'customer';
+    };
+
+    var setStatus = function (text, kind) {
+        status.textContent = text || '';
+        status.className = 'buyfor-status' + (kind ? ' is-' + kind : '');
+        identifier.classList.toggle('is-valid', kind === 'ok');
+        identifier.classList.toggle('is-invalid', kind === 'bad');
+    };
+
+    var refresh = function () {
+        var customer = forCustomer();
+        submit.disabled = customer && confirmed !== identifier.value.trim();
+        // The buyer's own contact fields do not apply when buying for a customer.
+        if (contact) {
+            contact.style.display = customer ? 'none' : '';
+            var fields = contact.querySelectorAll('input');
+            for (var i = 0; i < fields.length; i++) { fields[i].disabled = customer; }
+        }
+    };
+
+    var radios = form.querySelectorAll('input[name="purchase_for"]');
+    for (var i = 0; i < radios.length; i++) { radios[i].addEventListener('change', refresh); }
+
+    identifier.addEventListener('input', function () {
+        confirmed = null;
+        setStatus('', null);
+        refresh();
+    });
+
+    confirmBtn.addEventListener('click', function () {
+        var value = identifier.value.trim();
+        if (value === '') { setStatus('Enter the customer email or ID first.', 'bad'); return; }
+
+        confirmBtn.disabled = true;
+        setStatus('Checking…', null);
+
+        fetch(lookupUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': token ? token.getAttribute('content') : ''
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ identifier: value })
+        }).then(function (response) {
+            return response.json().catch(function () { return {}; }).then(function (body) {
+                return { ok: response.ok, status: response.status, body: body };
+            });
+        }).then(function (result) {
+            if (result.ok && result.body.verified) {
+                confirmed = value;
+                setStatus('✓ Customer found. You can continue.', 'ok');
+            } else if (result.status === 404) {
+                confirmed = null;
+                setStatus(result.body.message || 'Customer does not exist.', 'bad');
+            } else if (result.status === 429) {
+                setStatus('Too many attempts. Please wait a minute and try again.', 'bad');
+            } else if (result.status === 401) {
+                setStatus('Your session expired. Please sign in again.', 'bad');
+            } else {
+                setStatus('Could not check the customer right now. Please try again.', 'bad');
+            }
+        }).catch(function () {
+            setStatus('Could not check the customer right now. Please try again.', 'bad');
+        }).then(function () {
+            confirmBtn.disabled = false;
+            refresh();
+        });
+    });
+
+    refresh();
+})();
 </script>
 </body>
 </html>

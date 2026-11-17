@@ -12,29 +12,7 @@ use App\Http\Controllers\WalletController;
 use App\Http\Controllers\HostingController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyStoreController;
-
-// TEMP-PROBE: local-only sign-in for the My Domains visual check.
-Route::get('/__probe-rowcheck', function () {
-    Auth::loginUsingId(App\User::where('email', 'rowcheck.check@example.test')->value('id'));
-    $user = Auth::user();
-    session([
-        'customer' => [
-            'id' => $user->id, 'name' => $user->name, 'email' => $user->email,
-            'initials' => 'RC', 'customer_code' => 'CT-' . $user->id, 'status' => 'active', 'balance' => 0,
-        ],
-        'domain_cart' => [],
-    ]);
-    return redirect('/mystore/domains');
-});
-// TEMP-PROBE: local-only session seed for coming-soon verification.
-Route::get('/__probe-login', function () {
-    session(['customer' => [
-        'id' => 1, 'name' => 'Aziz Muntasir', 'email' => 'aziz@example.test',
-        'initials' => 'AM', 'customer_code' => 'CT-1', 'status' => 'active', 'balance' => 0,
-    ]]);
-    session(['domain_cart' => []]);
-    return redirect('/mystore');
-});
+use App\Http\Controllers\SslCheckoutController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     $trustItems = array_values(array_filter(array_map('trim', explode(',', (string) \App\Models\Setting::get('trust_items')))));
@@ -198,6 +176,18 @@ Route::post('/bkash/create', [BkashController::class, 'create'])->name('bkash.cr
 Route::post('/bkash/execute', [BkashController::class, 'execute'])->name('bkash.execute');
 Route::post('/bkash/query', [BkashController::class, 'query'])->name('bkash.query');
 Route::post('/bkash/cancel', [BkashController::class, 'cancel'])->name('bkash.cancel');
+
+// SSL certificate purchase: connect a domain -> checkout -> saved order.
+// Connect and checkout are public (a guest sees the BDT price, then signs in);
+// looking up a customer, placing the order and viewing it need a customer.
+Route::get('/ssl/connect', [SslCheckoutController::class, 'connect'])->name('ssl.connect');
+Route::post('/ssl/connect', [SslCheckoutController::class, 'storeDomain'])->middleware('throttle:30,1')->name('ssl.connect.store');
+Route::get('/ssl/checkout', [SslCheckoutController::class, 'checkout'])->name('ssl.checkout');
+Route::middleware('customer')->group(function () {
+    Route::post('/ssl/checkout/customer', [SslCheckoutController::class, 'lookupCustomer'])->middleware('throttle:10,1')->name('ssl.customer.lookup');
+    Route::post('/ssl/checkout', [SslCheckoutController::class, 'placeOrder'])->middleware('throttle:10,1')->name('ssl.place-order');
+    Route::get('/ssl/orders/{reference}', [SslCheckoutController::class, 'order'])->name('ssl.order');
+});
 
 Route::get('/domains/confirmation/{reference}', [DomainController::class, 'confirmation'])->name('domains.confirmation');
 Route::post('/send-message', [ContactController::class, 'sendMessage'])->name('contact.send');

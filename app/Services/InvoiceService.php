@@ -6,6 +6,7 @@ use App\Models\DomainOrder;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
+use App\Models\SslOrder;
 use App\Models\Topup;
 use Illuminate\Support\Facades\DB;
 
@@ -69,6 +70,77 @@ class InvoiceService
 
             return $invoice;
         });
+    }
+
+    /**
+     * Invoice for an SSL order: unpaid until the payment is confirmed, then
+     * flipped by markSslOrderPaid(). The line's item_type starts with "ssl"
+     * so My Store → SSL Certificate lists it once it is paid.
+     */
+    public function createForSslOrder(SslOrder $order): ?Invoice
+    {
+        if (!$order->exists) {
+            return null;
+        }
+
+        $existing = $this->findForSource(SslOrder::class, $order->id);
+        if ($existing) {
+            return $existing;
+        }
+
+        $paid = $order->payment_status === 'paid';
+        $years = max(1, (int) $order->years);
+
+        return DB::transaction(function () use ($order, $paid, $years) {
+            $invoice = Invoice::create([
+                'invoice_number' => Invoice::generateNumber(),
+                'user_id' => $order->user_id,
+                'source_type' => SslOrder::class,
+                'source_id' => $order->id,
+                'type' => Invoice::TYPE_ORDER,
+                'status' => $paid ? Invoice::STATUS_PAID : Invoice::STATUS_UNPAID,
+                'payment_method' => $order->payment_method,
+                'amount_paid' => $paid ? (float) $order->total : 0,
+                'currency' => 'BDT',
+                'vat_percent' => 0,
+                'paid_at' => $paid ? now() : null,
+                'created_by' => $paid ? 'system' : null,
+            ]);
+
+            $invoice->items()->create([
+                'sl_no' => 1,
+                'description' => 'SSL certificate — ' . $order->plan_name . ' for ' . $order->domain,
+                'item_type' => 'ssl-certificate',
+                'years' => $years,
+                'quantity' => 1,
+                'unit_price' => round((float) $order->total / $years, 2),
+                'purchase_price' => $order->purchase_price !== null
+                    ? round((float) $order->purchase_price / $years, 2)
+                    : null,
+                // The exact amount charged, so rounding a multi-year price
+                // per year can never change the invoice total.
+                'line_total' => round((float) $order->total, 2),
+            ]);
+
+            $this->recalculate($invoice);
+
+            return $invoice;
+        });
+    }
+
+    /** Flip the SSL order's invoice to paid (call when the payment is confirmed). */
+    public function markSslOrderPaid(SslOrder $order): void
+    {
+        $invoice = $this->findForSource(SslOrder::class, $order->id);
+        if (!$invoice || $invoice->status === Invoice::STATUS_PAID || $invoice->status === Invoice::STATUS_VOID) {
+            return;
+        }
+
+        $invoice->forceFill([
+            'status' => Invoice::STATUS_PAID,
+            'amount_paid' => $invoice->amount_paid > 0 ? $invoice->amount_paid : (float) $invoice->total,
+            'paid_at' => now(),
+        ])->save();
     }
 
     /**
