@@ -106,7 +106,10 @@ class SslCheckoutTest extends TestCase
         $this->get(route('services.coming-soon', 'ssl-certificate'))
             ->assertOk()
             ->assertSee('ssl/connect?plan=positive-ssl', false)
-            ->assertDontSee('coming-soon-trigger', false);
+            // The card button is a plain link now; it must not open the "coming soon" dialog.
+            // (The shared coming-soon modal script is on every page, so only the card is checked.)
+            ->assertSee('<a class="ssl-buy" href=', false)
+            ->assertDontSee('<button class="ssl-buy', false);
     }
 
     // --------------------------------------------------------- connect page
@@ -397,7 +400,8 @@ class SslCheckoutTest extends TestCase
             ->get(route('ssl.order', $order->reference))
             ->assertNotFound();
 
-        // A guest is sent to sign in first.
+        // A guest is sent to sign in first (drop the stranger's session from the request above).
+        $this->flushSession();
         $this->get(route('ssl.order', $order->reference))->assertRedirect();
     }
 

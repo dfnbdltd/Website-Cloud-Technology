@@ -219,10 +219,14 @@ the SSL plans page with a message to choose a plan (the old selection is gone).
 
 **SSL-14 — price cannot be tampered with**
 1. As `BUYER` open a connect page. In developer tools change the hidden field
-   `term` to `99` and the `plan` to `fake-plan` (one at a time), enter `example.com`,
-   click Continue.
-2. Expected: sent back to the SSL plans page with an error, nothing saved.
-3. On checkout there is no price field you can edit; the total always matches the plan card.
+   `term` to `99`, enter `example.com`, click Continue.
+2. Expected: nothing is saved and the term falls back to a valid one (the page
+   reloads on `term=1`; the price shown is still the real plan price). This is
+   a safe reset, not an error page.
+3. Repeat with `plan` changed to `fake-plan`. Expected: sent back to the SSL plans
+   page with an error, nothing saved.
+4. On checkout there is no price field you can edit; the total always matches the plan card.
+   Check `SELECT COUNT(*) FROM ssl_orders` did not change.
 
 **SSL-15 — paid order shows up in My Store (simulated payment)**
 The payment gateway is not connected yet, so simulate "payment confirmed" in SQL for
@@ -332,9 +336,9 @@ Also ask the person running the test to remove the `test_domains` line from
 
 ```
 composer install
-php artisan test --filter=SslCheckoutTest
-php artisan test --filter=DomainBuyForCustomerTest
-php artisan test
+vendor\bin\phpunit --filter=SslCheckoutTest
+vendor\bin\phpunit --filter=DomainBuyForCustomerTest
+vendor\bin\phpunit
 ```
 Report the final "Tests: N passed / failed" line and the name of every failing test.
-(`phpunit.xml` and a testing database setting are needed; ask the owner if missing.)
+(Laravel 6 has no `php artisan test`; use PHPUnit directly, with PHP 8.0.)

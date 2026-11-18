@@ -51,7 +51,7 @@ class DomainBuyForCustomerTest extends TestCase
         return $user;
     }
 
-    private function session(User $user, array $extra = [])
+    private function customerSession(User $user, array $extra = [])
     {
         return array_merge(['customer' => [
             'id' => $user->id,
@@ -81,7 +81,7 @@ class DomainBuyForCustomerTest extends TestCase
     {
         $buyer = $this->user('Buyer One');
 
-        $this->withSession($this->session($buyer, $this->cart()))
+        $this->withSession($this->customerSession($buyer, $this->cart()))
             ->get(route('domains.checkout'))
             ->assertOk()
             ->assertSee('Who are you buying for?')
@@ -106,7 +106,7 @@ class DomainBuyForCustomerTest extends TestCase
         $buyer = $this->user('Buyer One');
         $customer = $this->user('Existing Customer', true, 'CT-000042');
         $unverified = $this->user('Not Verified', false, 'CT-000043');
-        $session = $this->session($buyer);
+        $session = $this->customerSession($buyer);
 
         $this->withSession($session)->postJson(route('domains.customer.lookup'), ['identifier' => $customer->email])
             ->assertOk()->assertJson(['verified' => true]);
@@ -133,7 +133,7 @@ class DomainBuyForCustomerTest extends TestCase
         $buyer = $this->user('Buyer One');
         $customer = $this->user('Existing Customer', true, 'CT-000042');
 
-        $this->withSession($this->session($buyer, $this->cart()))
+        $this->withSession($this->customerSession($buyer, $this->cart()))
             ->post(route('domains.place-order'), [
                 'purchase_for' => 'customer',
                 'customer_identifier' => 'CT-000042',
@@ -156,7 +156,7 @@ class DomainBuyForCustomerTest extends TestCase
     {
         $buyer = $this->user('Buyer One');
 
-        $this->withSession($this->session($buyer, $this->cart()))
+        $this->withSession($this->customerSession($buyer, $this->cart()))
             ->post(route('domains.place-order'), [
                 'purchase_for' => 'myself',
                 'payment_method' => 'bkash',
@@ -172,7 +172,7 @@ class DomainBuyForCustomerTest extends TestCase
     {
         $buyer = $this->user('Buyer One');
 
-        $this->withSession($this->session($buyer, $this->cart()))
+        $this->withSession($this->customerSession($buyer, $this->cart()))
             ->from(route('domains.checkout'))
             ->post(route('domains.place-order'), [
                 'purchase_for' => 'customer',
@@ -191,7 +191,7 @@ class DomainBuyForCustomerTest extends TestCase
         $buyer = $this->user('Buyer One');
         $unverified = $this->user('Not Verified', false, 'CT-000043');
 
-        $this->withSession($this->session($buyer, $this->cart()))
+        $this->withSession($this->customerSession($buyer, $this->cart()))
             ->from(route('domains.checkout'))
             ->post(route('domains.place-order'), [
                 'purchase_for' => 'customer',
@@ -206,7 +206,7 @@ class DomainBuyForCustomerTest extends TestCase
     {
         $buyer = $this->user('Buyer One');
 
-        $this->withSession($this->session($buyer, $this->cart()))
+        $this->withSession($this->customerSession($buyer, $this->cart()))
             ->from(route('domains.checkout'))
             ->post(route('domains.place-order'), [
                 'purchase_for' => 'customer',
@@ -235,7 +235,7 @@ class DomainBuyForCustomerTest extends TestCase
         $buyer = $this->user('Buyer One', true, null, 5000);
         $customer = $this->user('Existing Customer', true, 'CT-000042', 100);
 
-        $this->withSession($this->session($buyer, $this->cart()))
+        $this->withSession($this->customerSession($buyer, $this->cart()))
             ->post(route('domains.place-order'), [
                 'purchase_for' => 'customer',
                 'customer_identifier' => 'CT-000042',
@@ -288,11 +288,11 @@ class DomainBuyForCustomerTest extends TestCase
         $stranger = $this->user('Stranger Three');
         $order = $this->orderFor($customer, $buyer);
 
-        $this->withSession($this->session($buyer))
+        $this->withSession($this->customerSession($buyer))
             ->get(route('domains.confirmation', $order->reference))->assertOk();
-        $this->withSession($this->session($customer))
+        $this->withSession($this->customerSession($customer))
             ->get(route('domains.confirmation', $order->reference))->assertOk();
-        $this->withSession($this->session($stranger))
+        $this->withSession($this->customerSession($stranger))
             ->get(route('domains.confirmation', $order->reference))
             ->assertRedirect(route('domains.index'));
     }
