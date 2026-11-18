@@ -123,4 +123,9 @@ return [
         'password' => env('ADMIN_PASSWORD'),
     ],
 
+    // SSL ordering stays closed (the Place order button only shows a "coming soon"
+    // popup) until the bKash/Nagad payment and ResellerClub order are built.
+    // Set SSL_CHECKOUT_ENABLED=true in .env to open it.
+    'ssl_checkout_enabled' => env('SSL_CHECKOUT_ENABLED', false),
+
 ];

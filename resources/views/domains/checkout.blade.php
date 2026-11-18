@@ -91,13 +91,14 @@
         .buyfor-choice:hover { border-color:#c5d8f5; }
         .buyfor-choice:has(input[type=radio]:checked) { border-color:#4389ee; background:#f5f9ff; box-shadow:0 10px 24px rgba(67,137,238,.13); }
         .buyfor-row { display:flex; align-items:flex-start; gap:12px; }
-        .buyfor-row input { margin-top:4px; accent-color:#347bea; }
+        .checkout-form .buyfor-row input[type=radio] { display:inline-block; flex:none; width:18px; height:18px; margin:2px 0 0; padding:0; accent-color:#347bea; }
+        .buyfor-row > span { flex:1; min-width:0; text-align:left; }
         .buyfor-row strong { display:block; font:800 15px 'Manrope',sans-serif; color:var(--navy); }
         .buyfor-row small { display:block; margin-top:2px; color:#7a8ca1; font-size:12.5px; }
         .buyfor-customer { display:none; margin:14px 0 2px 28px; }
         .buyfor-choice:has(input[value=customer]:checked) .buyfor-customer { display:block; }
         .buyfor-customer-row { display:flex; gap:8px; }
-        .buyfor-customer-row input { flex:1; min-width:0; height:46px; padding:0 14px; border:1px solid #d6e2f0; border-radius:10px; font-size:14px; background:#fff; }
+        .checkout-form .buyfor-customer-row input { flex:1; width:auto; margin:0; min-width:0; height:46px; padding:0 14px; border:1px solid #d6e2f0; border-radius:10px; font-size:14px; background:#fff; }
         .buyfor-customer-row input:focus { outline:0; border-color:#4389ee; box-shadow:0 0 0 3px #4389ee22; }
         .buyfor-customer-row input.is-valid { border-color:#26b883; }
         .buyfor-customer-row input.is-invalid { border-color:#d93a3a; box-shadow:0 0 0 3px #d93a3a1a; }
@@ -338,7 +339,7 @@ document.addEventListener('click', function (e) {
     if (m && !m.contains(e.target)) { m.classList.remove('open'); }
 });
 
-/* Who are you buying for? — instant feedback only; the server checks again on Place order. */
+/* Buy-for picker — instant feedback only; the server checks again on Place order. */
 (function () {
     var form = document.getElementById('domainCheckoutForm');
     if (!form) { return; }

@@ -144,6 +144,22 @@
             });
         });
 
+        // Payment is not live yet: Place order only opens the "coming soon" popup.
+        // (The server refuses the order too while SSL_CHECKOUT_ENABLED is off.)
+        if (checkout.getAttribute('data-live') !== '1') {
+            checkout.addEventListener('submit', function (event) {
+                event.preventDefault();
+                var trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'coming-soon-trigger';
+                trigger.setAttribute('data-service', 'SSL Certificate ordering');
+                trigger.hidden = true;
+                (submit || checkout).parentNode.appendChild(trigger);
+                trigger.click();
+                trigger.parentNode.removeChild(trigger);
+            });
+        }
+
         refresh();
     }
 })();

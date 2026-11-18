@@ -128,6 +128,12 @@ class SslCheckoutController extends Controller
             return redirect()->route('login', ['return_to' => route('ssl.checkout', [], false)]);
         }
 
+        // Payment is not built yet: never create an order while SSL ordering is closed.
+        if (!config('services.ssl_checkout_enabled')) {
+            return redirect()->route('ssl.checkout')
+                ->withErrors(['payment' => 'SSL certificate ordering is coming soon. Your selection is saved.']);
+        }
+
         $cart = $this->cart($request);
         $quote = $cart ? $this->orders->quote($cart['plan'], $cart['years']) : null;
         if (!$cart || !$quote) {

@@ -27,7 +27,7 @@ class SslCheckoutTest extends TestCase
     {
         parent::setUp();
 
-        config(['services.resellerclub.ssl_live_pricing' => true]);
+        config(['services.resellerclub.ssl_live_pricing' => true, 'services.ssl_checkout_enabled' => true]);
         cache()->forget('resellerclub.pricing.v2');
         cache()->forget('resellerclub.reseller_cost_pricing.v1');
         SslPlanService::resetSchemaCache();
@@ -409,5 +409,19 @@ class SslCheckoutTest extends TestCase
     {
         $this->get('/__probe-login')->assertNotFound();
         $this->get('/__probe-rowcheck')->assertNotFound();
+    }
+
+    public function test_while_ssl_ordering_is_closed_place_order_creates_nothing()
+    {
+        config(['services.ssl_checkout_enabled' => false]);
+        $buyer = $this->user('Buyer One');
+
+        $this->withSession(array_merge($this->customerSession($buyer), $this->cart()))
+            ->from(route('ssl.checkout'))
+            ->post(route('ssl.place-order'), ['purchase_for' => 'myself', 'payment_method' => 'bkash'])
+            ->assertRedirect(route('ssl.checkout'))
+            ->assertSessionHasErrors('payment');
+
+        $this->assertSame(0, \App\Models\SslOrder::count());
     }
 }

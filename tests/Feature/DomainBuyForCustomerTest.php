@@ -96,7 +96,8 @@ class DomainBuyForCustomerTest extends TestCase
             ->get(route('domains.checkout'))
             ->assertOk()
             ->assertSee('Log in to confirm')
-            ->assertDontSee('Who are you buying for?');
+            ->assertDontSee('id="buyforTitle"', false)
+            ->assertDontSee('Email or ID of existing customer');
     }
 
     // ------------------------------------------------------ customer lookup

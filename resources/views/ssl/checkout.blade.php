@@ -40,7 +40,7 @@
         <div class="sslx-grid">
             <div>
             @if($user)
-                <form id="sslCheckoutForm" method="POST" action="{{ route('ssl.place-order') }}" data-lookup-url="{{ route('ssl.customer.lookup') }}" novalidate>
+                <form id="sslCheckoutForm" method="POST" action="{{ route('ssl.place-order') }}" data-lookup-url="{{ route('ssl.customer.lookup') }}" data-live="{{ config('services.ssl_checkout_enabled') ? 1 : 0 }}" novalidate>
                     @csrf
 
                     {{-- A customer-lookup error is already shown under the customer field. --}}
