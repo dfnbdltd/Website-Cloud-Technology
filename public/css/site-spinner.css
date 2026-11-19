@@ -1,7 +1,8 @@
 /* ==========================================================================
    CloudTech — shared loading spinner (site-spinner)
-   Fullscreen dark overlay containing a single dot loader. No card, no
-   percentage, no progress bar: just the overlay and the animation.
+   Fullscreen transparent overlay containing a single dot loader. The page
+   behind it stays fully visible: no dimming, no card, no percentage, no
+   progress bar — just the animation.
    Reusable: fullscreen by default, or inline inside a position:relative
    .sspin-host with .sspin--inline.
    API: SiteSpinner.show()/progress()/finish()/hide()
@@ -17,10 +18,8 @@
     padding: 20px;
     opacity: 0;
     transition: opacity .22s ease;
-    background:
-        radial-gradient(900px 520px at 14% -8%, rgba(47, 111, 208, .38) 0%, rgba(47, 111, 208, 0) 55%),
-        radial-gradient(760px 480px at 108% 112%, rgba(33, 104, 193, .42) 0%, rgba(33, 104, 193, 0) 52%),
-        linear-gradient(160deg, rgba(12, 32, 60, .96) 0%, rgba(23, 54, 94, .95) 55%, rgba(9, 24, 45, .97) 100%);
+    /* No backdrop: the page underneath must stay readable and uncoloured. */
+    background: transparent;
 }
 
 .sspin-overlay[hidden] { display: none !important; }
@@ -95,12 +94,11 @@ body.sspin-lock { overflow: hidden; }
     border: 0;
 }
 
-/* --- Light backdrop (SiteSpinner.show({ theme: 'light' })) --- */
+/* --- Light theme (SiteSpinner.show({ theme: 'light' })) ------------------
+   Kept for API compatibility. The shared loader never dims the page, so this
+   variant is transparent as well. */
 .sspin--light {
-    background:
-        radial-gradient(900px 520px at 14% -8%, rgba(33, 104, 193, .12) 0%, rgba(33, 104, 193, 0) 55%),
-        radial-gradient(760px 480px at 108% 112%, rgba(77, 155, 255, .14) 0%, rgba(77, 155, 255, 0) 52%),
-        linear-gradient(160deg, rgba(240, 246, 253, .95) 0%, rgba(228, 238, 251, .94) 60%, rgba(219, 231, 246, .96) 100%);
+    background: transparent;
 }
 
 /* --- Inline variant (inside .sspin-host { position: relative }) --- */
