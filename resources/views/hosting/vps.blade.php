@@ -495,13 +495,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
     </section>
 
     <main class="pricing page-width vps-theme">
-        <div class="hosting-bar hosting-bar-edge hosting-bar-half">
-        <nav aria-label="Hosting type">
-            <a href="{{ route('hosting.shared') }}"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><strong>Shared</strong></a>
-            <a href="{{ route('hosting.vps') }}" aria-current="page"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6.5" rx="2"/><rect x="3" y="13.5" width="18" height="6.5" rx="2"/><path d="M7 7.2h.01M7 16.7h.01"/></svg><strong>VPS</strong></a>
-            <a href="{{ route('hosting.dedicated') }}"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg><strong>Dedicated</strong></a>
-        </nav>
-        </div>
         <style>
 .page-banner-luxe{position:relative;overflow:hidden;padding:66px 0 60px;background:linear-gradient(115deg,#0b1533 0%,#102247 35%,#1b3b76 70%,#253da8 100%);background-size:280% 280%;animation:luxeBg 22s cubic-bezier(.37,0,.63,1) infinite alternate;will-change:background-position}
 .page-banner-luxe::before{content:"";position:absolute;left:-70px;top:-90px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(56,130,255,.32),transparent 68%);filter:blur(2px);animation:luxeFloat 14s cubic-bezier(.37,0,.63,1) infinite alternate;pointer-events:none;will-change:transform;backface-visibility:hidden}
@@ -516,7 +509,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @keyframes luxeFloat{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(34px,22px,0) scale(1.1)}}
 @keyframes luxeFloat2{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,-12px,0)}}
 .pricing{padding-top:0}
-.hosting-bar{margin-bottom:12px}
 .billing-row{margin-bottom:4px}
 .billing-note{margin:8px 0 20px}
 @media(max-width:640px){.page-banner-luxe{padding:48px 0 42px}.banner-sub{font-size:.85rem}}
@@ -524,13 +516,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
         </style>
 
         <style>
-.hosting-bar{position:static;display:flex;justify-content:center;margin:0 0 18px;animation:hostingIn .45s ease both}
-@keyframes hostingIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.hosting-bar nav{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);box-shadow:0 10px 28px rgba(25,52,96,.1)}
-.hosting-bar a{padding:9px 18px;border-radius:999px;color:var(--muted);font-size:.85rem;font-weight:750;transition:background .2s ease,color .2s ease,box-shadow .2s ease,transform .2s ease}
-.hosting-bar a:hover{color:var(--blue);background:#f1f6ff;transform:translateY(-1px)}
-.hosting-bar a:active{transform:scale(.97)}
-.hosting-bar a[aria-current="page"]{background:var(--navy);color:#fff;box-shadow:0 7px 15px rgba(16,34,71,.2)}
 .billing-row{display:flex;justify-content:center;margin:0 0 8px}
 .billing-row .billing-tabs{margin:0 auto}
 .coming-soon-panel{max-width:560px;margin:0 auto 20px;padding:40px 36px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 18px 50px rgba(20,43,85,.1);text-align:center}
@@ -543,24 +528,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .coming-soon-back:hover{background:var(--navy);transform:translateY(-1px)}
 .plan-card.is-coming-soon{opacity:.72}
 .plan-card.is-coming-soon .purchase-button{background:#e8edf4 !important;color:#667085 !important;box-shadow:none !important;pointer-events:none;cursor:not-allowed}
-@media (max-width:640px){.hosting-bar nav{width:100%;justify-content:space-between}.hosting-bar a{flex:1;text-align:center;padding:9px 8px}}
-        </style>
-        <style>
-.hosting-bar-half{position:static;display:flex;justify-content:flex-start;margin:0 0 24px;padding:0;background:transparent;border:0;animation:none;pointer-events:none}
-.hosting-bar-half nav{display:flex;align-items:flex-start;gap:0;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none;pointer-events:auto}
-.hosting-bar-half a{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:5px;width:120px;margin-left:-16px;padding:10px 8px 15px;overflow:hidden;text-align:center;background:linear-gradient(180deg,#ffffff 0%,#e9eefa 100%);border:1px solid #9fb3d3;border-radius:0 0 60px 60px / 0 0 32px 32px;box-shadow:0 4px 12px rgba(16,34,71,.08);transition:transform .25s ease,filter .25s ease,box-shadow .25s ease}
-.hosting-bar-half a:first-child{margin-left:0}
-.hosting-bar-half .di-svg{width:18px;height:18px;color:#54678a;transition:color .25s,transform .25s}
-.hosting-bar-half strong{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2c3a55}
-.hosting-bar-half a:hover{transform:translateY(2px);filter:brightness(1.05);box-shadow:0 8px 18px rgba(16,34,71,.2)}
-.hosting-bar-half a:hover .di-svg{transform:translateY(-1px)}
-.hosting-bar-half a[aria-current="page"]{z-index:3;width:132px;margin-top:0;padding:12px 10px 17px;background:linear-gradient(180deg,#2a4a8c 0%,#102247 58%,#0a142e 100%);border-color:#0a142e;box-shadow:0 10px 24px rgba(16,34,71,.55);color:#fff}
-.hosting-bar-half a[aria-current="page"] .di-svg{color:#b8e86a}
-.hosting-bar-half a[aria-current="page"] strong{color:#fff}
-.hosting-bar-half a[aria-current="page"]::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.22) 48%,transparent 62%);transform:translateX(-130%);animation:halfSheen 4.5s ease infinite}
-@keyframes halfSheen{0%,60%{transform:translateX(-130%)}90%,100%{transform:translateX(130%)}}
-@media(max-width:640px){.hosting-bar-half{margin:0 0 18px}.hosting-bar-half nav{width:auto;padding:0}.hosting-bar-half a{flex:1;width:auto;min-width:0;margin-left:-10px;padding:8px 4px 12px;border-radius:0 0 44px 44px / 0 0 24px 24px}.hosting-bar-half a[aria-current="page"]{width:auto;margin:0}.hosting-bar-half .di-svg{width:15px;height:15px}.hosting-bar-half strong{font-size:.68rem}}
-@media(prefers-reduced-motion:reduce){.hosting-bar-half a[aria-current="page"]::after{animation:none}}
         </style>
         <div class="billing-row">
         <div class="billing-tabs" role="tablist" aria-label="Billing period">
@@ -1083,83 +1050,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
         padding-top: 28px;
       }
 
-      /* Hosting switcher: folder-tab pills with a small circular icon chip. */
-      .vps-theme .hosting-bar-half {
-        margin: 0 0 24px;
-      }
-      .vps-theme .hosting-bar-half nav {
-        gap: 8px;
-      }
-      .vps-theme .hosting-bar-half a {
-        position: relative;
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-        width: 118px;
-        margin-left: 0;
-        padding: 10px 8px 14px;
-        overflow: hidden;
-        text-align: center;
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 0 0 46px 46px / 0 0 26px 26px;
-        box-shadow: none;
-        color: #64748b;
-        font-size: 0.76rem;
-        font-weight: 500;
-        transform: none;
-        filter: none;
-      }
-      .vps-theme .hosting-bar-half .di-svg {
-        display: block;
-        width: 13px;
-        height: 13px;
-        padding: 4px;
-        box-sizing: content-box;
-        border-radius: 50%;
-        background: #f1f5f9;
-        color: #64748b;
-        transform: none;
-      }
-      .vps-theme .hosting-bar-half strong {
-        font-size: 0.76rem;
-        font-weight: 500;
-        letter-spacing: 0;
-        text-transform: none;
-        color: inherit;
-      }
-      .vps-theme .hosting-bar-half a:hover {
-        background: #f8fafc;
-        border-color: #cbd5e1;
-        color: #0f172a;
-        box-shadow: none;
-        transform: none;
-        filter: none;
-      }
-      .vps-theme .hosting-bar-half a:hover .di-svg {
-        background: #e2e8f0;
-        color: #0f172a;
-        transform: none;
-      }
-      .vps-theme .hosting-bar-half a[aria-current="page"] {
-        width: 118px;
-        margin-top: 0;
-        padding: 10px 8px 14px;
-        background: #0f172a;
-        border-color: #0f172a;
-        box-shadow: none;
-        color: #fff;
-        transform: none;
-      }
-      .vps-theme .hosting-bar-half a[aria-current="page"] .di-svg {
-        background: rgba(255, 255, 255, 0.16);
-        color: #fff;
-      }
-      .vps-theme .hosting-bar-half a[aria-current="page"] strong {
-        color: #fff;
-      }
-
       /* Supporting sections below the plans: same quiet card language. */
       .why-vps .why-vps-head {
         margin: 0 auto 32px;
@@ -1263,22 +1153,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
       /* Phones: nothing may overflow the viewport. */
       @media (max-width: 640px) {
-        .vps-theme .hosting-bar-half nav {
-          width: 100%;
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 6px;
-        }
-        .vps-theme .hosting-bar-half a,
-        .vps-theme .hosting-bar-half a[aria-current="page"] {
-          flex: 1;
-          width: auto;
-          min-width: 0;
-          padding: 9px 4px 12px;
-        }
-        .vps-theme .hosting-bar-half strong {
-          font-size: 0.72rem;
-        }
         .billing-tabs {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));

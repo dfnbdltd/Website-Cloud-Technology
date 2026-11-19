@@ -3947,13 +3947,6 @@
     </section>
 
     <main class="pricing page-width shared-theme">
-      <div class="hosting-bar hosting-bar-edge hosting-bar-half">
-      <nav aria-label="Hosting type">
-        <a href="{{ route('hosting.shared') }}" aria-current="page"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><strong>Shared</strong></a>
-        <a href="{{ route('hosting.vps') }}"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6.5" rx="2"/><rect x="3" y="13.5" width="18" height="6.5" rx="2"/><path d="M7 7.2h.01M7 16.7h.01"/></svg><strong>VPS</strong></a>
-        <a href="{{ route('hosting.dedicated') }}"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg><strong>Dedicated</strong></a>
-      </nav>
-      </div>
         <style>
 .page-banner-luxe{position:relative;padding:58px 0 52px;background:#0f172a;overflow:hidden}
 .page-banner-luxe .page-width{position:relative;z-index:1}
@@ -3963,20 +3956,12 @@
 .banner-sub{margin:0 0 12px;max-width:640px;color:#cbd5e1;font-size:.92rem;line-height:1.5}
 .banner-sub strong{color:#fff;font-weight:600}
 .pricing{padding-top:0}
-.hosting-bar{margin-bottom:12px}
 .billing-row{margin-bottom:4px}
 .billing-note{margin:8px 0 20px !important}
 @media(max-width:640px){.page-banner-luxe{padding:44px 0 38px}.banner-sub{font-size:.85rem}}
         </style>
 
       <style>
-.hosting-bar{position:static;display:flex;justify-content:center;margin:0 0 18px;animation:hostingIn .45s ease both}
-@keyframes hostingIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.hosting-bar nav{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);box-shadow:0 10px 28px rgba(25,52,96,.1)}
-.hosting-bar a{padding:9px 18px;border-radius:999px;color:var(--muted);font-size:.85rem;font-weight:750;transition:background .2s ease,color .2s ease,box-shadow .2s ease,transform .2s ease}
-.hosting-bar a:hover{color:var(--blue);background:#f1f6ff;transform:translateY(-1px)}
-.hosting-bar a:active{transform:scale(.97)}
-.hosting-bar a[aria-current="page"]{background:var(--navy);color:#fff;box-shadow:0 7px 15px rgba(16,34,71,.2)}
 .billing-row{display:flex;justify-content:center;margin:0 0 8px}
 .billing-row .billing-tabs{margin:0 auto}
 .coming-soon-panel{max-width:560px;margin:0 auto 20px;padding:40px 36px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 18px 50px rgba(20,43,85,.1);text-align:center}
@@ -3987,23 +3972,7 @@
 .coming-soon-panel p{margin:0 0 22px;color:var(--muted)}
 .coming-soon-back{min-height:48px;padding:0 22px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:800;cursor:pointer;transition:background .2s ease,transform .2s ease}
 .coming-soon-back:hover{background:var(--navy);transform:translateY(-1px)}
-@media (max-width:640px){.hosting-bar nav{width:100%;justify-content:space-between}.hosting-bar a{flex:1;text-align:center;padding:9px 8px}}
       </style>
-        <style>
-/* Hosting switcher: folder-tab pills with a small circular icon chip. */
-.hosting-bar-half{position:static;display:flex;justify-content:flex-start;margin:0 0 24px;padding:0;background:transparent;border:0;animation:none}
-.hosting-bar-half nav{display:flex;align-items:flex-start;gap:8px;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none}
-.hosting-bar-half a{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:5px;width:118px;padding:10px 8px 14px;overflow:hidden;text-align:center;background:#fff;border:1px solid #e2e8f0;border-radius:0 0 46px 46px / 0 0 26px 26px;color:#64748b;font-size:.76rem;font-weight:500;text-decoration:none;transition:background .18s ease,color .18s ease,border-color .18s ease}
-.hosting-bar-half .di-svg{display:block;width:13px;height:13px;padding:4px;box-sizing:content-box;border-radius:50%;background:#f1f5f9;color:#64748b;transition:background .18s ease,color .18s ease}
-.hosting-bar-half strong{font-size:.76rem;font-weight:500;letter-spacing:0;text-transform:none;color:inherit}
-.hosting-bar-half a:hover{background:#f8fafc;border-color:#cbd5e1;color:#0f172a;transform:none;filter:none;box-shadow:none}
-.hosting-bar-half a:hover .di-svg{background:#e2e8f0;color:#0f172a}
-.hosting-bar-half a[aria-current="page"]{background:#0f172a;border-color:#0f172a;color:#fff}
-.hosting-bar-half a[aria-current="page"] .di-svg{background:rgba(255,255,255,.16);color:#fff}
-.hosting-bar-half a[aria-current="page"] strong{color:#fff}
-.hosting-bar-half a[aria-current="page"]::after{content:none;animation:none;background:none}
-@media(max-width:640px){.hosting-bar-half{margin:0 0 18px}.hosting-bar-half nav{width:100%;gap:6px}.hosting-bar-half a{flex:1;width:auto;min-width:0;padding:9px 4px 12px}.hosting-bar-half strong{font-size:.72rem}}
-        </style>
       <div class="billing-row">
       <div class="billing-tabs" role="tablist" aria-label="Billing period">
         <button
@@ -4722,7 +4691,7 @@
       .page-banner-compact {
         padding: 56px 0 48px;
       }
-      /* Leave breathing room between the banner and the switcher. */
+      /* Leave breathing room between the banner and the billing switcher. */
       .pricing {
         padding-top: 28px;
       }
@@ -4751,21 +4720,6 @@
 
       /* Phones: nothing may overflow the viewport. */
       @media (max-width: 640px) {
-        .hosting-bar-half nav {
-          width: 100%;
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 6px;
-        }
-        .hosting-bar-half a {
-          min-width: 0;
-          padding: 9px 4px;
-          font-size: 0.78rem;
-          white-space: nowrap;
-        }
-        .hosting-bar-half strong {
-          font-size: 0.72rem;
-        }
         .billing-tabs {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
