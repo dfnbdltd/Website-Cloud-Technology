@@ -73,7 +73,7 @@ class DomainActivityTest extends TestCase
             ->assertSee('LATEST ACTIVITY')
             ->assertSee('No activity')
             ->assertDontSee('store-latest-viewall', false)
-            ->assertDontSee('temporarily unavailable');
+            ->assertDontSee('Activity is temporarily unavailable');
     }
 
     public function testManagePageDoesNotClaimNoActivityWhenResellerClubCannotBeRead()

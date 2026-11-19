@@ -191,6 +191,44 @@ class StoreInventory
         return $this->domains()->count() + $this->transfers()->where('status', 'success')->count();
     }
 
+    /**
+     * How many domains a customer has purchased: the number beside "Domain" in the
+     * sidebar. Same rule as domainCount() (every registration in a paid order, plus every
+     * transfer that has succeeded), so the sidebar and the All Items page always agree,
+     * but it reads one query and builds no invoice or payment rows, because the sidebar
+     * is drawn on every page. It never throws: a failure just hides the number.
+     *
+     * @param  int|string|null  $userId
+     * @return int
+     */
+    public static function domainCountForUser($userId)
+    {
+        $userId = (int) $userId;
+        if ($userId < 1) {
+            return 0;
+        }
+
+        try {
+            $count = 0;
+            foreach (DomainOrder::with('items')->where('user_id', $userId)->where('payment_status', 'paid')->get() as $order) {
+                foreach ($order->items as $item) {
+                    if ($item->order_type === 'registration') {
+                        $count++;
+                    } elseif ($item->order_type === 'transfer'
+                        && DomainTransferStatus::forOrderItem($order->status, $order->payment_status, $item->registration_status)['key'] === 'success') {
+                        $count++;
+                    }
+                }
+            }
+
+            return $count;
+        } catch (\Throwable $exception) {
+            \Log::warning('Sidebar domain count failed', ['error' => $exception->getMessage()]);
+
+            return 0;
+        }
+    }
+
     public function paidToDate()
     {
         return round((float) $this->paidOrders()->sum('total'), 2);

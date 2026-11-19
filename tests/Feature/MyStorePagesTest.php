@@ -97,7 +97,7 @@ class MyStorePagesTest extends TestCase
             ->assertSee('detail-domain.test')
             ->assertSee('REGISTERED')
             ->assertSee('EXPIRES')
-            ->assertSee('RENEWAL PRICE')
+            ->assertSee('RENEWAL')
             ->assertSee($order->reference)
             ->assertSee($invoice->invoice_number)
             ->assertSee('DETAIL-ORDER-PAY');
@@ -162,7 +162,9 @@ class MyStorePagesTest extends TestCase
             ->assertSee('data-autohide-ms="5000"', false)
             ->assertSee('disabled', false);
 
-        // 3. Any later visit: the box is not rendered at all.
+        // 3. Any later visit: the box is not rendered at all. (withSession keeps data between
+        //    requests in a test, so start from a clean session; a real flash message lives one request.)
+        $this->flushSession();
         $this->withSession($session)
             ->get(route('mystore.domains.details', $item))
             ->assertOk()

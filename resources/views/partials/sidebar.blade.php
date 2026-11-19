@@ -1,6 +1,7 @@
 @php($domainMenuActive = in_array($active, ['domains', 'domain-transfer']))
 @php($hostingMenuActive = in_array($active, ['shared-hosting', 'hosting-shared', 'hosting-vps', 'hosting-dedicated']))
 @php($walletActive = $active === 'balance')
+@php($domainBadgeCount = \App\Support\StoreInventory::domainCountForUser(auth()->id() ?: session('customer.id')))
 @php($myStoreMenuActive = in_array($active, ['mystore', 'my-domains', 'hosting', 'ssl', 'email', 'sms', 'invoices', 'payments']))
 <link rel="stylesheet" href="{{ asset('css/sidebar-nav.css') }}?v={{ filemtime(public_path('css/sidebar-nav.css')) }}">
 <aside class="domain-sidebar" id="clientSidebar">
@@ -34,7 +35,7 @@
             <div class="subnav-inner">
                 {{-- All seven sections are always listed, whether they hold anything or not. --}}
                 <a data-sidebar-label="All Items" {!! $active === 'mystore' ? 'class="active"' : '' !!} href="{{ route('mystore') }}"><span>All Items</span></a>
-                <a data-sidebar-label="Domain" {!! $active === 'my-domains' ? 'class="active"' : '' !!} href="{{ route('mystore.domains') }}"><span>Domain</span></a>
+                <a data-sidebar-label="Domain" {!! $active === 'my-domains' ? 'class="active"' : '' !!} href="{{ route('mystore.domains') }}"><span>Domain</span>@if($domainBadgeCount > 0)<i class="nav-count nav-subcount" title="{{ $domainBadgeCount }} {{ $domainBadgeCount === 1 ? 'domain' : 'domains' }} purchased">{{ $domainBadgeCount > 99 ? '99+' : $domainBadgeCount }}</i>@endif</a>
                 <a data-sidebar-label="Web Hosting" {!! $active === 'hosting' ? 'class="active"' : '' !!} href="{{ route('mystore.hosting') }}"><span>Web Hosting</span></a>
                 <a data-sidebar-label="SSL Certificate" {!! $active === 'ssl' ? 'class="active"' : '' !!} href="{{ route('mystore.service', 'ssl') }}"><span>SSL Certificate</span></a>
                 <a data-sidebar-label="Business Email" {!! $active === 'email' ? 'class="active"' : '' !!} href="{{ route('mystore.service', 'email') }}"><span>Business Email</span></a>

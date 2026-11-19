@@ -446,3 +446,29 @@
     mask-image: none;
 }
 
+
+/* ── Purchased-domain counter: My Store > Domain ────────────────────────────
+   The same light-blue pill as the Cart counter, scaled for a sub-row. It sits on
+   the right edge of the row; on the current page's row (white) it turns navy, the
+   My Store header colour, so it stays readable and matches the active state. */
+#clientSidebar #myStoreSubnav > .subnav-inner > a .nav-count {
+    flex: none;
+    display: inline-block;
+    min-width: 22px;
+    margin: 0 0 0 auto;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #d6e8ff;
+    color: #2869ba;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    transition: background .18s ease, color .18s ease;
+}
+
+#clientSidebar #myStoreSubnav > .subnav-inner > a.active .nav-count {
+    background: #17365e;
+    color: #ffffff;
+}
