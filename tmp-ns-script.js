@@ -361,7 +361,7 @@
             })
             .catch(function () {
                 setLoading(false);
-                showFeedback('error', 'We could not update your name servers right now. Please try again or contact support at +880 9613 003 001.');
+                showFeedback('error', 'We could not update your name servers right now. Please try again or contact support at +8801866975626.');
                 refreshSubmit();
             });
     });

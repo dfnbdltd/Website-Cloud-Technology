@@ -24,7 +24,7 @@ class Setting extends Model
     {
         return [
             'Contact' => [
-                'support_phone' => ['Support phone', '+880 9613 003 001', 'text'],
+                'support_phone' => ['Support phone', '+8801866975626', 'text'],
                 'support_email' => ['Support email', 'support@cloudtechnologybd.net', 'text'],
                 'manual_payment_number' => ['bKash / Nagad number for manual payments', '01713-401914', 'text'],
             ],

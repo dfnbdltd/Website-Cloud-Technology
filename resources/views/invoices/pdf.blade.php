@@ -218,7 +218,7 @@
 
 <div class="foot">
     Payments: {{ \App\Models\Setting::get('manual_payment_number', 'see our support page') }} ·
-    Support: {{ \App\Models\Setting::get('support_email', 'support@cloudtechnologybd.net') }} — Phone: {{ \App\Models\Setting::get('support_phone', '+880 9613 003 001') }}
+    Support: {{ \App\Models\Setting::get('support_email', 'support@cloudtechnologybd.net') }} — Phone: {{ \App\Models\Setting::get('support_phone', '+8801866975626') }}
 </div>
 @else
 @php
@@ -299,7 +299,7 @@
 
 <div class="inv-foot">
     Payments: {{ \App\Models\Setting::get('manual_payment_number', 'see our support page') }} ·
-    Support: {{ \App\Models\Setting::get('support_email', 'support@cloudtechnologybd.net') }} — Phone: {{ \App\Models\Setting::get('support_phone', '+880 9613 003 001') }}
+    Support: {{ \App\Models\Setting::get('support_email', 'support@cloudtechnologybd.net') }} — Phone: {{ \App\Models\Setting::get('support_phone', '+8801866975626') }}
 </div>
 @endif
 </body>
