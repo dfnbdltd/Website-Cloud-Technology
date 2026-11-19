@@ -237,22 +237,103 @@ class DomainActivityTest extends TestCase
         $this->assertGreaterThan($callsAfterFirst, count($client->calls));
     }
 
-    public function testClientReturnsNullAndCachesNothingWhenEitherEndpointFails()
+    public function testClientReturnsNullAndCachesNothingWhenBothEndpointsFail()
+    {
+        $client = $this->client([
+            '/actions/search-current.json' => null,
+            '/actions/search-archived.json' => null,
+        ]);
+
+        // Nothing could be read, so this must not look like "no activity".
+        $this->assertNull($client->domainActions(self::ORDER_ID));
+        $this->assertNull(Cache::get(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID)));
+
+        $errored = $this->client([
+            '/actions/search-current.json' => ['status' => 'ERROR', 'message' => 'denied'],
+            '/actions/search-archived.json' => ['status' => 'ERROR', 'message' => 'Invalid credentials'],
+        ]);
+        $this->assertNull($errored->domainActions(self::ORDER_ID));
+    }
+
+    /**
+     * The reported bug: an order whose last action is older than 24 hours has nothing
+     * in "current", which ResellerClub answers badly. The archived history must still show.
+     */
+    public function testHistoryOlderThan24HoursStillShowsWhenCurrentCannotBeRead()
+    {
+        $client = $this->client([
+            '/actions/search-current.json' => null,
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+
+        $actions = $client->domainActions(self::ORDER_ID);
+
+        $this->assertSame(['8001'], array_column($actions, 'id'));
+        // A one-endpoint list is never the "last good" copy.
+        $this->assertNull(Cache::get(ResellerClubClient::domainActionsLastGoodCacheKey(self::ORDER_ID)));
+    }
+
+    public function testRecentActivityStillShowsWhenArchivedCannotBeRead()
     {
         $client = $this->client([
             '/actions/search-current.json' => $this->currentResponse(),
             '/actions/search-archived.json' => null,
         ]);
 
-        // A half-read list could make "no activity" look true, so it is not returned.
-        $this->assertNull($client->domainActions(self::ORDER_ID));
-        $this->assertNull(Cache::get(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID)));
+        $this->assertSame(['9002', '9001'], array_column($client->domainActions(self::ORDER_ID), 'id'));
+    }
 
-        $errored = $this->client([
-            '/actions/search-current.json' => ['status' => 'ERROR', 'message' => 'denied'],
+    public function testANoRecordsErrorIsAnEmptyEndpointNotAFailure()
+    {
+        $this->assertSame(['total' => 0, 'actions' => []], DomainActivity::parseResponse(['status' => 'ERROR', 'message' => 'No records found']));
+        $this->assertSame(['total' => 0, 'actions' => []], DomainActivity::parseResponse(['status' => 'ERROR', 'message' => 'No actions found for the given criteria']));
+        $this->assertNull(DomainActivity::parseResponse(['status' => 'ERROR', 'message' => 'Invalid credentials']));
+        $this->assertNull(DomainActivity::parseResponse(['status' => 'ERROR', 'message' => 'You are not authorised to perform this action']));
+
+        $client = $this->client([
+            '/actions/search-current.json' => ['status' => 'ERROR', 'message' => 'No records found'],
             '/actions/search-archived.json' => $this->archivedResponse(),
         ]);
-        $this->assertNull($errored->domainActions(self::ORDER_ID));
+
+        $this->assertSame(['8001'], array_column($client->domainActions(self::ORDER_ID), 'id'));
+        // An empty answer is a real answer: one call per endpoint, no retry, and the list is cached as complete.
+        $this->assertCount(2, $client->calls);
+        $this->assertNotNull(Cache::get(ResellerClubClient::domainActionsLastGoodCacheKey(self::ORDER_ID)));
+    }
+
+    public function testOpeningManageClearsOnlyTheShortCopyAndKeepsTheOutageFallback()
+    {
+        $good = $this->client([
+            '/actions/search-current.json' => $this->currentResponse(),
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+        $good->domainActions(self::ORDER_ID);
+
+        ResellerClubClient::forgetDomainActionsCache(self::ORDER_ID);
+
+        $this->assertNull(Cache::get(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID)));
+        $this->assertNotNull(Cache::get(ResellerClubClient::domainActionsLastGoodCacheKey(self::ORDER_ID)));
+
+        // ResellerClub is down at that moment: the fallback copy still shows the history.
+        $down = $this->client([
+            '/actions/search-current.json' => null,
+            '/actions/search-archived.json' => null,
+        ]);
+        $this->assertCount(3, $down->domainActions(self::ORDER_ID));
+    }
+
+    public function testProbeReportsEachEndpointSeparately()
+    {
+        $client = $this->client([
+            '/actions/search-current.json' => null,
+            '/actions/search-archived.json' => $this->archivedResponse(),
+        ]);
+
+        $this->assertSame([
+            '/actions/search-current.json' => null,
+            '/actions/search-archived.json' => 1,
+        ], $client->probeDomainActions(self::ORDER_ID));
+        $this->assertNull($client->probeDomainActions('abc'));
     }
 
     public function testClientReturnsAnEmptyListWhenTheOrderHasNoActions()
@@ -347,7 +428,7 @@ class DomainActivityTest extends TestCase
 
                 return null;
             },
-            '/actions/search-archived.json' => $this->archivedResponse(),
+            '/actions/search-archived.json' => null,
         ]);
 
         $this->assertNull($client->domainActions(self::ORDER_ID));
@@ -366,7 +447,7 @@ class DomainActivityTest extends TestCase
         Cache::forget(ResellerClubClient::domainActionsCacheKey(self::ORDER_ID));
         $failing = $this->client([
             '/actions/search-current.json' => null,
-            '/actions/search-archived.json' => $this->archivedResponse(),
+            '/actions/search-archived.json' => null,
         ]);
 
         $this->assertSame(['9002', '9001', '8001'], array_column($failing->domainActions(self::ORDER_ID), 'id'));

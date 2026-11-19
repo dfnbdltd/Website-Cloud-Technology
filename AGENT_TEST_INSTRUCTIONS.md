@@ -1,344 +1,273 @@
-# CloudTechnology — QA agent instructions
+# Test instructions: Organization Name Consent (ask once) + Latest Activity (all-time)
 
-You are a QA agent. Test the features listed below on a **staging** copy of the
-CloudTechnology site, in a real browser, and report PASS / FAIL / BLOCKED for each
-test. Follow the steps exactly. Do not fix code. Do not guess: if the page does not
-match "Expected", that is a FAIL — copy what you actually saw.
+You are the testing agent. Project: **cloudtechnology** (Laravel 6, PHP 8.0, MySQL, ResellerClub API).
+Environment: Windows + Laravel Herd, shell = PowerShell. Run every command from the project root (the folder that contains `artisan`).
+
+Your job is to **run the checks below and report the exact results**. Do **not** edit application code or tests.
+If something fails, copy the full error text into the report and continue with the next step.
+
+---
 
 ## 0. Safety rules (read first)
 
-1. Test on **staging only**. Never run this on the live site with real customers.
-2. **Never complete a payment.** If you reach a bKash / Nagad page or popup, stop,
-   take a screenshot, and go back. Do not type a real wallet number, OTP or PIN.
-3. Only use the test accounts below. Do not touch other customers' data.
-4. Orders you create are saved as *pending / unpaid*. That is expected. Clean up with
-   the SQL in section 6 when you finish.
-5. Do not paste passwords, API keys or the `.env` file into your report.
+1. Several tests use `RefreshDatabase`. That **wipes the database it runs against**. Never run the test suite against the real/dev MySQL database. Step 5 forces an in-memory SQLite database. If SQLite cannot be used, **stop and report it**; do not fall back to the real database.
+2. Never run `migrate:fresh`, `migrate:refresh`, `db:wipe` or `db:seed`.
+3. Never run anything against the production server. This is local only.
+4. Do not change `.env` values for ResellerClub. Do not make real purchases.
 
-## 1. What you need before you start
+## 1. What was changed (for context)
 
-The person running the test gives you:
+**Feature 1: Organization Name Consent is asked once**
+- After the customer clicks **Yes, I agree** or **Cancel** and ResellerClub accepts it, the answer is saved on the domain (`domain_order_items.org_consent_choice` = `accepted` / `declined`, `org_consent_responded_at` = time).
+- Right after the click the box stays visible for **5 seconds** (buttons greyed out, green success alert at the top), then fades out.
+- On every later visit the box is **not rendered at all**.
+- If ResellerClub returns an error, nothing is saved and the box stays so the customer can try again.
+- A repeated POST for an already answered domain does **not** call ResellerClub again.
 
-| Name | Meaning |
-|---|---|
-| `BASE_URL` | staging site address, e.g. `https://staging.example.com` (no trailing slash) |
-| `DB` | read/write SQL access to the staging database (phpMyAdmin or a SQL client) |
+**Feature 2: Latest Activity always shows the whole history**
+- ResellerClub has two endpoints: `search-current` (pending + last 24h) and `search-archived` (older). Before, if **either** could not be read, the page said "Activity is temporarily unavailable". Now each endpoint is read independently, so older history shows even when `search-current` is empty/erroring.
+- An ERROR answer that only means "no records found" is treated as an empty list.
+- Clicking **Manage** (and the View All page) always re-reads ResellerClub instead of using a copy up to 60 s old.
+- New helper command: `php artisan domain:activity-probe <domain>` shows what each endpoint returns.
 
-### 1.1 Create four test accounts
+**Files changed or added** (all paths relative to the project root):
 
-Register these in the browser at `BASE_URL/register` (any phone number, strong
-password such as `TestPass#2026`). Use e-mail addresses you control or fake ones:
-
-| Role | E-mail | Purpose |
-|---|---|---|
-| `BUYER` | `qa.buyer@example.test` | the person who checks out |
-| `CUSTOMER` | `qa.customer@example.test` | an existing customer the buyer buys *for* |
-| `STRANGER` | `qa.stranger@example.test` | has no relation to either order |
-| `UNVERIFIED` | `qa.unverified@example.test` | registered but **never verified** |
-
-Then, in SQL, mark three of them verified (leave `UNVERIFIED` alone) and give BUYER
-wallet money:
-
-```sql
-UPDATE users SET email_verified_at = NOW()
-WHERE email IN ('qa.buyer@example.test','qa.customer@example.test','qa.stranger@example.test');
-
-UPDATE users SET balance = 5000 WHERE email = 'qa.buyer@example.test';
-
-SELECT id, email, customer_uid, email_verified_at, balance FROM users
-WHERE email LIKE 'qa.%@example.test';
+```
+app/Models/DomainOrderItem.php
+app/Http/Controllers/MyStoreController.php
+app/Services/ResellerClubClient.php
+app/Support/DomainActivity.php
+app/Console/Commands/ProbeDomainActivity.php                          (new)
+resources/views/store/domain-details.blade.php
+public/css/store.css
+database/migrations/2026_11_19_000000_add_org_consent_to_domain_order_items.php   (new)
+database/org_consent.sql                                              (new, manual SQL for cPanel)
+tests/Unit/DomainActivityTest.php
+tests/Feature/DomainActivityTest.php
+tests/Feature/MyStorePagesTest.php
 ```
 
-Write down each account's `id` and `customer_uid` (looks like `CT-000123`). Below,
-`CUSTOMER_UID` means that value.
+> Note from the developer: PHP was not available where this code was written, so it has **not been executed yet**. Step 3 (syntax lint) and Step 5 (tests) are the first real run. Report every failure exactly.
 
-### 1.2 Database must be ready
+---
 
-Run `database/ssl_orders_and_buy_for_customer.sql` (steps 0–4) first. Check:
+## 2. Environment check
 
-```sql
-SHOW TABLES LIKE 'ssl_orders';                              -- 1 row
-SHOW COLUMNS FROM domain_orders LIKE 'placed_by_user_id';   -- 1 row
+```powershell
+php -v
+composer --version
+Test-Path vendor\autoload.php
+Test-Path .env
 ```
 
-If either returns no row, stop and report **BLOCKED: SQL not applied**.
-
-### 1.3 Test domain for the domain-buying tests (staging only)
-
-Domain checkout normally calls ResellerClub. To test ownership rules without a real
-registration, the person running the test adds this to `config/services.php`
-(**staging only, remove afterwards**) inside the returned array, then clears config cache:
-
-```php
-'test_domains' => ['qa-demo-domain.com' => ['price' => 1200, 'renewal' => 1200]],
-```
-
-Then searching for `qa-demo-domain.com` shows it as available at ৳1,200. If this is
-not set up, mark the domain tests that need it **BLOCKED (no test domain)**.
-
-## 2. How to report
-
-For every test give: **ID · PASS / FAIL / BLOCKED · what you saw · screenshot name**.
-For a FAIL also give the exact URL and any red text on the page. End with a table:
-
-| ID | Result | Notes |
-|---|---|---|
-
-## 3. Security regression
-
-**SEC-1 — old developer login routes are gone**
-1. Open `BASE_URL/__probe-login` and `BASE_URL/__probe-rowcheck`.
-2. Expected: both show a **404 / not found** page.
-3. Then open `BASE_URL/dashboard` in the same browser without logging in.
-4. Expected: you are sent to the login page (you are NOT signed in).
-
-## 4. SSL certificate purchase
-
-Public plan page: `BASE_URL/services/ssl-certificate`. Plan cards show prices in
-Taka (৳) per year. Plans include *Positive SSL*, *Comodo SSL*, *Positive SSL
-Wildcard* and *EV SSL*. Use whichever plans are shown.
-
-**SSL-1 — Buy Now opens the real flow**
-1. Open the plan page while logged out.
-2. Click **Buy Now** on *Positive SSL*.
-3. Expected: you land on `/ssl/connect?plan=positive-ssl&term=1`. **No "coming soon"
-   pop-up appears.** Heading: "Which website is this certificate for?". A bottom bar
-   shows the plan name, the term and the Taka price.
-4. Go back. On a plan with a 2-year option (e.g. *EV SSL*), change the term dropdown
-   to **2 Years**, click **Buy Now**.
-5. Expected: URL contains `term=2` and the bottom bar shows "2 Years" with the 2-year total.
-6. The price in the bottom bar must equal the "total for N year(s)" under the card.
-
-**SSL-2 — the Continue button only works for a valid domain**
-On the connect page:
-1. Expected at start: **Continue to Cart** is greyed out / disabled.
-2. Type each of these. Expected: button stays **disabled**:
-   `abc` · `example` · `exa mple.com` · `-bad.com` · `http://` · `.com` · `a..com`
-3. Type each of these. Expected: button becomes **enabled**, a green ✓ appears, and a
-   line says "Certificate will be issued for <name>":
-   `example.com` · `www.example.com` · `shop.example.co.uk` · `https://Example.com/path` (shown as `example.com`)
-4. Clear the box. Expected: disabled again.
-5. Enter `example.com` and click Continue. Expected: you go to `/ssl/checkout`.
-
-**SSL-3 — wildcard plans**
-1. Open the connect page for the **Positive SSL Wildcard** plan.
-2. Expected: hint mentions subdomains / `*.example.com`.
-3. Enter `example.com`, Continue. Expected: the order summary on checkout shows `*.example.com`.
-4. Open the connect page for a **non-wildcard** plan, enter `*.example.com`.
-5. Expected: button stays disabled and the hint says a wildcard needs a Wildcard SSL plan.
-
-**SSL-4 — guest checkout shows the price and asks to sign in**
-(logged out) Complete SSL-2 step 5 for *Positive SSL*, 1 year, `example.com`.
-Expected on `/ssl/checkout`:
-- The order summary shows the **Taka price** (same as the plan card), the domain
-  (with a *Change* link), the term, and "Renews at ৳…/year".
-- Left side shows **Log in to continue** and **Create new account** buttons.
-- "How you'll pay" shows **bKash** and **Nagad** logos only as a preview (not selectable).
-- There is **no** "Place order" button and no "Who are you buying for?" section.
-
-**SSL-5 — login sends you back to the same checkout**
-1. From SSL-4 click **Log in to continue**. The login URL should contain `return_to=`.
-2. Log in as `BUYER`.
-3. Expected: you land on **`/ssl/checkout`** with the same plan/domain/price — NOT the dashboard.
-
-**SSL-6 — registering sends you back too**
-1. Log out. Repeat SSL-4, click **Create new account**, register a new user
-   (`qa.newuser@example.test`).
-2. Verify it in SQL: `UPDATE users SET email_verified_at=NOW() WHERE email='qa.newuser@example.test';`
-   (or use the e-mail link if mail works on staging).
-3. Log in. Expected: you end up on `/ssl/checkout` with the selection still there.
-   (If the e-mail link was used, it may show a green tick then continue to checkout.)
-
-**SSL-7 — logged-in checkout layout**
-Log in as `BUYER`, choose *Positive SSL*, domain `example.com`, Continue.
 Expected:
-- Section **"Who are you buying for?"** with two choices: **Myself** (shows BUYER's
-  e-mail) and **Customer**.
-- Section **"Choose payment method"** with **bKash** and **Nagad** only (no bank, no wallet).
-- A button "Place order · ৳<total>" and an order summary on the right.
+- `php -v` shows **PHP 8.0.x**.
+- If `vendor\autoload.php` is `False`, run `composer install`. If `.env` is `False`, run `copy .env.example .env` then `php artisan key:generate`.
 
-**SSL-8 — customer lookup (red / green messages)**
-On the same page choose **Customer**. An input "Email or ID of existing customer"
-and a **Confirm** button appear. Expected behaviour:
-1. "Place order" is **disabled** while Customer is selected and not confirmed.
-2. Type `ghost@example.test` → Confirm → **red** text: *Customer does not exist…*; Place order still disabled.
-3. Type `qa.unverified@example.test` → Confirm → same **red** message (unverified accounts do not count).
-4. Type `CT-999999` → Confirm → red message.
-5. Type `qa.customer@example.test` → Confirm → **green** "✓ Customer found"; Place order enabled.
-6. Type `CUSTOMER_UID` instead → Confirm → green too.
-7. After a green result, change one character in the box. Expected: green message
-   disappears and Place order is disabled again until you press Confirm again.
-8. Switch back to **Myself**. Expected: Place order enabled again.
+Confirm the changed files exist:
 
-**SSL-9 — place an order for myself**
-1. As `BUYER`, *Positive SSL*, `example.com`, **Myself**, **Nagad** → Place order.
-2. Expected: page `/ssl/orders/SSL-YYYYMMDD-XXXXXX` showing the order reference, plan,
-   domain, total, and that it is waiting for payment. **No payment is taken.**
-3. SQL (replace the reference):
-```sql
-SELECT reference, user_id, placed_by_user_id, plan_key, domain, years, total, purchase_price,
-       status, payment_method, payment_status, reseller_order_id
-FROM ssl_orders ORDER BY id DESC LIMIT 1;
+```powershell
+$files = @(
+ 'app\Models\DomainOrderItem.php',
+ 'app\Http\Controllers\MyStoreController.php',
+ 'app\Services\ResellerClubClient.php',
+ 'app\Support\DomainActivity.php',
+ 'app\Console\Commands\ProbeDomainActivity.php',
+ 'resources\views\store\domain-details.blade.php',
+ 'public\css\store.css',
+ 'database\migrations\2026_11_19_000000_add_org_consent_to_domain_order_items.php',
+ 'database\org_consent.sql',
+ 'tests\Unit\DomainActivityTest.php',
+ 'tests\Feature\DomainActivityTest.php',
+ 'tests\Feature\MyStorePagesTest.php'
+)
+$files | ForEach-Object { '{0}  {1}' -f (Test-Path $_), $_ }
 ```
-Expected: `user_id` = BUYER id, `placed_by_user_id` = BUYER id, `status`=`payment_pending`,
-`payment_status`=`pending`, `payment_method`=`nagad`, `reseller_order_id` NULL,
-`total` equals the price shown, `domain`=`example.com`.
-4. Invoice check:
-```sql
-SELECT i.invoice_number, i.user_id, i.status, i.total, i.amount_paid, ii.description, ii.item_type, ii.years, ii.line_total
-FROM invoices i JOIN invoice_items ii ON ii.invoice_id = i.id
-WHERE i.source_type = 'App\\Models\\SslOrder' ORDER BY i.id DESC LIMIT 1;
+
+Expected: every line starts with `True`.
+
+## 3. PHP syntax lint
+
+```powershell
+$php = @(
+ 'app\Models\DomainOrderItem.php',
+ 'app\Http\Controllers\MyStoreController.php',
+ 'app\Services\ResellerClubClient.php',
+ 'app\Support\DomainActivity.php',
+ 'app\Console\Commands\ProbeDomainActivity.php',
+ 'database\migrations\2026_11_19_000000_add_org_consent_to_domain_order_items.php',
+ 'tests\Unit\DomainActivityTest.php',
+ 'tests\Feature\DomainActivityTest.php',
+ 'tests\Feature\MyStorePagesTest.php'
+)
+$php | ForEach-Object { php -l $_ }
 ```
-Expected: `status`=`unpaid`, `amount_paid`=0, `item_type`=`ssl-certificate`, `line_total` = order total.
 
-**SSL-10 — place an order for a customer**
-1. As `BUYER`, *Comodo SSL* (or any), domain `customer-site.com`, choose **Customer**,
-   enter `qa.customer@example.test`, Confirm (green), pick **bKash**, Place order.
-2. Expected: the order page for the new reference ("Your SSL order is saved", status "Waiting for payment"). There is **no** "View invoice" button here, because the invoice belongs to the customer, not the buyer.
-3. SQL: latest `ssl_orders` row has `user_id` = CUSTOMER id, `placed_by_user_id` = BUYER id,
-   `customer_email` = `qa.customer@example.test`. Latest SSL invoice has `user_id` = CUSTOMER id.
+Expected: nine lines, each `No syntax errors detected in <file>`.
 
-**SSL-11 — typing a customer that does not exist, bypassing the button**
-(Server-side check.) On checkout choose Customer, enter `ghost@example.test`. In the
-browser developer tools remove the `disabled` attribute from the Place order button,
-click it. Expected: you are back on checkout with a **red** "Customer does not exist…"
-message under the field; **no** new row in `ssl_orders`.
+## 4. Blade, routes, command registration
 
-**SSL-12 — who may open an order**
-Use the references from SSL-9 (`REF_SELF`) and SSL-10 (`REF_CUSTOMER`). Visit `BASE_URL/ssl/orders/<REF>`:
-| Logged in as | REF_SELF | REF_CUSTOMER |
-|---|---|---|
-| BUYER | opens | opens |
-| CUSTOMER | 404 | opens |
-| STRANGER | 404 | 404 |
-| logged out | redirected to login | redirected to login |
-
-**SSL-13 — the cart is cleared after ordering**
-Right after placing an order, open `BASE_URL/ssl/checkout`. Expected: redirected back to
-the SSL plans page with a message to choose a plan (the old selection is gone).
-
-**SSL-14 — price cannot be tampered with**
-1. As `BUYER` open a connect page. In developer tools change the hidden field
-   `term` to `99`, enter `example.com`, click Continue.
-2. Expected: nothing is saved and the term falls back to a valid one (the page
-   reloads on `term=1`; the price shown is still the real plan price). This is
-   a safe reset, not an error page.
-3. Repeat with `plan` changed to `fake-plan`. Expected: sent back to the SSL plans
-   page with an error, nothing saved.
-4. On checkout there is no price field you can edit; the total always matches the plan card.
-   Check `SELECT COUNT(*) FROM ssl_orders` did not change.
-
-**SSL-15 — paid order shows up in My Store (simulated payment)**
-The payment gateway is not connected yet, so simulate "payment confirmed" in SQL for
-the order from SSL-9 (replace `REF_SELF`):
-```sql
-UPDATE ssl_orders SET payment_status='paid', status='paid' WHERE reference='REF_SELF';
-UPDATE invoices SET status='paid', amount_paid=total, paid_at=NOW()
-WHERE source_type='App\\Models\\SslOrder'
-  AND source_id=(SELECT id FROM ssl_orders WHERE reference='REF_SELF');
+```powershell
+php artisan view:clear
+php artisan view:cache
+php artisan route:list --name=mystore.domains
+php artisan list | Select-String "domain:activity-probe"
 ```
-Log in as `BUYER`, open `BASE_URL/mystore/ssl`. Expected: the certificate line
-("SSL certificate — Positive SSL for example.com") is listed with its invoice link.
-Log in as `STRANGER` and open the same page: the line must **not** appear.
 
-## 5. Domain registration — buying for myself or a customer
+Expected:
+- `view:cache` ends with `Blade templates cached successfully.` (a Blade syntax error would show here).
+- `route:list` includes `mystore.domains.organization-consent` (POST) and `mystore.domains.details` (GET).
+- `domain:activity-probe` appears in the command list.
 
-Add the domain to the cart: `BASE_URL/domains`, search `qa-demo-domain.com`, add it
-(1 year). The cart then goes to `BASE_URL/domains/checkout`.
+Then `php artisan view:clear` again.
 
-**DOM-1 — guest checkout**
-Logged out, go to checkout. Expected: a "Confirm with your account" panel with
-**Log in to confirm** and **Create new account**, and a payment-methods preview. No
-"Who are you buying for?" section. Click **Log in to confirm**, log in as `BUYER`:
-expected to return to `/domains/checkout` with the cart intact.
+## 5. Automated tests (isolated, in-memory database)
 
-**DOM-2 — logged-in checkout layout**
-As `BUYER` on `/domains/checkout`. Expected: **"Who are you buying for?"** with
-**Myself** (shows BUYER's e-mail) and **Customer**; then "Choose payment method"
-(Wallet balance, bKash, Nagad, Bank transfer); order summary on the right.
-Wallet shows ৳ 5,000.00 for BUYER.
+Set these for **this PowerShell session only** so the tests can never touch the real database:
 
-**DOM-3 — customer lookup (same behaviour as SSL-8)**
-Choose **Customer** and repeat SSL-8 steps 1–8 on this page: ghost / unverified /
-`CT-999999` → **red** "Customer does not exist…"; `qa.customer@example.test` and
-`CUSTOMER_UID` → **green** "✓ Customer found". Place order stays disabled until a
-green confirmation, and again after editing the box.
-When Customer is selected the buyer's own contact fields (if any are shown) disappear.
-
-**DOM-4 — wallet purchase for a customer**
-1. As `BUYER`, cart `qa-demo-domain.com`, choose **Customer** → `qa.customer@example.test` → Confirm → payment **Wallet balance** → Place order.
-2. Expected: a confirmation page for the order (reference like `CT-YYYYMMDD-XXXXXX`) saying it is paid.
-3. SQL:
-```sql
-SELECT o.reference, o.user_id, o.placed_by_user_id, o.customer_email, o.total, o.status, o.payment_status, o.payment_method
-FROM domain_orders o ORDER BY o.id DESC LIMIT 1;
-SELECT email, balance FROM users WHERE email IN ('qa.buyer@example.test','qa.customer@example.test');
+```powershell
+$env:APP_ENV = "testing"
+$env:DB_CONNECTION = "sqlite"
+$env:DB_DATABASE = ":memory:"
+$env:CACHE_DRIVER = "array"
+$env:SESSION_DRIVER = "array"
+$env:QUEUE_CONNECTION = "sync"
 ```
-Expected: `user_id` = CUSTOMER id, `placed_by_user_id` = BUYER id, `customer_email` =
-`qa.customer@example.test`, `payment_status`=`paid`. BUYER balance dropped by the total
-(5000 → 3800); CUSTOMER balance unchanged.
-4. Invoice: the latest domain-order invoice has `user_id` = CUSTOMER id and status `paid`.
-5. Log in as `CUSTOMER` → `BASE_URL/mystore/domains`: the domain appears there.
-6. Log in as `BUYER` → open `BASE_URL/domains/confirmation/<reference>`: **opens**
-   (the buyer can still see what they bought). The domain does **not** appear in the
-   buyer's own My Store → Domains.
 
-**DOM-5 — wallet purchase for myself (regression)**
-As `BUYER`, cart a domain, choose **Myself**, **Wallet** → Place order. Expected: paid,
-`user_id` = `placed_by_user_id` = BUYER id; the domain appears in BUYER's My Store → Domains;
-wallet reduced by the total.
+Run, one at a time (stop and report if a command prints "could not find driver": SQLite is missing, do not use MySQL instead):
 
-**DOM-6 — bKash for a customer (do NOT pay)**
-As `BUYER`, cart a domain, choose **Customer** → confirm `qa.customer@example.test` →
-**bKash** → Place order.
-Expected: either the bKash payment page (`/bkash/pay`) or, if bKash is not configured
-on staging, a page saying the order is saved and billing will contact you. **Stop here.**
-SQL: latest `domain_orders` row has `status`=`payment_pending`, `payment_status`
-`pending`/`initiated`, `user_id` = CUSTOMER id, `placed_by_user_id` = BUYER id.
-Then press Back to the checkout page — the unpaid bKash attempt is cancelled (existing behaviour).
+```powershell
+vendor\bin\phpunit tests\Unit\ResellerClubConsentTest.php
+vendor\bin\phpunit tests\Unit\DomainActivityTest.php
+vendor\bin\phpunit tests\Feature\DomainActivityTest.php
+vendor\bin\phpunit tests\Feature\MyStorePagesTest.php
+```
 
-**DOM-7 — a stranger cannot open the order**
-Using the reference from DOM-4, visit `BASE_URL/domains/confirmation/<reference>`:
-| Logged in as | Result |
+Expected (test counts; assertion counts may vary):
+- `ResellerClubConsentTest`: `OK (1 test, ...)`
+- `Unit\DomainActivityTest`: `OK (21 tests, ...)`
+- `Feature\DomainActivityTest`: `OK (10 tests, ...)`
+- `MyStorePagesTest`: `OK (17 tests, ...)`
+
+Tests that specifically cover the new behaviour (they must pass):
+
+| Test | Proves |
 |---|---|
-| BUYER | opens |
-| CUSTOMER | opens |
-| STRANGER | redirected to `/domains` with "Order not found…" |
+| `testHistoryOlderThan24HoursStillShowsWhenCurrentCannotBeRead` | archived history shows when `search-current` fails |
+| `testRecentActivityStillShowsWhenArchivedCannotBeRead` | the reverse case |
+| `testANoRecordsErrorIsAnEmptyEndpointNotAFailure` | "No records found" error = empty list, real errors stay errors |
+| `testClientReturnsNullAndCachesNothingWhenBothEndpointsFail` | both down = "unavailable", never "No activity" |
+| `testOpeningManageClearsOnlyTheShortCopyAndKeepsTheOutageFallback` | Manage reads fresh, outage fallback kept |
+| `testProbeReportsEachEndpointSeparately` | probe helper |
+| `testOpeningManageAlwaysReadsFreshFromResellerClubNotTheShortCopy` | details + View All ignore the 60 s copy |
+| `testDomainOrganizationConsentCanBeAcceptedOrCancelled` | answer saved as accepted / declined |
+| `testConsentBoxShowsUntilAnsweredThenStaysFiveSecondsThenIsGone` | box lifecycle: shown, 5 s auto-hide marker, gone later |
+| `testAnsweringTwiceNeverCallsResellerClubAgain` | no second API call, first answer kept |
+| `testAFailedConsentCallKeepsTheBoxSoItCanBeTriedAgain` | failure keeps the box, saves nothing |
 
-**DOM-8 — server-side refusal**
-As `BUYER` with a cart, choose Customer, enter `ghost@example.test`, remove `disabled`
-from Place order in developer tools, click it. Expected: back on checkout, **red**
-"Customer does not exist…" under the field, no new row in `domain_orders`.
+Now the whole suite (same session variables still set):
 
-**DOM-9 — guests cannot buy for a customer**
-Logged out with a cart, in developer tools you cannot see the customer option, so this
-is covered by the automated test below. Mark **SKIPPED (covered by PHPUnit)**.
-
-## 6. Clean up (staging)
-
-```sql
-DELETE ii FROM invoice_items ii JOIN invoices i ON i.id = ii.invoice_id
-WHERE i.user_id IN (SELECT id FROM users WHERE email LIKE 'qa.%@example.test');
-DELETE FROM invoices WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'qa.%@example.test');
-DELETE FROM payments WHERE domain_order_id IN
-  (SELECT id FROM domain_orders WHERE customer_email LIKE 'qa.%@example.test');
-DELETE FROM domain_order_items WHERE domain_order_id IN
-  (SELECT id FROM domain_orders WHERE customer_email LIKE 'qa.%@example.test');
-DELETE FROM domain_orders WHERE customer_email LIKE 'qa.%@example.test';
-DELETE FROM ssl_orders WHERE customer_email LIKE 'qa.%@example.test';
-DELETE FROM users WHERE email LIKE 'qa.%@example.test';
-```
-
-Also ask the person running the test to remove the `test_domains` line from
-`config/services.php` and clear the config cache.
-
-## 7. Optional — automated tests (only if you have a shell on the server/dev machine)
-
-```
-composer install
-vendor\bin\phpunit --filter=SslCheckoutTest
-vendor\bin\phpunit --filter=DomainBuyForCustomerTest
+```powershell
 vendor\bin\phpunit
 ```
-Report the final "Tests: N passed / failed" line and the name of every failing test.
-(Laravel 6 has no `php artisan test`; use PHPUnit directly, with PHP 8.0.)
+
+Expected: `OK`. If there are failures in files **not** listed in section 1, report them as "unrelated or pre-existing" with the full message. Do not fix them.
+
+Afterwards clear the session variables:
+
+```powershell
+Remove-Item Env:APP_ENV, Env:DB_CONNECTION, Env:DB_DATABASE, Env:CACHE_DRIVER, Env:SESSION_DRIVER, Env:QUEUE_CONNECTION
+```
+
+## 6. Migration on the local development database
+
+Only if the project's `.env` points to a **local** development database (host `127.0.0.1` / `localhost`). If unsure, skip this step and say so.
+
+```powershell
+php artisan migrate:status
+php artisan migrate --pretend
+```
+
+Expected: the pending list contains `2026_11_19_000000_add_org_consent_to_domain_order_items`, and `--pretend` prints two `alter table domain_order_items add org_consent_choice varchar(20) null` / `add org_consent_responded_at timestamp null` statements. If other pending migrations are listed, report them and **do not run `migrate`**; ask the user first. If only this one is pending:
+
+```powershell
+php artisan migrate
+php artisan migrate:status | Select-String "org_consent"
+```
+
+Expected: the line shows `Yes` / `Ran`.
+
+Optional column check (use the first form that works):
+
+```powershell
+php artisan tinker --execute="echo json_encode([\Schema::hasColumn('domain_order_items','org_consent_choice'), \Schema::hasColumn('domain_order_items','org_consent_responded_at')]);"
+```
+
+Expected: `[true,true]`. (If `--execute` is not supported by this Tinker version, say so and skip.)
+
+## 7. Activity probe command
+
+```powershell
+php artisan domain:activity-probe --order=1
+```
+
+Expected without real ResellerClub credentials: `ResellerClub is not configured (check services.resellerclub in .env).` and exit code 1.
+
+With real credentials in `.env` (`RESELLERCLUB_ENABLED=true`), use a domain the **user** gives you:
+
+```powershell
+php artisan domain:activity-probe example.com
+```
+
+Expected shape:
+
+```
+ResellerClub order id: 127547539
+/actions/search-current.json     OK, 0 row(s)          <- or UNREADABLE
+/actions/search-archived.json    OK, 5 row(s)
+Latest Activity would show: 5 action(s) in total
+```
+
+Report the whole output. If `search-current` says `UNREADABLE`, also paste the last lines of `storage\logs\laravel.log` containing `ResellerClub request failed` or `ResellerClub activity` (remove the api-key if it appears).
+
+---
+
+## 8. Browser acceptance checklist (for the human owner, with a real paid domain)
+
+Open the site, log in as a customer who owns an active domain, go **My Store → Domains → Manage**.
+
+**A. Organization Name Consent**
+1. Domain never answered: the grey **Organization Name Consent:** box is shown with **Yes, I agree** and **Cancel**.
+2. Click **Yes, I agree**. Expected: page reloads; a green message "Organization publication consent accepted." at the top; the box is still visible but both buttons are greyed and cannot be clicked.
+3. Wait 5 seconds. Expected: the box fades out and disappears.
+4. Refresh the page. Expected: the box is **gone** and stays gone on every later visit (also after logging out/in).
+5. A different domain never answered still shows its own box. Test **Cancel** there: message "Organization publication consent cancelled.", box hides after 5 s, gone on refresh.
+6. Failure case (optional; e.g. temporarily disable internet): red error at the top and the box stays.
+7. Database: `domain_order_items.org_consent_choice` = `accepted` / `declined` and `org_consent_responded_at` filled for the answered domains.
+
+**B. Latest Activity**
+1. Open **Manage** for a domain whose last action is **older than 24 hours**. Expected: LATEST ACTIVITY lists the 3 newest actions of all time (not "Activity is temporarily unavailable").
+2. Click **View All**. Expected: every action since registration, grouped by date.
+3. Make a nameserver change, then open Manage again. Expected: the new action is at the top immediately.
+4. A domain that truly has no actions shows "No activity".
+
+---
+
+## 9. Report format
+
+Reply with a table, then details only for failures:
+
+| Step | Result (PASS/FAIL/SKIPPED) | Evidence (command output, trimmed) |
+|---|---|---|
+| 2 Environment | | |
+| 3 Lint | | |
+| 4 Blade/routes/command | | |
+| 5 Tests: Unit consent | | |
+| 5 Tests: Unit activity | | |
+| 5 Tests: Feature activity | | |
+| 5 Tests: MyStorePages | | |
+| 5 Full suite | | |
+| 6 Migration | | |
+| 7 Probe command | | |
+
+End with: total tests run, total failures, and the **exact** text of every failure message.

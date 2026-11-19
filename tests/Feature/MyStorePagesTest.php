@@ -106,25 +106,118 @@ class MyStorePagesTest extends TestCase
     public function testDomainOrganizationConsentCanBeAcceptedOrCancelled()
     {
         $user = $this->user();
-        $order = $this->paidOrder($user, 'CONSENT-ORDER', 'consent-domain.test');
-        $order->update(['status' => 'active']);
-        $item = $order->items()->first();
-        $item->update(['registration_status' => 'registered']);
+        $accepted = $this->consentItem($user, 'CONSENT-ORDER', 'consent-domain.test');
+        $declined = $this->consentItem($user, 'CONSENT-ORDER-2', 'consent-domain-two.test');
+
         $resellerClub = \Mockery::mock(ResellerClubClient::class);
-        $resellerClub->shouldReceive('domainOrderId')->twice()->with('consent-domain.test')->andReturn('127547539');
+        $resellerClub->shouldReceive('domainOrderId')->once()->with('consent-domain.test')->andReturn('127547539');
+        $resellerClub->shouldReceive('domainOrderId')->once()->with('consent-domain-two.test')->andReturn('127547540');
         $resellerClub->shouldReceive('modifyRegistrantOrganizationConsent')->once()
             ->with('consent-domain.test', '127547539', true)->andReturn(['status' => 'SUCCESS']);
         $resellerClub->shouldReceive('modifyRegistrantOrganizationConsent')->once()
-            ->with('consent-domain.test', '127547539', false)->andReturn(['status' => 'SUCCESS']);
+            ->with('consent-domain-two.test', '127547540', false)->andReturn(['status' => 'SUCCESS']);
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $this->withSession($this->customerSession($user))
+            ->post("/mystore/domains/{$accepted->id}/organization-consent", ['consent' => '1'])
+            ->assertRedirect(route('mystore.domains.details', $accepted))
+            ->assertSessionHas('consent_success', 'Organization publication consent accepted.');
+
+        $this->withSession($this->customerSession($user))
+            ->post("/mystore/domains/{$declined->id}/organization-consent", ['consent' => '0'])
+            ->assertRedirect(route('mystore.domains.details', $declined))
+            ->assertSessionHas('consent_success', 'Organization publication consent cancelled.');
+
+        // The answer is remembered, with which button was used.
+        $this->assertSame('accepted', $accepted->fresh()->org_consent_choice);
+        $this->assertNotNull($accepted->fresh()->org_consent_responded_at);
+        $this->assertSame('declined', $declined->fresh()->org_consent_choice);
+        $this->assertNotNull($declined->fresh()->org_consent_responded_at);
+    }
+
+    public function testConsentBoxShowsUntilAnsweredThenStaysFiveSecondsThenIsGone()
+    {
+        $user = $this->user();
+        $item = $this->consentItem($user, 'CONSENT-LIFECYCLE', 'consent-lifecycle.test');
+        $session = $this->customerSession($user);
+        $this->quietResellerClub();
+
+        // 1. Not answered yet: the box is there, with live buttons and no auto-hide.
+        $this->withSession($session)
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertSee('Organization Name Consent:')
+            ->assertSee('Yes, I agree')
+            ->assertSee('id="organization-consent"', false)
+            ->assertDontSee('data-autohide-ms="5000"', false);
+
+        // 2. Right after the answer (the success message is flashed): the box is still
+        //    on the page, buttons disabled, and marked to hide itself after 5 seconds.
+        $item->update(['org_consent_choice' => 'accepted', 'org_consent_responded_at' => now()]);
+        $this->withSession($session + ['consent_success' => 'Organization publication consent accepted.'])
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertSee('Organization publication consent accepted.')
+            ->assertSee('Organization Name Consent:')
+            ->assertSee('data-autohide-ms="5000"', false)
+            ->assertSee('disabled', false);
+
+        // 3. Any later visit: the box is not rendered at all.
+        $this->withSession($session)
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertDontSee('Organization Name Consent:')
+            ->assertDontSee('id="organization-consent"', false)
+            ->assertDontSee('Yes, I agree');
+    }
+
+    public function testAnsweringTwiceNeverCallsResellerClubAgain()
+    {
+        $user = $this->user();
+        $item = $this->consentItem($user, 'CONSENT-TWICE', 'consent-twice.test');
+        $item->update(['org_consent_choice' => 'declined', 'org_consent_responded_at' => now()]);
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('domainOrderId')->never();
+        $resellerClub->shouldReceive('modifyRegistrantOrganizationConsent')->never();
         $this->app->instance(ResellerClubClient::class, $resellerClub);
 
         $this->withSession($this->customerSession($user))
             ->post("/mystore/domains/{$item->id}/organization-consent", ['consent' => '1'])
-            ->assertRedirect(route('mystore.domains.details', $item));
+            ->assertRedirect(route('mystore.domains.details', $item))
+            ->assertSessionMissing('consent_success');
 
-        $this->withSession($this->customerSession($user))
-            ->post("/mystore/domains/{$item->id}/organization-consent", ['consent' => '0'])
-            ->assertRedirect(route('mystore.domains.details', $item));
+        // The first answer is kept.
+        $this->assertSame('declined', $item->fresh()->org_consent_choice);
+    }
+
+    public function testAFailedConsentCallKeepsTheBoxSoItCanBeTriedAgain()
+    {
+        $user = $this->user();
+        $item = $this->consentItem($user, 'CONSENT-FAILED', 'consent-failed.test');
+
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('domainOrderId')->andReturn('127547541');
+        $resellerClub->shouldReceive('modifyRegistrantOrganizationConsent')->once()
+            ->andReturn(['status' => 'ERROR', 'message' => 'Registry is busy']);
+        $resellerClub->shouldReceive('nameservers')->andReturn([]);
+        $resellerClub->shouldReceive('domainActions')->andReturn([]);
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        $session = $this->customerSession($user);
+        $this->withSession($session)
+            ->post("/mystore/domains/{$item->id}/organization-consent", ['consent' => '1'])
+            ->assertRedirect(route('mystore.domains.details', $item))
+            ->assertSessionHasErrors('consent');
+
+        $this->assertNull($item->fresh()->org_consent_responded_at);
+        $this->assertNull($item->fresh()->org_consent_choice);
+
+        $this->withSession($session)
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertSee('Organization Name Consent:')
+            ->assertSee('Yes, I agree');
     }
 
     /**
@@ -342,6 +435,29 @@ class MyStorePagesTest extends TestCase
         $this->withSession($this->customerSession($this->user()))
             ->get('/mystore/not-a-service')
             ->assertNotFound();
+    }
+
+    /** A paid, active, registered domain whose consent box has not been answered. */
+    private function consentItem(User $user, $reference, $domain)
+    {
+        $order = $this->paidOrder($user, $reference, $domain);
+        $order->update(['status' => 'active']);
+        $item = $order->items()->first();
+        $item->update(['registration_status' => 'registered']);
+
+        return $item->fresh();
+    }
+
+    /** ResellerClub answering the page's read calls with nothing in particular. */
+    private function quietResellerClub()
+    {
+        $resellerClub = \Mockery::mock(ResellerClubClient::class);
+        $resellerClub->shouldReceive('domainOrderId')->andReturn('127547539');
+        $resellerClub->shouldReceive('nameservers')->andReturn([]);
+        $resellerClub->shouldReceive('domainActions')->andReturn([]);
+        $this->app->instance(ResellerClubClient::class, $resellerClub);
+
+        return $resellerClub;
     }
 
     private function user()

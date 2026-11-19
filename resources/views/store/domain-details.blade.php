@@ -19,6 +19,12 @@ $nameserverError = collect($errors->keys())->contains(function ($key) {
 });
 $consentError = $errors->first('consent');
 $consentSuccess = session('consent_success');
+
+// The consent question is asked once. It shows until the customer answers; right after a
+// successful answer it stays for 5 seconds (so the result is seen) and then fades away.
+// Every later visit does not show it at all.
+$consentAnswered = $item->hasAnsweredOrganizationConsent();
+$showConsentPanel = !$consentAnswered || (bool) $consentSuccess;
 @endphp
 <div class="store-domain-detail-head">
     <div>
@@ -98,7 +104,9 @@ $consentSuccess = session('consent_success');
             </div>
         </section>
 
-        <section class="store-detail-panel store-org-consent" aria-labelledby="organization-consent-title">
+        @if($showConsentPanel)
+        <section class="store-detail-panel store-org-consent{{ $consentAnswered ? ' is-answered' : '' }}" id="organization-consent"
+            aria-labelledby="organization-consent-title" @if($consentAnswered) data-autohide-ms="5000" @endif>
             <div class="store-detail-panel-head">
                 <div>
                     <span class="domain-kicker">PUBLIC RDDS / WHOIS</span>
@@ -111,15 +119,16 @@ $consentSuccess = session('consent_success');
                 <form method="POST" action="{{ route('mystore.domains.organization-consent', $item->id) }}">
                     @csrf
                     <input type="hidden" name="consent" value="1">
-                    <button class="store-ns-btn store-ns-btn-primary" type="submit">Yes, I agree</button>
+                    <button class="store-ns-btn store-ns-btn-primary" type="submit" {{ $consentAnswered ? 'disabled' : '' }}>Yes, I agree</button>
                 </form>
                 <form method="POST" action="{{ route('mystore.domains.organization-consent', $item->id) }}">
                     @csrf
                     <input type="hidden" name="consent" value="0">
-                    <button class="store-ns-btn store-ns-btn-secondary" type="submit">Cancel</button>
+                    <button class="store-ns-btn store-ns-btn-secondary" type="submit" {{ $consentAnswered ? 'disabled' : '' }}>Cancel</button>
                 </form>
             </div>
         </section>
+        @endif
 
         <section class="store-detail-panel store-ns-panel">
             <div class="store-ns-row">
@@ -955,5 +964,42 @@ document.querySelectorAll('.store-child-info-trigger[aria-controls^="child-ns-de
         }
     });
 });
+</script>
+<script>
+// Consent box: after the answer it stays 5 seconds, then fades out.
+// Before the answer, a double click cannot send it twice.
+(function() {
+    var panel = document.getElementById('organization-consent');
+    if (!panel) {
+        return;
+    }
+
+    var wait = parseInt(panel.getAttribute('data-autohide-ms'), 10);
+    if (wait > 0) {
+        window.setTimeout(function() {
+            var finished = false;
+            var finish = function() {
+                if (!finished) {
+                    finished = true;
+                    panel.style.display = 'none';
+                }
+            };
+            panel.classList.add('is-hiding');
+            panel.addEventListener('transitionend', finish);
+            window.setTimeout(finish, 800);
+        }, wait);
+        return;
+    }
+
+    panel.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function() {
+            window.setTimeout(function() {
+                panel.querySelectorAll('button').forEach(function(button) {
+                    button.disabled = true;
+                });
+            }, 0);
+        });
+    });
+})();
 </script>
 @endpush

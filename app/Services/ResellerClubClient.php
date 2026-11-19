@@ -21,6 +21,11 @@ class ResellerClubClient
     const ACTIONS_RETRY_DELAY_MS = 400;
     /** The last successful list is kept this long and shown only if ResellerClub cannot be read. */
     const ACTIONS_LAST_GOOD_SECONDS = 86400;
+    /**
+     * A list built from only one of the two endpoints is reused this briefly, so a
+     * struggling endpoint is not hammered, yet the next view reads both again.
+     */
+    const ACTIONS_PARTIAL_CACHE_SECONDS = 20;
 
     private $config;
 
@@ -875,6 +880,17 @@ class ResellerClubClient
     }
 
     /**
+     * Forget only the short-lived copy of one order's activity, so the next read goes to
+     * ResellerClub again. The last-good fallback copy is kept on purpose: it is what is
+     * shown if ResellerClub cannot be reached. Called whenever a customer opens Manage
+     * or the full activity page, so those pages always read fresh data.
+     */
+    public static function forgetDomainActionsCache($orderId)
+    {
+        cache()->forget(self::domainActionsCacheKey($orderId));
+    }
+
+    /**
      * Forget everything cached for one order's activity. Called right after a
      * change is made through our site, so the next view reads ResellerClub
      * again and never shows a list that predates the change.
@@ -898,10 +914,13 @@ class ResellerClubClient
      * Returns a list of rows (see App\Support\DomainActivity::normalize()),
      * which is [] when the order simply has no activity, or null when the
      * activity could not be read (not configured, bad order ID, API error).
-     * null is never cached, and a partial result is never returned, so an
-     * outage cannot be mistaken for "no activity".
+     * null is never cached, so an outage cannot be mistaken for "no activity".
      *
-     * Each call is retried once. If ResellerClub still cannot be read, the last
+     * The two endpoints are read independently: if only one of them can be read,
+     * its rows (plus the last full list, if there is one) are returned, so the
+     * history never disappears because "current" is empty or erroring.
+     *
+     * Each call is retried once. If neither endpoint can be read, the last
      * list that was read successfully (kept for a day) is returned instead of
      * nothing, and null only when there is no such copy.
      *
@@ -924,23 +943,51 @@ class ResellerClubClient
             return $cached;
         }
 
+        // Each endpoint is read on its own. "current" only holds pending actions and what
+        // finished in the last 24 hours, so an order whose last action is older than that
+        // has nothing there, and ResellerClub does not always answer that cleanly. One
+        // unreadable endpoint must therefore never hide what the other one returned:
+        // the customer always sees the order's whole history.
         $lists = [];
+        $failed = [];
         foreach (['/actions/search-current.json', '/actions/search-archived.json'] as $path) {
             $list = $this->searchActions($path, (int) $orderId);
             if ($list === null) {
-                $lastGood = cache()->get(self::domainActionsLastGoodCacheKey($orderId));
-                if (is_array($lastGood)) {
-                    \Log::warning('ResellerClub activity unreadable, showing the last list that was read', [
-                        'order_id' => (int) $orderId,
-                        'path' => $path,
-                    ]);
-
-                    return $lastGood;
-                }
-
-                return null;
+                $failed[] = $path;
+                continue;
             }
             $lists[] = $list;
+        }
+
+        $lastGood = cache()->get(self::domainActionsLastGoodCacheKey($orderId));
+
+        if (!$lists) {
+            // Neither endpoint could be read.
+            if (is_array($lastGood)) {
+                \Log::warning('ResellerClub activity unreadable, showing the last list that was read', [
+                    'order_id' => (int) $orderId,
+                    'paths' => $failed,
+                ]);
+
+                return $lastGood;
+            }
+
+            return null;
+        }
+
+        if ($failed) {
+            \Log::warning('ResellerClub activity partly unreadable, showing what the other endpoint returned', [
+                'order_id' => (int) $orderId,
+                'unreadable' => $failed,
+            ]);
+
+            // Actions are only ever added, so the last full list can safely fill the gap;
+            // what was just read wins over it. A partial list is cached very briefly and
+            // never becomes the "last good" copy.
+            $actions = DomainActivity::merge(is_array($lastGood) ? $lastGood : [], ...$lists);
+            cache()->put($cacheKey, $actions, now()->addSeconds(self::ACTIONS_PARTIAL_CACHE_SECONDS));
+
+            return $actions;
         }
 
         $actions = DomainActivity::merge(...$lists);
@@ -948,6 +995,29 @@ class ResellerClubClient
         cache()->put(self::domainActionsLastGoodCacheKey($orderId), $actions, now()->addSeconds(self::ACTIONS_LAST_GOOD_SECONDS));
 
         return $actions;
+    }
+
+    /**
+     * What each of the two activity endpoints returns for one order, read live (no cache).
+     * For the `domain:activity-probe` command: ['/actions/search-current.json' => 3 rows,
+     * '/actions/search-archived.json' => null when it could not be read].
+     *
+     * @param  string|int  $orderId
+     * @return array|null  path => number of rows, or null when that endpoint was unreadable
+     */
+    public function probeDomainActions($orderId)
+    {
+        if (!is_scalar($orderId) || !ctype_digit((string) $orderId) || (int) $orderId < 1 || !$this->isConfigured()) {
+            return null;
+        }
+
+        $report = [];
+        foreach (['/actions/search-current.json', '/actions/search-archived.json'] as $path) {
+            $list = $this->searchActions($path, (int) $orderId);
+            $report[$path] = $list === null ? null : count($list);
+        }
+
+        return $report;
     }
 
     /**

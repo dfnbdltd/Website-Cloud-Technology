@@ -224,6 +224,39 @@ class DomainActivityTest extends TestCase
         $this->assertFalse(Cache::has($key));
     }
 
+    public function testOpeningManageAlwaysReadsFreshFromResellerClubNotTheShortCopy()
+    {
+        $user = $this->user();
+        $item = $this->registeredOrder($user, 'ACT-ORDER-10', ['always-fresh.test'])[0];
+        $item->update(['reseller_order_id' => '610']);
+
+        $client = $this->resellerClub();
+        $client->shouldReceive('nameservers')->andReturn([]);
+        $client->shouldReceive('domainActions')->twice()->with('610')
+            ->andReturn([$this->action('9', 'Fresh from ResellerClub', self::T_NEWEST)]);
+
+        // A copy from a few seconds ago, which the page must not rely on.
+        $key = ResellerClubClient::domainActionsCacheKey('610');
+        Cache::put($key, [$this->action('1', 'Old short copy', self::T_OLDEST)], 60);
+
+        $this->withSession($this->customerSession($user))
+            ->get(route('mystore.domains.details', $item))
+            ->assertOk()
+            ->assertSee('Fresh from ResellerClub')
+            ->assertDontSee('Old short copy');
+
+        $this->assertFalse(Cache::has($key));
+
+        // The full activity page reads fresh too.
+        Cache::put($key, [$this->action('1', 'Old short copy', self::T_OLDEST)], 60);
+
+        $this->withSession($this->customerSession($user))
+            ->get(route('mystore.domains.activity', $item))
+            ->assertOk()
+            ->assertSee('Fresh from ResellerClub')
+            ->assertDontSee('Old short copy');
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────
 
     /** @return \Mockery\MockInterface */

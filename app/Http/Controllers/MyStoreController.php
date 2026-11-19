@@ -105,6 +105,12 @@ class MyStoreController extends Controller
         // This domain's own ResellerClub order, resolved once and reused below.
         $resellerOrderId = $this->resellerOrderId($item);
 
+        // Opening Manage always reads the whole activity history from ResellerClub
+        // (never a copy up to a minute old). The fallback copy is kept for outages.
+        if ($resellerOrderId !== null) {
+            ResellerClubClient::forgetDomainActionsCache($resellerOrderId);
+        }
+
         // A transfer carries the expiry ResellerClub reported when it finished;
         // if that was never stored (e.g. an admin marked it complete by hand),
         // read it once now and keep it.
@@ -141,7 +147,11 @@ class MyStoreController extends Controller
         $invoice = Invoice::where('source_type', \App\Models\DomainOrder::class)
             ->where('source_id', $order->id)
             ->first();
-        $activity = $this->registrarActivity($item, $this->resellerOrderId($item));
+        $resellerOrderId = $this->resellerOrderId($item);
+        if ($resellerOrderId !== null) {
+            ResellerClubClient::forgetDomainActionsCache($resellerOrderId);
+        }
+        $activity = $this->registrarActivity($item, $resellerOrderId);
 
         return view('store.domain-activity', [
             'item' => $item,
@@ -241,6 +251,13 @@ class MyStoreController extends Controller
             ? $request->user()->id
             : $request->session()->get('customer.id'));
         $item = $this->ownedDomainItem($request, $itemId);
+
+        // The question is answered once. When it already was (a second tab, a repeated
+        // post), ResellerClub is not called again and the page simply opens without the box.
+        if ($item->hasAnsweredOrganizationConsent()) {
+            return redirect()->route('mystore.domains.details', $item);
+        }
+
         $consent = $request->input('consent');
         if (!in_array($consent, ['1', '0', 1, 0, true, false], true)) {
             return redirect()->route('mystore.domains.details', $item)
@@ -270,8 +287,16 @@ class MyStoreController extends Controller
             ResellerClubClient::forgetDomainActions($orderId);
         }
 
+        // ResellerClub accepted the answer: remember it so the consent box is gone for good.
+        // (Only a successful answer is stored; a failed call leaves the box in place.)
+        $accepted = filter_var($consent, FILTER_VALIDATE_BOOLEAN);
+        $item->update([
+            'org_consent_choice' => $accepted ? 'accepted' : 'declined',
+            'org_consent_responded_at' => now(),
+        ]);
+
         return redirect()->route('mystore.domains.details', $item)
-            ->with('consent_success', filter_var($consent, FILTER_VALIDATE_BOOLEAN)
+            ->with('consent_success', $accepted
                 ? 'Organization publication consent accepted.'
                 : 'Organization publication consent cancelled.');
     }

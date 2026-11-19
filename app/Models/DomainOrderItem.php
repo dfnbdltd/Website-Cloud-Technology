@@ -11,12 +11,22 @@ class DomainOrderItem extends Model
     /** Item status of a transfer-in ResellerClub has completed. */
     const STATUS_TRANSFERRED = 'transferred';
 
-    protected $fillable = ['domain_order_id', 'domain', 'tld', 'years', 'price', 'renewal_price', 'purchase_price', 'registration_status', 'order_type', 'transfer_auth_code', 'reseller_order_id', 'expires_at', 'transfer_completed_at'];
-    protected $casts = ['price' => 'float', 'renewal_price' => 'float', 'purchase_price' => 'float', 'expires_at' => 'datetime', 'transfer_completed_at' => 'datetime'];
+    protected $fillable = ['domain_order_id', 'domain', 'tld', 'years', 'price', 'renewal_price', 'purchase_price', 'registration_status', 'order_type', 'transfer_auth_code', 'reseller_order_id', 'expires_at', 'transfer_completed_at', 'org_consent_choice', 'org_consent_responded_at'];
+    protected $casts = ['price' => 'float', 'renewal_price' => 'float', 'purchase_price' => 'float', 'expires_at' => 'datetime', 'transfer_completed_at' => 'datetime', 'org_consent_responded_at' => 'datetime'];
 
     public function order()
     {
         return $this->belongsTo(DomainOrder::class, 'domain_order_id');
+    }
+
+    /**
+     * The customer already answered the Organization Name Consent question
+     * ("Yes, I agree" or "Cancel") and ResellerClub accepted it. The question is
+     * asked once, so the consent box is not shown again after this.
+     */
+    public function hasAnsweredOrganizationConsent()
+    {
+        return $this->org_consent_responded_at !== null;
     }
 
     public function isTransfer()

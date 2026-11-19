@@ -40,7 +40,10 @@ class DomainActivity
         }
 
         if (strtoupper((string) (isset($response['status']) && is_scalar($response['status']) ? $response['status'] : '')) === 'ERROR') {
-            return null;
+            // "Nothing found" is how ResellerClub may answer an endpoint that simply has no
+            // rows for this order (typically "current" once everything is older than 24h).
+            // That is an empty list, not a failure. Any other error stays a failure.
+            return self::isNoRecordsError($response) ? ['total' => 0, 'actions' => []] : null;
         }
 
         $actions = [];
@@ -60,6 +63,35 @@ class DomainActivity
             : null;
 
         return ['total' => $total, 'actions' => $actions];
+    }
+
+    /**
+     * True when an ERROR response only says that there are no records, e.g.
+     * "No records found" / "No actions found for the given criteria".
+     * Credentials, permission and validation errors never match.
+     *
+     * @param  array  $response
+     * @return bool
+     */
+    public static function isNoRecordsError(array $response)
+    {
+        foreach (['message', 'error', 'description', 'details'] as $key) {
+            if (!isset($response[$key]) || !is_scalar($response[$key])) {
+                continue;
+            }
+
+            $text = strtolower(trim((string) $response[$key]));
+            if ($text === '') {
+                continue;
+            }
+
+            if (preg_match('/\bno\b[^.]{0,40}\b(records?|actions?|results?|activit(?:y|ies))\b/', $text)
+                || preg_match('/\b(records?|actions?|results?)\b[^.]{0,20}\bnot found\b/', $text)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -635,3 +635,13 @@ button.store-domain-manage-link{cursor:pointer}
 .store-ns-alert.store-consent-alert{margin:0 0 20px;animation:storeNsAlertIn .24s ease,storeConsentShake .5s cubic-bezier(.36,.07,.19,.97) .24s}
 @keyframes storeConsentShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-5px)}30%{transform:translateX(4px)}45%{transform:translateX(-3px)}60%{transform:translateX(2px)}75%{transform:translateX(-1px)}}
 @media(prefers-reduced-motion:reduce){.store-ns-alert.store-consent-alert{animation:storeNsAlertIn .24s ease}}
+
+/* ---------------------------------------------------------------------------
+   Organization Name Consent: asked once. After the answer the box stays for
+   5 seconds (JS adds .is-hiding), then fades and collapses; it is not rendered
+   on later visits.
+   --------------------------------------------------------------------------- */
+.store-org-consent.is-answered{max-height:700px;transition:opacity .6s ease,transform .6s ease,max-height .6s ease,margin .6s ease,padding .6s ease,border-width .6s ease}
+.store-org-consent.is-hiding{opacity:0;transform:translateY(-8px);max-height:0;margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0;border-width:0;overflow:hidden;pointer-events:none}
+.store-org-consent .store-ns-btn:disabled{opacity:.55;cursor:not-allowed}
+@media(prefers-reduced-motion:reduce){.store-org-consent.is-answered{transition:none}}
