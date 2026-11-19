@@ -37,4 +37,23 @@ class CustomerLookup
             ? $query->where('email', $identifier)->first()
             : $query->where('customer_uid', $identifier)->first();
     }
+
+    /**
+     * The details both checkouts show once a customer is confirmed.
+     *
+     * Kept here so the domains and SSL "Confirm" buttons always reveal the
+     * same fields (name, email, phone) in the same shape.
+     *
+     * @param  \App\User  $user
+     * @return array
+     */
+    public static function profile(User $user)
+    {
+        return [
+            'name' => (string) $user->name,
+            'email' => (string) $user->email,
+            'phone' => (string) $user->phone,
+            'customer_uid' => (string) $user->customer_uid,
+        ];
+    }
 }

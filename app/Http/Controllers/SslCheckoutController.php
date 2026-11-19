@@ -100,11 +100,18 @@ class SslCheckoutController extends Controller
         $configured = config('services.payments.methods', []);
         $methods = array_intersect_key($configured, array_flip(SslOrderService::PAYMENT_METHODS));
 
+        // Keep the confirmed customer visible when a validation error returns here.
+        $verifiedCustomer = null;
+        if (old('purchase_for') === 'customer' && old('customer_identifier')) {
+            $verifiedCustomer = $this->orders->findCustomer(old('customer_identifier'));
+        }
+
         return view('ssl.checkout', [
             'quote' => $quote,
             'domain' => $cart['domain'],
             'user' => $user,
             'methods' => $methods,
+            'verifiedCustomer' => $verifiedCustomer,
         ]);
     }
 
@@ -113,11 +120,15 @@ class SslCheckoutController extends Controller
     {
         $data = $request->validate(['identifier' => ['required', 'string', 'max:255']]);
 
-        if (!$this->orders->findCustomer($data['identifier'])) {
+        $customer = $this->orders->findCustomer($data['identifier']);
+        if (!$customer) {
             return response()->json(['message' => 'Customer does not exist. Check the email or customer ID and try again.'], 404);
         }
 
-        return response()->json(['verified' => true]);
+        return response()->json([
+            'verified' => true,
+            'customer' => \App\Support\CustomerLookup::profile($customer),
+        ]);
     }
 
     /** Save the order + unpaid invoice. Payment and ResellerClub come next. */

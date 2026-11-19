@@ -312,6 +312,12 @@
 .sslx-customer-status { min-height: 20px; margin: 8px 2px 0; font-size: 13.5px; font-weight: 600; }
 .sslx-customer-status.is-ok { color: var(--x-green); }
 .sslx-customer-status.is-bad { color: var(--x-red); }
+.sslx-customer-details { display: block; margin: 10px 0 0; padding: 12px 14px; border: 1px solid #d6ebdf; border-radius: 11px; background: #f4fcf8; }
+.sslx-customer-details[hidden] { display: none; }
+.sslx-customer-details-title { display: block; margin-bottom: 7px; color: #21815d; font: 800 10.5px 'DM Sans', sans-serif; letter-spacing: .8px; text-transform: uppercase; }
+.sslx-customer-detail { display: flex; gap: 12px; padding: 3px 0; font-size: 13px; line-height: 1.5; }
+.sslx-customer-detail-label { flex: none; width: 58px; color: #6f9b88; font-weight: 700; }
+.sslx-customer-detail-value { color: #134a35; font-weight: 700; word-break: break-word; }
 
 /* payment methods */
 .sslx-pay { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }

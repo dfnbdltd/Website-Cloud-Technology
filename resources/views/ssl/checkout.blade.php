@@ -40,7 +40,7 @@
         <div class="sslx-grid">
             <div>
             @if($user)
-                <form id="sslCheckoutForm" method="POST" action="{{ route('ssl.place-order') }}" data-lookup-url="{{ route('ssl.customer.lookup') }}" data-live="{{ config('services.ssl_checkout_enabled') ? 1 : 0 }}" novalidate>
+                <form id="sslCheckoutForm" method="POST" action="{{ route('ssl.place-order') }}" data-lookup-url="{{ route('ssl.customer.lookup') }}" data-live="{{ config('services.ssl_checkout_enabled') ? 1 : 0 }}" data-confirmed="{{ $verifiedCustomer ? old('customer_identifier') : '' }}" novalidate>
                     @csrf
 
                     {{-- A customer-lookup error is already shown under the customer field. --}}
@@ -72,6 +72,12 @@
                                     <button class="sslx-btn" id="sslCustomerConfirm" type="button">Confirm</button>
                                 </span>
                                 <span class="sslx-customer-status {{ $errors->has('customer_identifier') ? 'is-bad' : '' }}" id="sslCustomerStatus" role="status" aria-live="polite">{{ $errors->first('customer_identifier') }}</span>
+                                <span class="sslx-customer-details" id="sslCustomerDetails" @if(!$verifiedCustomer) hidden @endif>
+                                    <span class="sslx-customer-details-title">Customer details</span>
+                                    <span class="sslx-customer-detail"><span class="sslx-customer-detail-label">Name</span><span class="sslx-customer-detail-value" id="sslCustomerName">{{ $verifiedCustomer->name ?? '' }}</span></span>
+                                    <span class="sslx-customer-detail"><span class="sslx-customer-detail-label">Email</span><span class="sslx-customer-detail-value" id="sslCustomerEmail">{{ $verifiedCustomer->email ?? '' }}</span></span>
+                                    <span class="sslx-customer-detail"><span class="sslx-customer-detail-label">Phone</span><span class="sslx-customer-detail-value" id="sslCustomerPhone">{{ $verifiedCustomer && $verifiedCustomer->phone ? $verifiedCustomer->phone : 'Not provided' }}</span></span>
+                                </span>
                             </span>
                         </label>
                     </section>

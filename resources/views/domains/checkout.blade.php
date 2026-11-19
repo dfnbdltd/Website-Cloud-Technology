@@ -107,6 +107,12 @@
         .buyfor-status { display:block; min-height:18px; margin-top:8px; font-size:13px; font-weight:700; color:#6f8198; }
         .buyfor-status.is-ok { color:#1f8a5f; }
         .buyfor-status.is-bad { color:#d93a3a; }
+        .buyfor-details { display:block; margin-top:10px; padding:12px 14px; border:1px solid #d6ebdf; border-radius:11px; background:#f4fcf8; }
+        .buyfor-details[hidden] { display:none; }
+        .buyfor-details-title { display:block; margin-bottom:7px; color:#21815d; font:800 10.5px 'DM Sans',sans-serif; letter-spacing:.8px; text-transform:uppercase; }
+        .buyfor-detail { display:flex; gap:12px; padding:3px 0; font-size:13px; line-height:1.5; }
+        .buyfor-detail-label { flex:none; width:58px; color:#6f9b88; font-weight:700; }
+        .buyfor-detail-value { color:#134a35; font-weight:700; word-break:break-word; }
         .checkout-submit:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
 
         @media(max-width:760px) {
@@ -201,7 +207,7 @@
     <div class="checkout-grid">
         @if(session('customer'))
             @php($purchaseFor = old('purchase_for', 'myself'))
-            <form class="checkout-form checkout-card co-anim d1" id="domainCheckoutForm" method="POST" action="{{ route('domains.place-order') }}" data-lookup-url="{{ route('domains.customer.lookup') }}" novalidate>
+            <form class="checkout-form checkout-card co-anim d1" id="domainCheckoutForm" method="POST" action="{{ route('domains.place-order') }}" data-lookup-url="{{ route('domains.customer.lookup') }}" data-confirmed="{{ $verifiedCustomer ? old('customer_identifier') : '' }}" novalidate>
                 @csrf
                 @if(session('cart_added'))<div class="domain-alert success cart-added"><span>✓ <b>{{ session('cart_added') }}</b> was added to your cart.</span></div>@endif
                 {{-- A customer-lookup error is already shown under the customer field. --}}
@@ -228,6 +234,12 @@
                                 <button class="buyfor-confirm" id="buyforConfirm" type="button">Confirm</button>
                             </span>
                             <span class="buyfor-status {{ $errors->has('customer_identifier') ? 'is-bad' : '' }}" id="buyforStatus" role="status" aria-live="polite">{{ $errors->first('customer_identifier') }}</span>
+                            <span class="buyfor-details" id="buyforDetails" @if(!$verifiedCustomer) hidden @endif>
+                                <span class="buyfor-details-title">Customer details</span>
+                                <span class="buyfor-detail"><span class="buyfor-detail-label">Name</span><span class="buyfor-detail-value" id="buyforName">{{ $verifiedCustomer->name ?? '' }}</span></span>
+                                <span class="buyfor-detail"><span class="buyfor-detail-label">Email</span><span class="buyfor-detail-value" id="buyforEmail">{{ $verifiedCustomer->email ?? '' }}</span></span>
+                                <span class="buyfor-detail"><span class="buyfor-detail-label">Phone</span><span class="buyfor-detail-value" id="buyforPhone">{{ $verifiedCustomer && $verifiedCustomer->phone ? $verifiedCustomer->phone : 'Not provided' }}</span></span>
+                            </span>
                         </span>
                     </label>
                 </section>
@@ -349,9 +361,13 @@ document.addEventListener('click', function (e) {
     var status = document.getElementById('buyforStatus');
     var submit = document.getElementById('domainPlaceOrder');
     var contact = document.getElementById('checkoutContactSection');
+    var details = document.getElementById('buyforDetails');
+    var detailName = document.getElementById('buyforName');
+    var detailEmail = document.getElementById('buyforEmail');
+    var detailPhone = document.getElementById('buyforPhone');
     var token = document.querySelector('meta[name="csrf-token"]');
     var lookupUrl = form.getAttribute('data-lookup-url');
-    var confirmed = null; // the identifier that was verified
+    var confirmed = form.getAttribute('data-confirmed') || null; // the identifier that was verified
 
     var forCustomer = function () {
         var checked = form.querySelector('input[name="purchase_for"]:checked');
@@ -365,9 +381,28 @@ document.addEventListener('click', function (e) {
         identifier.classList.toggle('is-invalid', kind === 'bad');
     };
 
+    // Fill the "Customer details" card once the server confirms the account.
+    var setDetails = function (customer) {
+        if (!details) { return; }
+        if (!customer) {
+            details.hidden = true;
+            detailName.textContent = '';
+            detailEmail.textContent = '';
+            detailPhone.textContent = '';
+            return;
+        }
+        detailName.textContent = customer.name || '—';
+        detailEmail.textContent = customer.email || '—';
+        detailPhone.textContent = customer.phone || 'Not provided';
+        details.hidden = false;
+    };
+
     var refresh = function () {
         var customer = forCustomer();
         submit.disabled = customer && confirmed !== identifier.value.trim();
+        if (details) {
+            details.hidden = !(customer && confirmed === identifier.value.trim());
+        }
         // The buyer's own contact fields do not apply when buying for a customer.
         if (contact) {
             contact.style.display = customer ? 'none' : '';
@@ -382,6 +417,7 @@ document.addEventListener('click', function (e) {
     identifier.addEventListener('input', function () {
         confirmed = null;
         setStatus('', null);
+        setDetails(null);
         refresh();
     });
 
@@ -410,9 +446,11 @@ document.addEventListener('click', function (e) {
             if (result.ok && result.body.verified) {
                 confirmed = value;
                 setStatus('✓ Customer found. You can continue.', 'ok');
+                setDetails(result.body.customer || null);
             } else if (result.status === 404) {
                 confirmed = null;
                 setStatus(result.body.message || 'Customer does not exist.', 'bad');
+                setDetails(null);
             } else if (result.status === 429) {
                 setStatus('Too many attempts. Please wait a minute and try again.', 'bad');
             } else if (result.status === 401) {

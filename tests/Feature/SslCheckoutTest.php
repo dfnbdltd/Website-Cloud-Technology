@@ -70,6 +70,7 @@ class SslCheckoutTest extends TestCase
             'name' => $name,
             'email' => strtolower(str_replace(' ', '.', $name)) . '-' . uniqid() . '@example.test',
             'password' => Hash::make('SecretP@ss1'),
+            'phone' => '01700000000',
         ]);
         $user->forceFill([
             'email_verified_at' => $verified ? now() : null,
@@ -210,7 +211,26 @@ class SslCheckoutTest extends TestCase
             ->assertSee('bKash')
             ->assertSee('Nagad')
             ->assertDontSee('Bank transfer')
-            ->assertSee('Place order');
+            ->assertSee('Place order')
+            // The card that shows name / email / phone after a successful lookup.
+            ->assertSee('id="sslCustomerDetails"', false)
+            ->assertSee('Customer details');
+    }
+
+    public function test_the_confirmed_customer_details_are_still_shown_after_a_validation_error()
+    {
+        $buyer = $this->user();
+        $customer = $this->user('Real Customer', true, 'CT-000042');
+
+        $this->withSession($this->customerSession($buyer) + $this->cart() + [
+            '_old_input' => ['purchase_for' => 'customer', 'customer_identifier' => 'CT-000042'],
+        ])->get(route('ssl.checkout'))
+            ->assertOk()
+            ->assertSee('id="sslCustomerDetails"', false)
+            ->assertSee('Real Customer')
+            ->assertSee($customer->email)
+            ->assertSee('01700000000')
+            ->assertDontSee('id="sslCustomerDetails" hidden', false);
     }
 
     public function test_a_guest_login_without_return_to_still_returns_to_the_ssl_checkout()
@@ -230,7 +250,16 @@ class SslCheckoutTest extends TestCase
         $session = $this->customerSession($buyer);
 
         $this->withSession($session)->postJson(route('ssl.customer.lookup'), ['identifier' => $customer->email])
-            ->assertOk()->assertJson(['verified' => true]);
+            ->assertOk()
+            ->assertJson([
+                'verified' => true,
+                'customer' => [
+                    'name' => 'Real Customer',
+                    'email' => $customer->email,
+                    'phone' => '01700000000',
+                    'customer_uid' => 'CT-000042',
+                ],
+            ]);
 
         $this->withSession($session)->postJson(route('ssl.customer.lookup'), ['identifier' => 'CT-000042'])
             ->assertOk()->assertJson(['verified' => true]);

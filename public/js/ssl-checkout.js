@@ -69,9 +69,13 @@
         var confirmBtn = document.getElementById('sslCustomerConfirm');
         var status = document.getElementById('sslCustomerStatus');
         var submit = document.getElementById('sslPlaceOrder');
+        var details = document.getElementById('sslCustomerDetails');
+        var detailName = document.getElementById('sslCustomerName');
+        var detailEmail = document.getElementById('sslCustomerEmail');
+        var detailPhone = document.getElementById('sslCustomerPhone');
         var lookupUrl = checkout.getAttribute('data-lookup-url');
         var token = document.querySelector('meta[name="csrf-token"]');
-        var confirmed = null; // the identifier that was verified
+        var confirmed = checkout.getAttribute('data-confirmed') || null; // the identifier that was verified
 
         var buyingForCustomer = function () {
             var checked = checkout.querySelector('input[name="purchase_for"]:checked');
@@ -85,9 +89,31 @@
             identifier.classList.toggle('is-invalid', kind === 'bad');
         };
 
+        // Fill the "Customer details" card once the server confirms the account.
+        var setDetails = function (customer) {
+            if (!details) { return; }
+            if (!customer) {
+                details.hidden = true;
+                detailName.textContent = '';
+                detailEmail.textContent = '';
+                detailPhone.textContent = '';
+                return;
+            }
+            detailName.textContent = customer.name || '—';
+            detailEmail.textContent = customer.email || '—';
+            detailPhone.textContent = customer.phone || 'Not provided';
+            details.hidden = false;
+        };
+
         var refresh = function () {
-            if (!submit) { return; }
-            submit.disabled = buyingForCustomer() && confirmed !== identifier.value.trim();
+            var customer = buyingForCustomer();
+            var verified = confirmed !== null && confirmed === identifier.value.trim();
+            if (details) {
+                details.hidden = !(customer && verified);
+            }
+            if (submit) {
+                submit.disabled = customer && !verified;
+            }
         };
 
         for (var i = 0; i < radios.length; i++) {
@@ -97,6 +123,7 @@
         identifier.addEventListener('input', function () {
             confirmed = null;
             setStatus('', null);
+            setDetails(null);
             refresh();
         });
 
@@ -128,9 +155,11 @@
                 if (result.ok && result.body.verified) {
                     confirmed = value;
                     setStatus('✓ Customer found. You can continue.', 'ok');
+                    setDetails(result.body.customer || null);
                 } else if (result.status === 404) {
                     confirmed = null;
                     setStatus(result.body.message || 'Customer does not exist.', 'bad');
+                    setDetails(null);
                 } else if (result.status === 429) {
                     setStatus('Too many attempts. Please wait a minute and try again.', 'bad');
                 } else {

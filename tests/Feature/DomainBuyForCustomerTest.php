@@ -87,7 +87,10 @@ class DomainBuyForCustomerTest extends TestCase
             ->assertSee('Who are you buying for?')
             ->assertSee($buyer->email)
             ->assertSee('Email or ID of existing customer')
-            ->assertSee('Confirm');
+            ->assertSee('Confirm')
+            // The card that shows name / email / phone after a successful lookup.
+            ->assertSee('id="buyforDetails"', false)
+            ->assertSee('Customer details');
     }
 
     public function test_guest_checkout_still_asks_to_sign_in_and_has_no_customer_picker()
@@ -100,6 +103,22 @@ class DomainBuyForCustomerTest extends TestCase
             ->assertDontSee('Email or ID of existing customer');
     }
 
+    public function test_the_confirmed_customer_details_are_still_shown_after_a_validation_error()
+    {
+        $buyer = $this->user('Buyer One');
+        $customer = $this->user('Existing Customer', true, 'CT-000042');
+
+        $this->withSession($this->customerSession($buyer, $this->cart()) + [
+            '_old_input' => ['purchase_for' => 'customer', 'customer_identifier' => 'CT-000042'],
+        ])->get(route('domains.checkout'))
+            ->assertOk()
+            ->assertSee('id="buyforDetails"', false)
+            ->assertSee($customer->name)
+            ->assertSee($customer->email)
+            ->assertSee('01700000000')
+            ->assertDontSee('id="buyforDetails" hidden', false);
+    }
+
     // ------------------------------------------------------ customer lookup
 
     public function test_lookup_finds_verified_customers_by_email_or_id_only()
@@ -109,8 +128,15 @@ class DomainBuyForCustomerTest extends TestCase
         $unverified = $this->user('Not Verified', false, 'CT-000043');
         $session = $this->customerSession($buyer);
 
-        $this->withSession($session)->postJson(route('domains.customer.lookup'), ['identifier' => $customer->email])
-            ->assertOk()->assertJson(['verified' => true]);
+        $byEmail = $this->withSession($session)->postJson(route('domains.customer.lookup'), ['identifier' => $customer->email]);
+        $byEmail->assertOk()->assertJson(['verified' => true]);
+        $this->assertSame([
+            'name' => 'Existing Customer',
+            'email' => $customer->email,
+            'phone' => '01700000000',
+            'customer_uid' => 'CT-000042',
+        ], $byEmail->json('customer'));
+
         $this->withSession($session)->postJson(route('domains.customer.lookup'), ['identifier' => 'CT-000042'])
             ->assertOk()->assertJson(['verified' => true]);
 

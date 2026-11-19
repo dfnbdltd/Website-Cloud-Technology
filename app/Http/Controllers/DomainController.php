@@ -261,11 +261,15 @@ class DomainController extends Controller
 
         $data = $request->validate(['identifier' => ['required', 'string', 'max:255']]);
 
-        if (!CustomerLookup::find($data['identifier'])) {
+        $customer = CustomerLookup::find($data['identifier']);
+        if (!$customer) {
             return response()->json(['message' => CustomerLookup::NOT_FOUND], 404);
         }
 
-        return response()->json(['verified' => true]);
+        return response()->json([
+            'verified' => true,
+            'customer' => CustomerLookup::profile($customer),
+        ]);
     }
 
     public function checkout(Request $request)
@@ -292,6 +296,13 @@ class DomainController extends Controller
             }
         }
 
+        // A validation error sends the buyer back here: resolve the customer
+        // they had already confirmed so the details card is still on screen.
+        $verifiedCustomer = null;
+        if (old('purchase_for') === 'customer' && old('customer_identifier')) {
+            $verifiedCustomer = CustomerLookup::find(old('customer_identifier'));
+        }
+
         return view('domains.checkout', [
             'cart' => $cart,
             'total' => $this->total($cart),
@@ -300,6 +311,7 @@ class DomainController extends Controller
             'accountDetails' => $accountDetails,
             'accountDetailsComplete' => $accountDetailsComplete,
             'defaultPaymentMethod' => $defaultPaymentMethod,
+            'verifiedCustomer' => $verifiedCustomer,
         ]);
     }
 
