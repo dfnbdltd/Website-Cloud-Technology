@@ -448,23 +448,30 @@
 
 
 /* ── Purchased-domain counter: My Store > Domain ────────────────────────────
-   The same light-blue pill as the Cart counter, scaled for a sub-row. It sits on
-   the right edge of the row; on the current page's row (white) it turns navy, the
-   My Store header colour, so it stays readable and matches the active state. */
+   The same soft-blue pill used by the other counters, sized to sit comfortably
+   on a sub-row instead of collapsing into a tiny dot. It keeps a fixed height
+   so one- and two-digit numbers read as the same circle, and turns navy on the
+   current page's white row to stay legible. */
 #clientSidebar #myStoreSubnav > .subnav-inner > a .nav-count {
     flex: none;
-    display: inline-block;
-    min-width: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
     margin: 0 0 0 auto;
-    padding: 3px 7px;
+    padding: 0 8px;
     border-radius: 999px;
-    background: #d6e8ff;
-    color: #2869ba;
-    font-size: 10px;
+    box-sizing: border-box;
+    background: #dbeafe;
+    color: #1f5da8;
+    font-size: 12px;
     font-style: normal;
     font-weight: 800;
-    line-height: 1.2;
+    line-height: 1;
+    letter-spacing: -.2px;
     text-align: center;
+    font-variant-numeric: tabular-nums;
     transition: background .18s ease, color .18s ease;
 }
 
