@@ -1,0 +1,16 @@
+/* "Domain + who it is for" card on the payment pages.
+   Markup: resources/views/domains/partials/order-parties.blade.php */
+.ordp{display:flex;flex-wrap:wrap;margin:0 0 26px;border:1px solid #e6e8ef;border-radius:14px;background:#fff;overflow:hidden;text-align:left}
+.ordp-col{flex:1 1 260px;min-width:0;padding:16px 22px;border-right:1px solid #eef0f5}
+.ordp-col:last-child{border-right:0}
+.ordp-col>small{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#8a90a3;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.ordp-tag{padding:2px 9px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:800;letter-spacing:.06em}
+.ordp-tag.is-self{background:#e4f8f0;color:#17805a}
+.ordp-dom+.ordp-dom{margin-top:10px}
+.ordp-dom strong,.ordp-who strong{display:block;color:#1c2333;font-size:16px;font-weight:700;word-break:break-word}
+.ordp-dom span,.ordp-who span{display:block;margin-top:2px;color:#5b6478;font-size:13px;word-break:break-word}
+.confirmation-card .ordp{margin:0 0 22px}
+@media(max-width:620px){
+    .ordp-col{flex-basis:100%;border-right:0;border-bottom:1px solid #eef0f5}
+    .ordp-col:last-child{border-bottom:0}
+}

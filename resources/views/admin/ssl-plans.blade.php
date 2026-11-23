@@ -19,17 +19,18 @@
         .ssl-new:active{transform:translateY(1px)}
         .ssl-new b{font-size:17px;line-height:1}
 
-        .ssl-card-list{background:#fff;border:1px solid #e5ebf3;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,35,64,.04)}
+        .ssl-card-list{background:#fff;border:1px solid #e5ebf3;border-radius:14px;box-shadow:0 1px 2px rgba(15,35,64,.04)}
 
         /* The plan column is now just a name, so it needs far less room and the
            pricing table gets the space the deleted lines used to take. */
         .ssl-list-head,.ssl-row{display:grid;grid-template-columns:minmax(150px,.6fr) minmax(0,2.4fr) 132px;gap:20px;align-items:center}
-        .ssl-list-head{padding:12px 22px;background:#f7f9fc;border-bottom:1px solid #edf1f5;color:#77879a;font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
+        .ssl-list-head{padding:12px 22px;border-radius:14px 14px 0 0;background:#f7f9fc;border-bottom:1px solid #edf1f5;color:#77879a;font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
         .ssl-list-head span:nth-child(3){text-align:right}
 
         .ssl-row{padding:14px 22px;border-top:1px solid #edf1f5;transition:background .16s ease}
         .ssl-row:first-child{border-top:0}
         .ssl-row:hover{background:#fbfdff}
+        .ssl-row:last-child{border-radius:0 0 14px 14px}
         .ssl-row.is-hidden{background:#fcfcfd}
         .ssl-row.is-hidden .ssl-name{color:#8496a9}
 
@@ -41,15 +42,31 @@
         .ssl-money strong{display:block;color:#0f2340;font:800 21px/1.1 'Manrope',sans-serif;letter-spacing:-.5px}
         .ssl-money small{display:block;margin-top:3px;color:#93a2b3;font-size:12px}
 
-        .ssl-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+        /* Row actions: one "Action" dropdown instead of three buttons.
+           Step 1: pick Edit / Hide (Show) / Delete from the list.
+           Step 2: the main button now carries the picked name; click it to do it.
+           Nothing happens until that second click. The caret re-opens the list. */
+        .ssl-actions{display:flex;justify-content:flex-end}
         .ssl-actions form{margin:0}
-        .ssl-actions a,.ssl-actions button{display:inline-flex;align-items:center;justify-content:center;min-width:74px;padding:9px 14px;border:1px solid #dfe6ee;border-radius:9px;background:#fff;color:#334155;font:700 13px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer;transition:border-color .16s ease,color .16s ease,background .16s ease}
-        .ssl-actions a:hover{border-color:#1f6fe5;color:#1f6fe5;background:#f5f9ff}
-        .ssl-actions button:hover{border-color:#b9c9db;background:#f8fafc}
-        .ssl-actions .danger:hover{border-color:#fca5a5;color:#b91c1c;background:#fff5f5}
-
-        .ssl-actions{flex-direction:column;align-items:stretch}
-        .ssl-actions a,.ssl-actions button{width:100%}
+        .ssl-act{--act:#dfe6ee;position:relative;display:inline-flex;width:132px;max-width:100%}
+        .ssl-act-main,.ssl-act-caret{display:inline-flex;align-items:center;justify-content:center;margin:0;border:1px solid var(--act);background:#fff;color:#334155;font:700 13px 'DM Sans',sans-serif;cursor:pointer;transition:border-color .16s ease,color .16s ease,background .16s ease}
+        .ssl-act-main{flex:1;min-width:0;padding:9px 12px;border-radius:9px 0 0 9px;border-right:0}
+        .ssl-act-caret{width:36px;padding:9px 0;border-radius:0 9px 9px 0}
+        .ssl-act-main:hover,.ssl-act-caret:hover{background:#f8fafc}
+        .ssl-act-main:disabled{opacity:.6;cursor:wait}
+        .ssl-act.is-open .ssl-act-caret{background:#f1f6ff;color:#1f6fe5}
+        .ssl-act[data-chosen]{--act:#1f6fe5}
+        .ssl-act[data-chosen="visibility"]{--act:#b45309}
+        .ssl-act[data-chosen="delete"]{--act:#dc2626}
+        .ssl-act[data-chosen] .ssl-act-main{background:var(--act);color:#fff}
+        .ssl-act[data-chosen] .ssl-act-main:hover{filter:brightness(.92)}
+        .ssl-act[data-chosen] .ssl-act-caret{color:var(--act)}
+        .ssl-act-list{position:absolute;top:calc(100% + 6px);right:0;z-index:30;min-width:100%;margin:0;padding:6px;list-style:none;background:#fff;border:1px solid #dfe6ee;border-radius:10px;box-shadow:0 18px 36px -16px rgba(15,35,64,.35)}
+        .ssl-act-list[hidden]{display:none}
+        .ssl-act.is-up .ssl-act-list{top:auto;bottom:calc(100% + 6px)}
+        .ssl-act-list button{display:block;width:100%;padding:9px 12px;border:0;border-radius:7px;background:transparent;color:#334155;text-align:left;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+        .ssl-act-list button:hover,.ssl-act-list button:focus-visible{background:#f1f6ff;color:#1f6fe5;outline:0}
+        .ssl-act-list button.is-danger:hover,.ssl-act-list button.is-danger:focus-visible{background:#fff5f5;color:#b91c1c}
 
         /* ── ResellerClub pricing (read-only) ─────────────────────────────────
            Cost and profit exist ONLY on this admin page. Customer pages get the
@@ -81,8 +98,7 @@
         @media(max-width:900px){
             .ssl-list-head{display:none}
             .ssl-row{grid-template-columns:minmax(0,1fr);gap:14px;padding:18px}
-            .ssl-actions{flex-direction:row;justify-content:flex-start}
-            .ssl-actions a,.ssl-actions button{width:auto}
+            .ssl-actions{justify-content:flex-start}
         }
     </style>
 </head>
@@ -264,9 +280,17 @@
                     </div>
 
                     <div class="ssl-actions">
-                        <a href="{{ route('admin.ssl.plans.edit', $plan) }}">Edit</a>
-                        <form method="POST" action="{{ route('admin.ssl.plans.visibility', $plan) }}">@csrf<button type="submit">{{ $plan->is_visible ? 'Hide' : 'Show' }}</button></form>
-                        <form method="POST" action="{{ route('admin.ssl.plans.delete', $plan) }}" onsubmit="return confirm('Delete the “{{ $plan->name }}” plan? This cannot be undone.')">@csrf<button class="danger" type="submit">Delete</button></form>
+                        <div class="ssl-act" data-ssl-act data-edit-url="{{ route('admin.ssl.plans.edit', $plan) }}" data-name="{{ $plan->name }}">
+                            <button type="button" class="ssl-act-main" data-act-main>Action</button>
+                            <button type="button" class="ssl-act-caret" data-act-caret aria-haspopup="true" aria-expanded="false" aria-label="Choose an action for {{ $plan->name }}">&#9662;</button>
+                            <ul class="ssl-act-list" role="menu" hidden>
+                                <li role="none"><button type="button" role="menuitem" data-choose="edit">Edit</button></li>
+                                <li role="none"><button type="button" role="menuitem" data-choose="visibility">{{ $plan->is_visible ? 'Hide' : 'Show' }}</button></li>
+                                <li role="none"><button type="button" role="menuitem" class="is-danger" data-choose="delete">Delete</button></li>
+                            </ul>
+                            <form method="POST" action="{{ route('admin.ssl.plans.visibility', $plan) }}" data-form="visibility" hidden>@csrf</form>
+                            <form method="POST" action="{{ route('admin.ssl.plans.delete', $plan) }}" data-form="delete" hidden>@csrf</form>
+                        </div>
                     </div>
                 </div>
             @empty
@@ -278,5 +302,101 @@
         </div>
     </div>
 </main>
+<script>
+(function () {
+    'use strict';
+    // Row actions: pick from the list first, then click the picked name to run it.
+    var all = document.querySelectorAll('[data-ssl-act]');
+
+    function closeOthers(except) {
+        for (var i = 0; i < all.length; i++) {
+            if (all[i] !== except && all[i].closeMenu) { all[i].closeMenu(); }
+        }
+    }
+
+    Array.prototype.forEach.call(all, function (act) {
+        var main = act.querySelector('[data-act-main]');
+        var caret = act.querySelector('[data-act-caret]');
+        var list = act.querySelector('.ssl-act-list');
+        var chosen = null;
+
+        function open() {
+            closeOthers(act);
+            list.hidden = false;
+            act.classList.remove('is-up');
+            act.classList.add('is-open');
+            caret.setAttribute('aria-expanded', 'true');
+            // Not enough room below (e.g. the last row): open upwards instead.
+            var box = list.getBoundingClientRect();
+            if (box.bottom > window.innerHeight - 8 && act.getBoundingClientRect().top > box.height + 16) {
+                act.classList.add('is-up');
+            }
+        }
+
+        function close() {
+            list.hidden = true;
+            act.classList.remove('is-open', 'is-up');
+            caret.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggle() { if (list.hidden) { open(); } else { close(); } }
+
+        function reset() {
+            chosen = null;
+            act.removeAttribute('data-chosen');
+            main.textContent = 'Action';
+            main.disabled = false;
+        }
+
+        function run() {
+            if (chosen === 'edit') {
+                window.location.href = act.getAttribute('data-edit-url');
+            } else if (chosen === 'visibility') {
+                main.disabled = true;
+                act.querySelector('[data-form="visibility"]').submit();
+            } else if (chosen === 'delete') {
+                var name = act.getAttribute('data-name') || 'this';
+                if (window.confirm('Delete the \u201C' + name + '\u201D plan? This cannot be undone.')) {
+                    main.disabled = true;
+                    act.querySelector('[data-form="delete"]').submit();
+                } else {
+                    reset();
+                }
+            }
+        }
+
+        act.closeMenu = close;
+
+        caret.addEventListener('click', function (event) { event.stopPropagation(); toggle(); });
+
+        // Nothing picked yet: the main button only opens the list.
+        // Something picked: the main button carries its name and runs it.
+        main.addEventListener('click', function (event) {
+            event.stopPropagation();
+            if (chosen === null) { toggle(); } else { run(); }
+        });
+
+        list.addEventListener('click', function (event) {
+            var item = event.target.closest ? event.target.closest('[data-choose]') : null;
+            if (!item) { return; }
+            event.stopPropagation();
+            chosen = item.getAttribute('data-choose');
+            act.setAttribute('data-chosen', chosen);
+            main.textContent = item.textContent.trim();
+            close();
+            main.focus();
+        });
+    });
+
+    document.addEventListener('click', function () { closeOthers(null); });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') { closeOthers(null); }
+    });
+    // Coming back with the browser Back button must not leave a picked action armed.
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) { window.location.reload(); }
+    });
+})();
+</script>
 </body>
 </html>

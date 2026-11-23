@@ -543,10 +543,20 @@ class DomainController extends Controller
                         'domain' => $item->domain,
                         'years' => (int) $item->years,
                         'price' => (float) $item->price,
+                        'order_type' => $item->order_type ?: 'registration',
                     ];
                 })->all(),
                 'total' => (float) $databaseOrder->total,
-                'customer' => ['payment_method' => $databaseOrder->payment_method],
+                'customer' => [
+                    'payment_method' => $databaseOrder->payment_method,
+                    'full_name' => $databaseOrder->customer_name,
+                    'email' => $databaseOrder->customer_email,
+                    'phone' => $databaseOrder->customer_phone,
+                    // Placed by someone other than the owner = bought for a customer.
+                    'purchase_for' => $databaseOrder->placed_by_user_id
+                        ? ((int) $databaseOrder->placed_by_user_id !== (int) $databaseOrder->user_id ? 'customer' : 'myself')
+                        : null,
+                ],
                 'payment' => [
                     'method' => $databaseOrder->payment_method,
                     'status' => $databaseOrder->payment_status,
