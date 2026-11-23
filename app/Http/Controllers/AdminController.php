@@ -799,7 +799,7 @@ class AdminController extends Controller
         ]);
     }
 
-    /** The list page's single Save button: every card's order, visibility, prices and term status. */
+    /** The list page's Save button updates prices only. */
     public function saveHostingPlans(Request $request, $region, $type)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
@@ -808,7 +808,6 @@ class AdminController extends Controller
 
         $data = $request->validate([
             'rows' => ['nullable', 'array', 'max:100'],
-            'rows.*.sort' => ['nullable', 'integer', 'min:0', 'max:999'],
             'rows.*.price' => ['nullable', 'array'],
         ]);
 
@@ -818,10 +817,7 @@ class AdminController extends Controller
         DB::transaction(function () use ($plans, $rows) {
             foreach ($plans as $plan) {
                 $row = $rows[$plan->id];
-                $columns = [
-                    'sort' => (int) ($row['sort'] ?? $plan->sort),
-                    'is_visible' => !empty($row['visible']),
-                ];
+                $columns = [];
                 foreach (self::hostingTerms() as $key => $meta) {
                     $columns += self::hostingTermColumns(
                         $meta,

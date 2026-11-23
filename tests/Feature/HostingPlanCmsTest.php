@@ -189,7 +189,7 @@ class HostingPlanCmsTest extends TestCase
     }
 
     /** @test */
-    public function bulk_save_updates_price_status_order_and_show_for_every_card_in_the_section()
+    public function bulk_save_updates_prices_for_every_card_in_the_section()
     {
         $a = $this->localShared('Plan A');
         $b = $this->localShared('Plan B');
@@ -197,14 +197,12 @@ class HostingPlanCmsTest extends TestCase
 
         $this->adminSession()->post('/admin/hosting-plans/local/shared/save', ['rows' => [
             $a->id => [
-                'sort' => 7, 'visible' => '1',
                 'price' => ['monthly' => '499', 'yearly' => '4990', 'twoYear' => '', 'threeYear' => ''],
             ],
         ]])->assertRedirect('/admin/hosting-plans/local/shared');
 
         $a->refresh();
         $this->assertEquals(499, $a->price_monthly);
-        $this->assertSame(7, $a->sort);
         $this->assertTrue($a->term_monthly_active);
         $this->assertTrue($a->is_visible);
         $this->assertFalse($a->term_two_year_active);

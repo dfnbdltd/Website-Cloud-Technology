@@ -34,9 +34,7 @@
         .hp-plan-name small { display:block; margin-top:3px; font-weight:400; font-size:12px; color:#8190a1; }
         .hp-badge { display:inline-block; margin-left:6px; padding:2px 9px; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-size:10px; font-weight:800; text-transform:uppercase; vertical-align:middle; }
         .hp-term { min-width:140px; }
-        .hp-term input[type=number], .hp-term select, .hp-sort { box-sizing:border-box; width:100%; padding:8px 9px; border:1px solid #dfe6ee; border-radius:6px; font:14px 'DM Sans',sans-serif; background:#fff; }
-        .hp-sort { width:64px; }
-        .hp-show { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; }
+        .hp-term input[type=number] { box-sizing:border-box; width:100%; padding:8px 9px; border:1px solid #dfe6ee; border-radius:6px; font:14px 'DM Sans',sans-serif; background:#fff; }
         .hp-actions { display:flex; gap:6px; }
         .hp-actions a, .hp-actions button { display:inline-block; padding:7px 12px; border:1px solid #dfe6ee; border-radius:7px; background:#fff; color:#334155; font:700 12px 'DM Sans',sans-serif; text-decoration:none; cursor:pointer; }
         .hp-actions a:hover { border-color:#93b4e7; color:#1d4ed8; }
@@ -104,8 +102,6 @@
                         <thead>
                             <tr>
                                 <th>Card</th>
-                                <th>Order</th>
-                                <th>Show</th>
                                 @foreach($terms as $termKey => $termMeta)
                                 <th>{{ $termMeta['label'] }} (&#2547;)</th>
                                 @endforeach
@@ -119,8 +115,6 @@
                                     {{ $plan->name }}
                                     @if($plan->badge)<span class="hp-badge">{{ $plan->badge }}</span>@endif
                                 </td>
-                                <td><input class="hp-sort" type="number" min="0" max="999" name="rows[{{ $plan->id }}][sort]" value="{{ $plan->sort }}"></td>
-                                <td><label class="hp-show"><input type="checkbox" name="rows[{{ $plan->id }}][visible]" value="1" {{ $plan->is_visible ? 'checked' : '' }}> Show</label></td>
                                 @foreach($terms as $termKey => $termMeta)
                                 <td class="hp-term">
                                     <input type="number" step="0.01" min="0" name="rows[{{ $plan->id }}][price][{{ $termKey }}]" value="{{ $plan->{$termMeta['column']} !== null ? rtrim(rtrim(number_format((float) $plan->{$termMeta['column']}, 2, '.', ''), '0'), '.') : '' }}" placeholder="Price">
