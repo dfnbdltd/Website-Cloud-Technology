@@ -456,19 +456,17 @@ class SslLivePricingTest extends TestCase
         $response = $this->withSession(['admin' => ['email' => 'admin@example.test']])
             ->get('/admin/ssl-plans')
             ->assertOk()
-            ->assertSee('Reseller price')
+            ->assertSee('Original price/month')
             ->assertSee('Profit %')
             ->assertSee('Revenue')
-            ->assertSee('Selling price')
+            ->assertSee('Purchase price/month')
             // Cost per month in taka: $3.33 x 12 x 120 = ৳4,795 a year, and
             // that term total divided by its 12 months.
             ->assertSee('৳400')
-            // Revenue is quoted twice, because a certificate is sold by the
-            // year: per month and the same money over twelve months.
-            // profit $0.67/mo -> ৳80/mo and ৳960/yr.
-            ->assertSee('৳80</span><span class="ssl-per-unit">/mo</span>', false)
+            // Revenue is quoted once, per year, because a certificate is sold
+            // by the year: profit $0.67/mo -> ৳960/yr.
             ->assertSee('৳960</span><span class="ssl-per-unit">/yr</span>', false)
-            ->assertSee('Revenue (৳/mo · ৳/yr)')
+            ->assertSee('Revenue/year')
             ->assertSee('৳599')        // $4.99/mo
             // Profit % is currency-free: unchanged from the API.
             ->assertSee('20.12%')
@@ -477,7 +475,7 @@ class SslLivePricingTest extends TestCase
             ->assertSee('৳480')
             ->assertSee('৳719')
             // The figure the customer is actually charged for the term.
-            ->assertSee('Customer pays')
+            ->assertSee('Invoice amount')
             ->assertSee('৳5,760')
             ->assertSee('৳1,138');
 
@@ -654,7 +652,7 @@ class SslLivePricingTest extends TestCase
             ->getContent();
 
         // Columns render, but every money cell is the em dash, never ৳0.
-        $this->assertStringContainsString('Customer pays', $html);
+        $this->assertStringContainsString('Invoice amount', $html);
         $this->assertStringNotContainsString('৳0<', $html);
         $this->assertStringContainsString('>—<', $html);
     }
