@@ -199,7 +199,6 @@ class HostingPlanCmsTest extends TestCase
             $a->id => [
                 'sort' => 7, 'visible' => '1',
                 'price' => ['monthly' => '499', 'yearly' => '4990', 'twoYear' => '', 'threeYear' => ''],
-                'status' => ['monthly' => 'on', 'yearly' => 'on', 'twoYear' => 'on', 'threeYear' => 'hidden'],
             ],
         ]])->assertRedirect('/admin/hosting-plans/local/shared');
 
@@ -208,10 +207,10 @@ class HostingPlanCmsTest extends TestCase
         $this->assertSame(7, $a->sort);
         $this->assertTrue($a->term_monthly_active);
         $this->assertTrue($a->is_visible);
-        // "On sale" without a price falls back to Coming soon.
         $this->assertFalse($a->term_two_year_active);
         $this->assertTrue($a->term_two_year_visible);
-        $this->assertFalse($a->term_three_year_visible);
+        $this->assertFalse($a->term_three_year_active);
+        $this->assertTrue($a->term_three_year_visible);
         // The card that was not in the form is untouched.
         $this->assertEquals($oldYearlyB, $b->fresh()->price_yearly);
     }

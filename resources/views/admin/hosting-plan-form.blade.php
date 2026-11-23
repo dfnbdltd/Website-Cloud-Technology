@@ -111,7 +111,7 @@
             </section>
 
             <section class="store-panel hp-form-panel">
-                <h2>2. Prices &amp; status</h2>
+                <h2>2. Prices</h2>
                 <div class="hp-term-grid">
                     @foreach($terms as $termKey => $termMeta)
                     <div class="hp-term-box">
@@ -119,17 +119,9 @@
                         <label>Price (&#2547;)
                             <input type="number" step="0.01" min="0" name="price[{{ $termKey }}]" value="{{ old('price.' . $termKey, $plan && $plan->{$termMeta['column']} !== null ? rtrim(rtrim(number_format((float) $plan->{$termMeta['column']}, 2, '.', ''), '0'), '.') : '') }}" placeholder="&mdash;">
                         </label>
-                        <label>Status
-                            <select name="status[{{ $termKey }}]">
-                                @foreach(['on' => 'On sale', 'soon' => 'Coming soon', 'hidden' => 'Hidden'] as $statusValue => $statusLabel)
-                                <option value="{{ $statusValue }}" {!! old('status.' . $termKey, $statuses[$termKey]) === $statusValue ? 'selected' : '' !!}>{{ $statusLabel }}</option>
-                                @endforeach
-                            </select>
-                        </label>
                     </div>
                     @endforeach
                 </div>
-                <p class="hp-form-note">On sale = customers can order. Coming soon = the tab shows &ldquo;Coming soon&rdquo;. Hidden = this billing period is not shown for this card. A card with no price cannot be On sale.</p>
             </section>
 
             <section class="store-panel hp-form-panel">

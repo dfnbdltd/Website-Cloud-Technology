@@ -35,10 +35,6 @@
         .hp-badge { display:inline-block; margin-left:6px; padding:2px 9px; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-size:10px; font-weight:800; text-transform:uppercase; vertical-align:middle; }
         .hp-term { min-width:140px; }
         .hp-term input[type=number], .hp-term select, .hp-sort { box-sizing:border-box; width:100%; padding:8px 9px; border:1px solid #dfe6ee; border-radius:6px; font:14px 'DM Sans',sans-serif; background:#fff; }
-        .hp-term select { margin-top:5px; font-size:12px; font-weight:700; }
-        .hp-term select.st-on { color:#166534; background:#f0fdf4; }
-        .hp-term select.st-soon { color:#92400e; background:#fffbeb; }
-        .hp-term select.st-hidden { color:#64748b; background:#f1f5f9; }
         .hp-sort { width:64px; }
         .hp-show { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; }
         .hp-actions { display:flex; gap:6px; }
@@ -58,7 +54,7 @@
         <div class="domain-content standalone-content">
             <span class="domain-kicker">CONTENT MANAGEMENT</span>
             <h1 class="workspace-title">Hosting plans.</h1>
-            <p class="workspace-subtitle">Pick a section, change prices and status in the table, then press Save. Use Edit to change a card&rsquo;s text and features.</p>
+            <p class="workspace-subtitle">Pick a section, change prices in the table, then press Save. Use Edit to change a card&rsquo;s text and features.</p>
             @if(session('success'))<div class="domain-alert success">{{ session('success') }}</div>@endif
             @if(session('error'))<div class="domain-alert error">{{ session('error') }}</div>@endif
             @if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
@@ -111,7 +107,7 @@
                                 <th>Order</th>
                                 <th>Show</th>
                                 @foreach($terms as $termKey => $termMeta)
-                                <th>{{ $termMeta['label'] }} (&#2547; / status)</th>
+                                <th>{{ $termMeta['label'] }} (&#2547;)</th>
                                 @endforeach
                                 <th>Actions</th>
                             </tr>
@@ -122,19 +118,12 @@
                                 <td class="hp-plan-name">
                                     {{ $plan->name }}
                                     @if($plan->badge)<span class="hp-badge">{{ $plan->badge }}</span>@endif
-                                    @unless($plan->is_visible)<small>Hidden: not on the website</small>@endunless
                                 </td>
                                 <td><input class="hp-sort" type="number" min="0" max="999" name="rows[{{ $plan->id }}][sort]" value="{{ $plan->sort }}"></td>
                                 <td><label class="hp-show"><input type="checkbox" name="rows[{{ $plan->id }}][visible]" value="1" {{ $plan->is_visible ? 'checked' : '' }}> Show</label></td>
                                 @foreach($terms as $termKey => $termMeta)
-                                @php($status = $statuses[$plan->id][$termKey])
                                 <td class="hp-term">
                                     <input type="number" step="0.01" min="0" name="rows[{{ $plan->id }}][price][{{ $termKey }}]" value="{{ $plan->{$termMeta['column']} !== null ? rtrim(rtrim(number_format((float) $plan->{$termMeta['column']}, 2, '.', ''), '0'), '.') : '' }}" placeholder="Price">
-                                    <select class="st-{{ $status }}" name="rows[{{ $plan->id }}][status][{{ $termKey }}]" onchange="this.className='st-'+this.value">
-                                        <option value="on" {{ $status === 'on' ? 'selected' : '' }}>On sale</option>
-                                        <option value="soon" {{ $status === 'soon' ? 'selected' : '' }}>Coming soon</option>
-                                        <option value="hidden" {{ $status === 'hidden' ? 'selected' : '' }}>Hidden</option>
-                                    </select>
                                 </td>
                                 @endforeach
                                 <td>
@@ -148,7 +137,6 @@
                         </tbody>
                     </table>
                 </div>
-                <p class="hp-legend"><strong>On sale</strong> = customers can order &middot; <strong>Coming soon</strong> = price tab shows &ldquo;Coming soon&rdquo; &middot; <strong>Hidden</strong> = that billing period is not shown for this card. A card without a price cannot be On sale.</p>
                 <div class="hp-bar"><button type="submit" class="hp-btn primary">Save changes</button></div>
             </form>
             @endif

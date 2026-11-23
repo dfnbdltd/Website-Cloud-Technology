@@ -726,25 +726,18 @@ class AdminController extends Controller
         return $plan->{$meta['flag']} ? 'on' : 'soon';
     }
 
-    /** Turn a status + price from the form into the plan's three term columns. */
-    private static function hostingTermColumns(array $meta, $status, $rawPrice)
+    /** Turn a price into automatic term availability. */
+    private static function hostingTermColumns(array $meta, $rawPrice)
     {
         $price = null;
         if (is_scalar($rawPrice) && trim((string) $rawPrice) !== '' && is_numeric(trim((string) $rawPrice)) && (float) $rawPrice >= 0 && (float) $rawPrice <= 99999999) {
             $price = round((float) $rawPrice, 2);
         }
-        if (!in_array($status, ['on', 'soon', 'hidden'], true)) {
-            $status = 'soon';
-        }
-        // "On sale" with no price cannot be bought: show it as coming soon.
-        if ($status === 'on' && $price === null) {
-            $status = 'soon';
-        }
 
         return [
             $meta['column'] => $price,
-            $meta['flag'] => $status === 'on',
-            $meta['visibility'] => $status !== 'hidden',
+            $meta['flag'] => $price !== null,
+            $meta['visibility'] => true,
         ];
     }
 
@@ -803,13 +796,6 @@ class AdminController extends Controller
                 && $plans->isEmpty()
                 && HostingPlan::query()->inSection(HostingPlan::REGION_LOCAL, $copyFromType)->exists(),
             'copyFromType' => $copyFromType,
-            'statuses' => $plans->mapWithKeys(function (HostingPlan $plan) {
-                $row = [];
-                foreach (self::hostingTerms() as $key => $meta) {
-                    $row[$key] = self::hostingTermStatus($plan, $meta);
-                }
-                return [$plan->id => $row];
-            }),
         ]);
     }
 
@@ -824,7 +810,6 @@ class AdminController extends Controller
             'rows' => ['nullable', 'array', 'max:100'],
             'rows.*.sort' => ['nullable', 'integer', 'min:0', 'max:999'],
             'rows.*.price' => ['nullable', 'array'],
-            'rows.*.status' => ['nullable', 'array'],
         ]);
 
         $rows = (array) ($data['rows'] ?? []);
@@ -840,7 +825,6 @@ class AdminController extends Controller
                 foreach (self::hostingTerms() as $key => $meta) {
                     $columns += self::hostingTermColumns(
                         $meta,
-                        $row['status'][$key] ?? null,
                         $row['price'][$key] ?? null
                     );
                 }
@@ -913,15 +897,12 @@ class AdminController extends Controller
         $terms = self::hostingTerms();
         $featureRows = [];
         $same = [];
-        $statuses = [];
-
         foreach ($terms as $key => $meta) {
             $rows = $plan ? $plan->features->where('billing_term', $meta['slug']) : collect();
             $same[$key] = false;
             if ($plan && $key !== 'monthly' && $rows->isEmpty()) {
                 $same[$key] = true; // not saved yet: inherits Monthly
             }
-            $statuses[$key] = $plan ? self::hostingTermStatus($plan, $meta) : ($key === 'monthly' || $key === 'yearly' ? 'soon' : 'soon');
             $featureRows[$key] = $rows->map(function (HostingPlanFeature $feature) {
                 return [
                     'group' => $feature->feature_group === HostingPlanFeature::GROUP_EXTRA ? 'extra' : 'primary',
@@ -939,7 +920,6 @@ class AdminController extends Controller
             'terms' => $terms,
             'featureRows' => $featureRows,
             'same' => $same,
-            'statuses' => $statuses,
         ];
     }
 
@@ -1424,7 +1404,7 @@ class AdminController extends Controller
      * Card form validation (add and edit share it).
      *
      * Form fields: region, type, name, description, badge, style_class, sort,
-     * is_visible, names[term], price[term], status[term] (on|soon|hidden),
+     * is_visible, names[term], price[term],
      * same[term] ("same as Monthly"), features[termSlug][i][line|group|is_available|feature_key].
      *
      * @return array [<plan columns>, <features by term slug>, <same-as-monthly by term slug>]
@@ -1441,7 +1421,6 @@ class AdminController extends Controller
             'sort' => ['required', 'integer', 'min:0', 'max:999'],
             'names' => ['nullable', 'array'],
             'price' => ['nullable', 'array'],
-            'status' => ['nullable', 'array'],
         ]);
 
         $section = HostingPlan::normalizeSection($data['region'], $data['type'] ?? null);
@@ -1464,7 +1443,7 @@ class AdminController extends Controller
         }
 
         foreach (self::hostingTerms() as $key => $meta) {
-            $columns += self::hostingTermColumns($meta, $request->input('status.' . $key), $request->input('price.' . $key));
+            $columns += self::hostingTermColumns($meta, $request->input('price.' . $key));
             if ($meta['name'] !== null) {
                 $own = trim((string) $request->input('names.' . $key, ''));
                 $columns[$meta['name']] = $own !== '' && $own !== $data['name'] ? mb_substr($own, 0, 120) : null;
