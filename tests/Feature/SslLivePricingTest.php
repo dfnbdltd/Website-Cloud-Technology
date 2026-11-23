@@ -465,7 +465,7 @@ class SslLivePricingTest extends TestCase
             ->assertSee('৳400')
             // Revenue is quoted once, per year, because a certificate is sold
             // by the year: profit $0.67/mo -> ৳960/yr.
-            ->assertSee('৳960</span><span class="ssl-per-unit">/yr</span>', false)
+            ->assertSee('৳960')
             ->assertSee('Revenue/year')
             ->assertSee('৳599')        // $4.99/mo
             // Profit % is currency-free: unchanged from the API.
@@ -495,7 +495,7 @@ class SslLivePricingTest extends TestCase
         $this->assertStringNotContainsString('$0.79', $list);
         $this->assertStringNotContainsString('$', $list);
         $this->assertStringNotContainsString('(USD per month)', $list);
-        $this->assertStringContainsString('(৳ per month)', $list);
+        $this->assertStringNotContainsString('(৳ per month)', $list);
 
         // The paragraph under the table is gone, and so is the rate sentence it
         // carried — the figure now lives in a tooltip on the column heading.

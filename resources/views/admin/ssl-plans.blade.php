@@ -559,10 +559,8 @@
                                 <thead>
                                     <tr>
                                         <th>Term</th>
-                                        <th title="What ResellerClub charges you, per month for this term.">Original
-                                            price/month</th>
-                                        <th title="What you charge the customer, per month for this term.">Purchase
-                                            price/month</th>
+                                        <th title="What ResellerClub charges you, per month for this term.">Original price/month</th>
+                                        <th title="What you charge the customer, per month for this term.">Purchase price/month</th>
                                         <th
                                             title="Your markup on the reseller price: (selling − reseller price) ÷ reseller price.">
                                             Profit %</th>
@@ -607,7 +605,6 @@
                                         <td
                                             class="{{ $rcProfitMonth === null ? 'is-null' : ($rcLoss ? 'is-loss' : 'is-profit') }}">
                                             {{ $rcProfitMonth === null ? '—' : $taka($rcProfitMonth * 12) }}</td>
-                                        <td class="is-sell">{{ $taka($rcSellMonth) }}</td>
                                         <td class="is-bdt">{{ $taka($rcBdt) }}</td>
                                         </tr>
                                         @endforeach
