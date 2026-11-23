@@ -689,113 +689,213 @@ class AdminController extends Controller
 
     /**
      * ---------------------------------------------------------------
-     * CMS: hosting plan cards behind the shared / vps / dedicated
-     * hosting pages. Editing prices, features, per-feature
-     * available/unavailable flags, billing terms and ordering.
+     * CMS: hosting plan cards.
      *
-     * Public pages read App\Services\HostingPlanService; no business
-     * logic (purchase/checkout/invoices) touches this data.
+     *   Hosting
+     *   ├── Local      Shared · VPS · Dedicated
+     *   ├── USA        Shared · VPS · Dedicated
+     *   └── WordPress
+     *
+     * One list page per section (region + type) with every card's
+     * prices and status in one table, saved with ONE button. Edit /
+     * Add open one simple page per card (details, prices, features).
+     *
+     * Public pages read App\Services\HostingPlanService; nothing here
+     * touches checkout, invoices or payments.
      * ---------------------------------------------------------------
      */
-    public function hostingPlans(Request $request, $type = 'shared', $term = 'monthly')
+
+    /** Billing terms: key => column / flag / visibility / feature slug / label. */
+    private static function hostingTerms()
     {
-        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
-
-        $type = in_array($type, HostingPlan::TYPES, true) ? $type : HostingPlan::TYPE_SHARED;
-        $term = self::hostingPlanTermMeta($term) !== null ? $term : 'monthly';
-
-        return view('admin.hosting-plans', [
-            'type' => $type,
-            'term' => $term,
-            'termMeta' => self::hostingPlanTermMeta($term),
-            'plans' => HostingPlan::query()
-                ->where('type', $type)
-                ->with('features')
-                ->orderBy('sort')
-                ->orderBy('id')
-                ->get(),
-        ]);
+        return [
+            'monthly' => ['column' => 'price_monthly', 'flag' => 'term_monthly_active', 'visibility' => 'term_monthly_visible', 'name' => null, 'slug' => HostingPlanFeature::TERM_MONTHLY, 'label' => 'Monthly'],
+            'yearly' => ['column' => 'price_yearly', 'flag' => 'term_yearly_active', 'visibility' => 'term_yearly_visible', 'name' => 'name_yearly', 'slug' => HostingPlanFeature::TERM_YEARLY, 'label' => 'Yearly'],
+            'twoYear' => ['column' => 'price_two_year', 'flag' => 'term_two_year_active', 'visibility' => 'term_two_year_visible', 'name' => 'name_two_year', 'slug' => HostingPlanFeature::TERM_TWO_YEAR, 'label' => '2 Years'],
+            'threeYear' => ['column' => 'price_three_year', 'flag' => 'term_three_year_active', 'visibility' => 'term_three_year_visible', 'name' => 'name_three_year', 'slug' => HostingPlanFeature::TERM_THREE_YEAR, 'label' => '3 Years'],
+        ];
     }
 
-    /**
-     * The term switcher on the list page: one price input + one
-     * active/"Coming soon" checkbox per card, saved for exactly that billing
-     * term. Only the selected term's column and flag are touched.
-     */
-    public function saveHostingPlanTerm(Request $request, $type, $term)
+    /** on sale / coming soon / hidden, from a plan's flags for one term. */
+    private static function hostingTermStatus(HostingPlan $plan, array $meta)
+    {
+        if (!$plan->{$meta['visibility']}) {
+            return 'hidden';
+        }
+
+        return $plan->{$meta['flag']} ? 'on' : 'soon';
+    }
+
+    /** Turn a status + price from the form into the plan's three term columns. */
+    private static function hostingTermColumns(array $meta, $status, $rawPrice)
+    {
+        $price = null;
+        if (is_scalar($rawPrice) && trim((string) $rawPrice) !== '' && is_numeric(trim((string) $rawPrice)) && (float) $rawPrice >= 0 && (float) $rawPrice <= 99999999) {
+            $price = round((float) $rawPrice, 2);
+        }
+        if (!in_array($status, ['on', 'soon', 'hidden'], true)) {
+            $status = 'soon';
+        }
+        // "On sale" with no price cannot be bought: show it as coming soon.
+        if ($status === 'on' && $price === null) {
+            $status = 'soon';
+        }
+
+        return [
+            $meta['column'] => $price,
+            $meta['flag'] => $status === 'on',
+            $meta['visibility'] => $status !== 'hidden',
+        ];
+    }
+
+    /** [region, type] from the URL, falling back to Local / Shared. */
+    private function adminHostingSection($region, $type)
+    {
+        $region = is_string($region) ? strtolower($region) : HostingPlan::REGION_LOCAL;
+        if (!isset(HostingPlan::REGIONS[$region])) {
+            $region = HostingPlan::REGION_LOCAL;
+        }
+        if ($region === HostingPlan::REGION_WORDPRESS) {
+            return [HostingPlan::REGION_WORDPRESS, HostingPlan::TYPE_WORDPRESS];
+        }
+        $type = in_array($type, HostingPlan::TYPES, true) ? $type : HostingPlan::TYPE_SHARED;
+
+        return [$region, $type];
+    }
+
+    private function hostingListRedirect($region, $type)
+    {
+        return redirect()->route('admin.hosting.plans', ['region' => $region, 'type' => $type]);
+    }
+
+    public function hostingPlans(Request $request, $region = HostingPlan::REGION_LOCAL, $type = null)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
-        if (!in_array($type, HostingPlan::TYPES, true) || self::hostingPlanTermMeta($term) === null) {
-            return redirect()->route('admin.hosting.plans');
+        [$region, $type] = $this->adminHostingSection($region, $type);
+
+        $counts = [];
+        foreach (HostingPlan::TYPED_REGIONS as $r) {
+            foreach (HostingPlan::TYPES as $t) {
+                $counts[$r][$t] = HostingPlan::query()->inSection($r, $t)->count();
+            }
         }
+        $counts[HostingPlan::REGION_WORDPRESS][HostingPlan::TYPE_WORDPRESS] = HostingPlan::query()
+            ->inSection(HostingPlan::REGION_WORDPRESS, HostingPlan::TYPE_WORDPRESS)->count();
 
-        $meta = self::hostingPlanTermMeta($term);
-
-        $data = $request->validate([
-            'prices' => ['nullable', 'array', 'max:100'],
-            'terms' => ['nullable', 'array', 'max:100'],
-        ]);
-
-        $plans = HostingPlan::where('type', $type)
-            ->whereIn('id', array_keys((array) ($data['prices'] ?? [])))
+        $plans = HostingPlan::query()
+            ->inSection($region, $type)
+            ->orderBy('sort')
+            ->orderBy('id')
             ->get();
 
-        foreach ($plans as $plan) {
-            $raw = $data['prices'][$plan->id] ?? null;
-            if (is_scalar($raw)) {
-                $raw = trim((string) $raw);
-                if ($raw === '') {
-                    $raw = null;
-                } elseif (is_numeric($raw) && (float) $raw >= 0) {
-                    $raw = (float) $raw;
-                } else {
-                    $raw = null; // non-numeric input -> clear rather than crash
+        $copyFromType = $type === HostingPlan::TYPE_WORDPRESS ? HostingPlan::TYPE_SHARED : $type;
+
+        return view('admin.hosting-plans', [
+            'region' => $region,
+            'type' => $type,
+            'plans' => $plans,
+            'terms' => self::hostingTerms(),
+            'counts' => $counts,
+            'regionReady' => HostingPlan::hasRegionColumn(),
+            'canCopy' => $region !== HostingPlan::REGION_LOCAL
+                && HostingPlan::hasRegionColumn()
+                && $plans->isEmpty()
+                && HostingPlan::query()->inSection(HostingPlan::REGION_LOCAL, $copyFromType)->exists(),
+            'copyFromType' => $copyFromType,
+            'statuses' => $plans->mapWithKeys(function (HostingPlan $plan) {
+                $row = [];
+                foreach (self::hostingTerms() as $key => $meta) {
+                    $row[$key] = self::hostingTermStatus($plan, $meta);
                 }
-            } else {
-                $raw = null;
-            }
-
-            $plan->update([
-                $meta['column'] => $raw,
-                $meta['flag'] => in_array((string) $plan->id, array_map('strval', (array) ($data['terms'] ?? [])), true),
-            ]);
-        }
-
-        $updated = collect($plans->map->name);
-
-        return redirect()->route('admin.hosting.plans', ['type' => $type, 'term' => $term])
-            ->with('success', $meta['label'] . ' saved for ' . $updated->take(3)->implode(', ')
-                . ($updated->count() > 3 ? ' … (' . $updated->count() . ' cards)' : '') . ' — other cards and billing terms untouched.');
+                return [$plan->id => $row];
+            }),
+        ]);
     }
 
-    /** Column + flag + label used by the per-term list switcher. */
-    private static function hostingPlanTermMeta($term)
-    {
-        $meta = [
-            'monthly' => ['column' => 'price_monthly', 'flag' => 'term_monthly_active', 'visibility' => 'term_monthly_visible', 'label' => 'Monthly', 'slug' => HostingPlanFeature::TERM_MONTHLY],
-            'yearly' => ['column' => 'price_yearly', 'flag' => 'term_yearly_active', 'visibility' => 'term_yearly_visible', 'label' => 'Yearly', 'slug' => HostingPlanFeature::TERM_YEARLY],
-            'twoYear' => ['column' => 'price_two_year', 'flag' => 'term_two_year_active', 'visibility' => 'term_two_year_visible', 'label' => '2 Years', 'slug' => HostingPlanFeature::TERM_TWO_YEAR],
-            'threeYear' => ['column' => 'price_three_year', 'flag' => 'term_three_year_active', 'visibility' => 'term_three_year_visible', 'label' => '3 Years', 'slug' => HostingPlanFeature::TERM_THREE_YEAR],
-        ];
-
-        return $meta[$term] ?? null;
-    }
-
-    public function createHostingPlan(Request $request, $type)
+    /** The list page's single Save button: every card's order, visibility, prices and term status. */
+    public function saveHostingPlans(Request $request, $region, $type)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
-        return view('admin.hosting-plan-form', [
-            'type' => in_array($type, HostingPlan::TYPES, true) ? $type : HostingPlan::TYPE_SHARED,
-            'plan' => null,
-            'returnTerm' => $this->returnTerm($request),
-            'termMeta' => self::hostingPlanTermMeta($this->returnTerm($request)),
-            'featureRows' => collect(),
-            'featuresInherited' => false,
-            'termName' => '',
-            'nameInherited' => false,
+        [$region, $type] = $this->adminHostingSection($region, $type);
+
+        $data = $request->validate([
+            'rows' => ['nullable', 'array', 'max:100'],
+            'rows.*.sort' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'rows.*.price' => ['nullable', 'array'],
+            'rows.*.status' => ['nullable', 'array'],
         ]);
+
+        $rows = (array) ($data['rows'] ?? []);
+        $plans = HostingPlan::query()->inSection($region, $type)->whereIn('id', array_keys($rows))->get();
+
+        DB::transaction(function () use ($plans, $rows) {
+            foreach ($plans as $plan) {
+                $row = $rows[$plan->id];
+                $columns = [
+                    'sort' => (int) ($row['sort'] ?? $plan->sort),
+                    'is_visible' => !empty($row['visible']),
+                ];
+                foreach (self::hostingTerms() as $key => $meta) {
+                    $columns += self::hostingTermColumns(
+                        $meta,
+                        $row['status'][$key] ?? null,
+                        $row['price'][$key] ?? null
+                    );
+                }
+                $plan->update($columns);
+            }
+        });
+
+        return $this->hostingListRedirect($region, $type)
+            ->with('success', 'Saved ' . $plans->count() . ' card(s). The public page is updated.');
+    }
+
+    /** Fill an empty USA / WordPress section from the Local plans (copies are saved HIDDEN so nothing goes live by accident). */
+    public function copyHostingPlans(Request $request, $region, $type)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        [$region, $type] = $this->adminHostingSection($region, $type);
+
+        if ($region === HostingPlan::REGION_LOCAL || !HostingPlan::hasRegionColumn()) {
+            return $this->hostingListRedirect($region, $type)
+                ->with('error', 'Nothing to copy here. Run the region SQL first (database/hosting_regions.sql).');
+        }
+        if (HostingPlan::query()->inSection($region, $type)->exists()) {
+            return $this->hostingListRedirect($region, $type)->with('error', 'This section already has cards, so nothing was copied.');
+        }
+
+        $sourceType = $type === HostingPlan::TYPE_WORDPRESS ? HostingPlan::TYPE_SHARED : $type;
+        $sources = HostingPlan::query()->inSection(HostingPlan::REGION_LOCAL, $sourceType)->with('features')->orderBy('sort')->orderBy('id')->get();
+
+        DB::transaction(function () use ($sources, $region, $type) {
+            foreach ($sources as $source) {
+                $copy = $source->replicate(['id', 'created_at', 'updated_at']);
+                $copy->region = $region;
+                $copy->type = $type;
+                $copy->is_visible = false;
+                $copy->save();
+                foreach ($source->features as $feature) {
+                    $clone = $feature->replicate(['id', 'created_at', 'updated_at']);
+                    $clone->hosting_plan_id = $copy->id;
+                    $clone->save();
+                }
+            }
+        });
+
+        return $this->hostingListRedirect($region, $type)
+            ->with('success', 'Copied ' . $sources->count() . ' card(s) from Local ' . HostingPlan::TYPE_LABELS[$sourceType] . '. They are HIDDEN: set the real prices, then tick "Show" and Save.');
+    }
+
+    public function createHostingPlan(Request $request, $region, $type)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        [$region, $type] = $this->adminHostingSection($region, $type);
+
+        return view('admin.hosting-plan-form', $this->hostingFormData(null, $region, $type));
     }
 
     public function editHostingPlan(Request $request, HostingPlan $plan)
@@ -803,126 +903,93 @@ class AdminController extends Controller
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
         $plan->loadMissing('features');
-        [$featureRows, $featuresInherited] = $this->featureRowsForTerm($plan, $this->returnTerm($request));
-        $returnTerm = $this->returnTerm($request);
-        $nameColumn = HostingPlan::termNameColumn(HostingPlanFeature::termSlug($returnTerm));
-        $nameInherited = $nameColumn !== null && ($plan->{$nameColumn} === null || $plan->{$nameColumn} === '');
 
-        return view('admin.hosting-plan-form', [
-            'type' => $plan->type,
-            'plan' => $plan,
-            'returnTerm' => $returnTerm,
-            'termMeta' => self::hostingPlanTermMeta($returnTerm),
-            'featureRows' => $featureRows,
-            'featuresInherited' => $featuresInherited,
-            'termName' => $plan->nameFor($returnTerm),
-            'nameInherited' => $nameInherited,
-        ]);
+        return view('admin.hosting-plan-form', $this->hostingFormData($plan, $plan->regionKey(), $plan->type));
     }
 
-    /**
-     * The feature rows a card's Edit page shows for one billing term: that
-     * term's own rows when it has them, otherwise the Monthly rows (with
-     * an "inherited" flag so the form says so instead of silently lying).
-     */
-    private function featureRowsForTerm(HostingPlan $plan, $returnTerm)
+    /** Everything the card form needs, including one feature list per billing term. */
+    private function hostingFormData($plan, $region, $type)
     {
-        $slug = HostingPlanFeature::termSlug($returnTerm);
-        $rows = $plan->features->where('billing_term', $slug);
-        $inherited = $rows->isEmpty();
-        if ($inherited) {
-            $rows = $plan->features->where('billing_term', HostingPlanFeature::TERM_MONTHLY);
-        }
+        $terms = self::hostingTerms();
+        $featureRows = [];
+        $same = [];
+        $statuses = [];
 
-        return [
-            $rows->map(function (HostingPlanFeature $feature) {
+        foreach ($terms as $key => $meta) {
+            $rows = $plan ? $plan->features->where('billing_term', $meta['slug']) : collect();
+            $same[$key] = false;
+            if ($plan && $key !== 'monthly' && $rows->isEmpty()) {
+                $same[$key] = true; // not saved yet: inherits Monthly
+            }
+            $statuses[$key] = $plan ? self::hostingTermStatus($plan, $meta) : ($key === 'monthly' || $key === 'yearly' ? 'soon' : 'soon');
+            $featureRows[$key] = $rows->map(function (HostingPlanFeature $feature) {
                 return [
                     'group' => $feature->feature_group === HostingPlanFeature::GROUP_EXTRA ? 'extra' : 'primary',
                     'line' => trim((string) $feature->value_monthly),
                     'feature_key' => $feature->feature_key,
                     'is_available' => (bool) $feature->is_available,
                 ];
-            })->values(),
-            $inherited,
+            })->values()->all();
+        }
+
+        return [
+            'plan' => $plan,
+            'region' => $region,
+            'type' => $type,
+            'terms' => $terms,
+            'featureRows' => $featureRows,
+            'same' => $same,
+            'statuses' => $statuses,
         ];
-    }
-
-    /** The billing-term view the admin came from (kept across save redirects). */
-    private function returnTerm(Request $request)
-    {
-        $term = (string) $request->input('return_term', $request->query('term', 'monthly'));
-
-        return self::hostingPlanTermMeta($term) !== null ? $term : 'monthly';
     }
 
     public function storeHostingPlan(Request $request)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
-        [$columns, $features, $hasFeatures, $featuresTerm] = $this->validatedHostingPlan($request);
+        [$columns, $features, $same] = $this->validatedHostingPlan($request);
 
-        $features = collect($features);
-        $columns += [
-            'term_monthly_visible' => true,
-            'term_yearly_visible' => true,
-            'term_two_year_visible' => true,
-            'term_three_year_visible' => true,
-        ];
-
-        $plan = DB::transaction(function () use ($columns, $features, $hasFeatures, $featuresTerm) {
+        $plan = DB::transaction(function () use ($columns, $features, $same) {
             $plan = HostingPlan::create($columns);
-            if ($hasFeatures) {
-                $this->syncHostingPlanFeatures($plan, $features, $featuresTerm);
-            }
+            $this->syncHostingPlanFeatures($plan, $features, $same);
             return $plan;
         });
 
-        return redirect()->route('admin.hosting.plans', ['type' => $plan->type, 'term' => $this->returnTerm($request)])
-            ->with('success', 'Plan card "' . $plan->name . '" added — the public hosting page is updated.');
+        return $this->hostingListRedirect($plan->regionKey(), $plan->type)
+            ->with('success', 'Card "' . $plan->name . '" added.' . ($plan->is_visible ? '' : ' It is hidden: tick "Show" and Save to publish it.'));
     }
 
     public function updateHostingPlan(Request $request, HostingPlan $plan)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
-        [$columns, $features, $hasFeatures, $featuresTerm] = $this->validatedHostingPlan($request);
+        [$columns, $features, $same] = $this->validatedHostingPlan($request, $plan);
 
-        $features = collect($features);
-        unset($columns['is_visible']);
-
-        DB::transaction(function () use ($plan, $columns, $features, $hasFeatures, $featuresTerm) {
+        DB::transaction(function () use ($plan, $columns, $features, $same) {
             $plan->update($columns);
-            // The admin form always posts the feature rows; only replace
-            // the term it names (never wipe on a partial POST, never touch
-            // the other terms' sets).
-            if ($hasFeatures) {
-                $this->syncHostingPlanFeatures($plan, $features, $featuresTerm);
-            }
+            $this->syncHostingPlanFeatures($plan, $features, $same);
         });
 
-        $returnTerm = $this->returnTerm($request);
-
-        return redirect()->route('admin.hosting.plans', ['type' => $plan->type, 'term' => $returnTerm])
-            ->with('success', 'Plan card "' . $plan->nameFor($returnTerm) . '" saved — the public hosting page is updated.');
+        return $this->hostingListRedirect($plan->regionKey(), $plan->type)
+            ->with('success', 'Card "' . $plan->name . '" saved. The public page is updated.');
     }
 
-    /** Quick show/hide toggle from the list page. */
+    /** Quick Show / Hide for a whole card from the list page. */
     public function toggleHostingPlanVisibility(Request $request, HostingPlan $plan)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
-        $returnTerm = $this->returnTerm($request);
-        $meta = self::hostingPlanTermMeta($returnTerm);
-        $plan->update([$meta['visibility'] => !$plan->{$meta['visibility']}]);
+        $plan->update(['is_visible' => !$plan->is_visible]);
 
-        return redirect()->route('admin.hosting.plans', ['type' => $plan->type, 'term' => $returnTerm])
-            ->with('success', 'Plan card "' . $plan->nameFor($returnTerm) . '" is now ' . ($plan->{$meta['visibility']} ? 'visible' : 'hidden') . ' for ' . $meta['label'] . '; other billing terms are untouched.');
+        return $this->hostingListRedirect($plan->regionKey(), $plan->type)
+            ->with('success', 'Card "' . $plan->name . '" is now ' . ($plan->is_visible ? 'shown' : 'hidden') . '.');
     }
 
     public function deleteHostingPlan(Request $request, HostingPlan $plan)
     {
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
+        $region = $plan->regionKey();
         $type = $plan->type;
         $name = $plan->name;
 
@@ -931,8 +998,7 @@ class AdminController extends Controller
             $plan->delete();
         });
 
-        return redirect()->route('admin.hosting.plans', ['type' => $type, 'term' => $this->returnTerm($request)])
-            ->with('success', 'Plan card "' . $name . '" deleted.');
+        return $this->hostingListRedirect($region, $type)->with('success', 'Card "' . $name . '" deleted.');
     }
 
     /**
@@ -1355,126 +1421,106 @@ class AdminController extends Controller
     }
 
     /**
-     * Plan form validation: scalars via the validator, the dynamic feature
-     * rows normalized in-memory (blank rows dropped, availability from the
-     * per-row checkbox).
+     * Card form validation (add and edit share it).
      *
-     * @return array [<plan columns>, <feature rows>, <bool features posted>, <features term slug>]
+     * Form fields: region, type, name, description, badge, style_class, sort,
+     * is_visible, names[term], price[term], status[term] (on|soon|hidden),
+     * same[term] ("same as Monthly"), features[termSlug][i][line|group|is_available|feature_key].
+     *
+     * @return array [<plan columns>, <features by term slug>, <same-as-monthly by term slug>]
      */
-    private function validatedHostingPlan(Request $request)
+    private function validatedHostingPlan(Request $request, HostingPlan $existing = null)
     {
         $data = $request->validate([
-            'type' => ['required', Rule::in(HostingPlan::TYPES)],
+            'region' => ['required', Rule::in(array_keys(HostingPlan::REGIONS))],
+            'type' => ['nullable', 'string', 'max:20'],
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:255'],
             'badge' => ['nullable', 'string', 'max:60'],
             'style_class' => ['required', Rule::in(array_keys(HostingPlan::STYLE_CLASSES))],
             'sort' => ['required', 'integer', 'min:0', 'max:999'],
-            'price_monthly' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'price_yearly' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'price_two_year' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'price_three_year' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'names' => ['nullable', 'array'],
+            'price' => ['nullable', 'array'],
+            'status' => ['nullable', 'array'],
         ]);
 
-        $featuresTerm = in_array((string) $request->input('features_term', HostingPlanFeature::TERM_MONTHLY), [
-            HostingPlanFeature::TERM_MONTHLY,
-            HostingPlanFeature::TERM_YEARLY,
-            HostingPlanFeature::TERM_TWO_YEAR,
-            HostingPlanFeature::TERM_THREE_YEAR,
-        ], true)
-            ? (string) $request->input('features_term', HostingPlanFeature::TERM_MONTHLY)
-            : HostingPlanFeature::TERM_MONTHLY;
+        $section = HostingPlan::normalizeSection($data['region'], $data['type'] ?? null);
+        if ($section === null) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['type' => 'Pick Shared, VPS or Dedicated for this region.']);
+        }
+        [$region, $type] = $section;
 
         $columns = [
-            'type' => $data['type'],
+            'type' => $type,
+            'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'badge' => $data['badge'] ?? null,
             'style_class' => $data['style_class'],
             'sort' => (int) $data['sort'],
             'is_visible' => $request->boolean('is_visible'),
         ];
-
-        // The NAME is term-scoped too: this save targets the billing term it
-        // was opened from — Monthly writes the canonical `name`, the other
-        // terms write their own column (un-edited terms inherit `name`), so
-        // a rename that came from the Yearly view never leaks into Monthly.
-        $nameColumn = HostingPlan::termNameColumn($featuresTerm);
-        if ($nameColumn === null) {
-            $columns['name'] = $data['name'];
-        } else {
-            $columns[$nameColumn] = $data['name'];
+        if (HostingPlan::hasRegionColumn()) {
+            $columns['region'] = $region;
         }
 
-        // The card form no longer carries prices / billing terms (they are
-        // edited per term on the list page). Only save them when the POST
-        // actually includes them — a feature-only save must never wipe them.
-        foreach (['price_monthly', 'price_yearly', 'price_two_year', 'price_three_year'] as $priceKey) {
-            if ($request->exists($priceKey)) {
-                $columns[$priceKey] = $data[$priceKey] ?? null;
-            }
-        }
-        foreach (['monthly', 'yearly', 'two_year', 'three_year'] as $termKey) {
-            $flagKey = 'term_' . $termKey . '_active';
-            if ($request->exists($flagKey)) {
-                $columns[$flagKey] = $request->boolean($flagKey);
-            }
-            $visibilityColumns = [
-                HostingPlanFeature::TERM_MONTHLY => 'term_monthly_visible',
-                HostingPlanFeature::TERM_YEARLY => 'term_yearly_visible',
-                HostingPlanFeature::TERM_TWO_YEAR => 'term_two_year_visible',
-                HostingPlanFeature::TERM_THREE_YEAR => 'term_three_year_visible',
-            ];
-            $visibilityColumn = $visibilityColumns[$featuresTerm];
-            if ($request->exists($visibilityColumn)) {
-                $columns[$visibilityColumn] = $request->boolean($visibilityColumn);
+        foreach (self::hostingTerms() as $key => $meta) {
+            $columns += self::hostingTermColumns($meta, $request->input('status.' . $key), $request->input('price.' . $key));
+            if ($meta['name'] !== null) {
+                $own = trim((string) $request->input('names.' . $key, ''));
+                $columns[$meta['name']] = $own !== '' && $own !== $data['name'] ? mb_substr($own, 0, 120) : null;
             }
         }
 
         $features = [];
-        foreach ((array) $request->input('features', []) as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            // One field holds the WHOLE feature line of the row for the
-            // feature term ("10 GB NVMe storage") — no separate name typed.
-            $line = trim((string) ($row['line'] ?? ($row['line_monthly'] ?? '')));
-            if ($line === '') {
-                continue; // blank row left by the "add row" helper
-            }
-            $group = ($row['group'] ?? 'primary') === 'extra' ? HostingPlanFeature::GROUP_EXTRA : HostingPlanFeature::GROUP_PRIMARY;
-            $features[] = [
-                'billing_term' => $featuresTerm,
-                'feature_group' => $group,
-                'name' => mb_substr($line, 0, 120),
-                'value_monthly' => mb_substr($line, 0, 190),
-                'value_yearly' => null,
-                'feature_key' => preg_match('/^[a-zA-Z][a-zA-Z0-9_-]*$/', (string) ($row['feature_key'] ?? ''))
-                    ? substr((string) $row['feature_key'], 0, 40)
-                    : null,
-                'is_available' => !empty($row['is_available']),
-            ];
-
-            if (count($features) >= 60) {
-                break; // sanity ceiling on feature rows per card
+        $same = [];
+        foreach (self::hostingTerms() as $key => $meta) {
+            $slug = $meta['slug'];
+            $same[$slug] = $slug !== HostingPlanFeature::TERM_MONTHLY && $request->boolean('same.' . $key);
+            $features[$slug] = [];
+            foreach ((array) $request->input('features.' . $key, []) as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $line = trim((string) ($row['line'] ?? ''));
+                if ($line === '') {
+                    continue; // blank row left by the "add row" helper
+                }
+                $features[$slug][] = [
+                    'billing_term' => $slug,
+                    'feature_group' => ($row['group'] ?? 'primary') === 'extra' ? HostingPlanFeature::GROUP_EXTRA : HostingPlanFeature::GROUP_PRIMARY,
+                    'name' => mb_substr($line, 0, 120),
+                    'value_monthly' => mb_substr($line, 0, 190),
+                    'value_yearly' => null,
+                    'feature_key' => preg_match('/^[a-zA-Z][a-zA-Z0-9_-]*$/', (string) ($row['feature_key'] ?? ''))
+                        ? substr((string) $row['feature_key'], 0, 40)
+                        : null,
+                    'is_available' => !empty($row['is_available']),
+                ];
+                if (count($features[$slug]) >= 60) {
+                    break; // sanity ceiling on feature rows per term
+                }
             }
         }
 
-        return [$columns, $features, $request->exists('features'), $featuresTerm];
+        return [$columns, $features, $same];
     }
 
     /**
-     * Replace ONE term's feature rows of the card with the submitted order.
-     * The other three terms' sets are never touched — a feature edit in the
-     * Yearly view cannot leak into Monthly.
+     * Save the feature rows of every term the form posted. "Same as Monthly"
+     * deletes that term's own rows (the public page then inherits Monthly).
+     * A term whose form section was not posted at all is left untouched.
      */
-    private function syncHostingPlanFeatures(HostingPlan $plan, $features, $featuresTerm)
+    private function syncHostingPlanFeatures(HostingPlan $plan, array $features, array $same)
     {
-        HostingPlanFeature::where('hosting_plan_id', $plan->id)
-            ->where('billing_term', $featuresTerm)
-            ->delete();
-
-        foreach ($features as $row) {
-            $plan->features()->create($row);
+        foreach ($features as $slug => $rows) {
+            if (!empty($same[$slug])) {
+                HostingPlanFeature::where('hosting_plan_id', $plan->id)->where('billing_term', $slug)->delete();
+                continue;
+            }
+            HostingPlanFeature::where('hosting_plan_id', $plan->id)->where('billing_term', $slug)->delete();
+            foreach ($rows as $row) {
+                $plan->features()->create($row);
+            }
         }
     }
 
@@ -1483,4 +1529,4 @@ class AdminController extends Controller
         $request->session()->forget('admin');
         return redirect()->route('admin.login');
     }
-}
+}

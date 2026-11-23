@@ -29,10 +29,33 @@ class HostingPlanService
     /** @var bool|null memoized schema check */
     private static $tablesMissing = null;
 
-    /** All visible plan cards of one hosting type, in admin-set order. */
-    public function plans($type)
+    /** Forget the memoized schema check (tests that drop or add the tables). */
+    public static function resetSchemaCache()
     {
-        return $this->isManaged($type) ? $this->fromDatabase($type) : $this->legacy($type);
+        self::$tablesMissing = null;
+    }
+
+    /**
+     * All visible plan cards of one hosting section, in admin-set order.
+     *
+     * A section is a region + type: ('local', 'shared'), ('usa', 'vps'),
+     * ('wordpress', 'wordpress'). Local keeps the historical fallback (the
+     * hardcoded cards) while nothing is in the database; USA and WordPress
+     * have no fallback and simply return [] until the admin adds plans.
+     */
+    public function plans($type, $region = HostingPlan::REGION_LOCAL)
+    {
+        $section = HostingPlan::normalizeSection($region, $type);
+        if ($section === null) {
+            return [];
+        }
+        [$region, $type] = $section;
+
+        if ($this->isManaged($type, $region)) {
+            return $this->fromDatabase($type, $region);
+        }
+
+        return $region === HostingPlan::REGION_LOCAL ? $this->legacy($type) : [];
     }
 
     /**
@@ -44,8 +67,13 @@ class HostingPlanService
      *
      * @return array period => ['active' => bool, 'soon' => bool]
      */
-    public function terms($type)
+    public function terms($type, $region = HostingPlan::REGION_LOCAL)
     {
+        $section = HostingPlan::normalizeSection($region, $type);
+        if ($section !== null) {
+            [$region, $type] = $section;
+        }
+
         $legacy = [
             'monthly' => ['active' => true, 'soon' => false],
             'yearly' => ['active' => true, 'soon' => false],
@@ -53,12 +81,12 @@ class HostingPlanService
             'threeYear' => ['active' => false, 'soon' => true],
         ];
 
-        if (!$this->isManaged($type)) {
+        if ($section === null || !$this->isManaged($type, $region)) {
             return $legacy;
         }
 
         $plans = HostingPlan::query()
-            ->where('type', $type)
+            ->inSection($region, $type)
             ->where('is_visible', true)
             ->get();
 
@@ -97,7 +125,7 @@ class HostingPlanService
     /* CMS mode                                                            */
     /* ------------------------------------------------------------------ */
 
-    private function isManaged($type)
+    private function isManaged($type, $region = HostingPlan::REGION_LOCAL)
     {
         if (self::$tablesMissing === null) {
             self::$tablesMissing = !Schema::hasTable('hosting_plans') || !Schema::hasTable('hosting_plan_features');
@@ -106,13 +134,19 @@ class HostingPlanService
             return false;
         }
 
-        return HostingPlan::query()->where('type', $type)->exists();
+        // USA and WordPress are always database-driven: an empty section shows
+        // "plans coming soon", never the old hardcoded Local cards.
+        if ($region !== HostingPlan::REGION_LOCAL) {
+            return true;
+        }
+
+        return HostingPlan::query()->inSection($region, $type)->exists();
     }
 
-    private function fromDatabase($type)
+    private function fromDatabase($type, $region = HostingPlan::REGION_LOCAL)
     {
         $rows = HostingPlan::query()
-            ->where('type', $type)
+            ->inSection($region, $type)
             ->where('is_visible', true)
             ->orderBy('sort')
             ->orderBy('id')

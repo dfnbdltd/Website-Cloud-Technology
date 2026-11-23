@@ -157,6 +157,34 @@
 #site-navbar .site-user>span:not(.site-avatar){display:none}
 #site-navbar .site-nav{max-height:calc(100vh - 64px)}
 }
+/* ── Hosting menu: Hosting > Local / USA (fly-out: Shared · VPS · Dedicated) · WordPress ──
+   Opens on hover (and keyboard focus) on desktop; on the collapsed mobile panel the
+   script in partials/site-navbar.blade.php toggles .open on .site-sub-item instead. */
+#site-navbar .site-submenu-tree{min-width:240px;padding:8px;border-radius:10px;box-shadow:0 18px 40px #0f172a24}
+#site-navbar .site-sub-item{position:relative}
+#site-navbar .site-nav .site-sub-item>a{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 14px;border-radius:7px;color:var(--text);font-size:15px;font-weight:500;white-space:nowrap;background:none}
+#site-navbar .site-nav .site-sub-item:hover>a,#site-navbar .site-nav .site-sub-item:focus-within>a{color:var(--ink);background:#e5e7eb}
+#site-navbar .site-caret{display:block;flex:none;width:0;height:0;border-style:solid;border-width:5px 0 5px 7px;border-color:transparent transparent transparent #4b5563}
+#site-navbar .site-flyout{display:none;position:absolute;top:-8px;left:100%;z-index:26;min-width:250px;margin-left:6px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 40px #0f172a24}
+/* invisible bridge so the pointer can cross the 6px gap without closing it */
+#site-navbar .site-flyout:before{content:"";position:absolute;top:0;bottom:0;left:-10px;width:10px}
+#site-navbar .site-sub-item:hover>.site-flyout,#site-navbar .site-sub-item:focus-within>.site-flyout{display:grid}
+#site-navbar .site-nav .site-flyout a{display:block;padding:12px 14px;border-radius:7px;color:var(--text);font-size:15px;font-weight:500;white-space:nowrap;background:none}
+#site-navbar .site-nav .site-flyout a:hover{color:var(--ink);background:var(--soft)}
+@media(max-width:960px){
+#site-navbar .site-submenu-tree{min-width:0;padding:2px 0 6px 12px;box-shadow:none}
+#site-navbar .site-nav .site-sub-item>a{padding:11px 12px;font-size:14.5px;font-weight:600;white-space:normal}
+#site-navbar .site-nav .site-sub-item:hover>a,#site-navbar .site-nav .site-sub-item:focus-within>a{background:none}
+#site-navbar .site-nav .site-sub-item.open>a{background:var(--soft);color:var(--ink)}
+#site-navbar .site-caret{border-width:6px 5px 0 5px;border-color:#6b7280 transparent transparent transparent;transition:transform .2s ease}
+#site-navbar .site-sub-item.open>a .site-caret{transform:rotate(180deg)}
+#site-navbar .site-flyout{position:static;display:none;min-width:0;margin:0 0 4px 8px;padding:0 0 0 10px;border:0;border-left:2px solid var(--line);border-radius:0;box-shadow:none;background:transparent}
+#site-navbar .site-flyout:before{display:none}
+#site-navbar .site-sub-item:hover>.site-flyout,#site-navbar .site-sub-item:focus-within>.site-flyout{display:none}
+#site-navbar .site-sub-item.open>.site-flyout{display:grid}
+#site-navbar .site-nav .site-flyout a{padding:10px 12px;font-size:14px;white-space:normal}
+}
+
 /* Keep the page from scrolling behind the open panel on touch devices. */
 body.nav-menu-open{overflow:hidden}
 @media(min-width:961px){body.nav-menu-open{overflow:auto}}

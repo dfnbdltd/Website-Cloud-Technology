@@ -2,8 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HostingPlan;
 use App\Services\HostingPlanService;
+use Illuminate\Http\Request;
 
+/**
+ * Public hosting pages.
+ *
+ *   Hosting
+ *   ├── Local Hosting      /hosting/local/{shared|vps|dedicated}
+ *   ├── USA Hosting        /hosting/usa/{shared|vps|dedicated}
+ *   └── WordPress Hosting  /hosting/wordpress
+ *
+ * Every page reads its cards from HostingPlanService (the admin edits them
+ * under /admin/hosting-plans). The old /hosting/shared, /hosting/vps and
+ * /hosting/dedicated URLs still work: they redirect to the Local pages.
+ */
 class HostingController extends Controller
 {
     /** @var HostingPlanService */
@@ -14,67 +28,106 @@ class HostingController extends Controller
         $this->plans = $plans;
     }
 
-    public function shared()
+    /** Local / USA × Shared / VPS / Dedicated. */
+    public function region($region, $type)
     {
-        return view('hosting.shared', [
-            'plans' => $this->plans->plans('shared'),
-            'terms' => $this->plans->terms('shared'),
+        $section = HostingPlan::normalizeSection($region, $type);
+        if ($section === null || $section[0] === HostingPlan::REGION_WORDPRESS) {
+            abort(404);
+        }
+        [$region, $type] = $section;
+
+        return view('hosting.' . $type, [
+            'plans' => $this->plans->plans($type, $region),
+            'terms' => $this->plans->terms($type, $region),
+            'region' => $region,
+            'regionLabel' => HostingPlan::REGION_SHORT[$region],
+            'type' => $type,
         ]);
     }
 
-    public function vps()
+    /** WordPress hosting: one simple list of cards. */
+    public function wordpress()
     {
-        return view('hosting.vps', [
-            'plans' => $this->plans->plans('vps'),
-            'terms' => $this->plans->terms('vps'),
+        $type = HostingPlan::TYPE_WORDPRESS;
+        $region = HostingPlan::REGION_WORDPRESS;
+
+        return view('hosting.wordpress', [
+            'plans' => $this->plans->plans($type, $region),
+            'terms' => $this->plans->terms($type, $region),
         ]);
     }
 
-    public function dedicated()
+    /** Old URLs (/hosting/shared ...) -> the Local page of the same type. */
+    public function legacyRedirect($type)
     {
-        return view('hosting.dedicated', [
-            'plans' => $this->plans->plans('dedicated'),
-            'terms' => $this->plans->terms('dedicated'),
-        ]);
+        return redirect()->route('hosting.region', [
+            'region' => HostingPlan::REGION_LOCAL,
+            'type' => $type,
+        ], 301);
     }
 
     /**
      * Client-area plan list (logged-in customers only).
      * View-only listing driven by the same plan data as the public pages.
+     *
+     *   /store/hosting/shared               Local shared plans
+     *   /store/hosting/shared?region=usa    USA shared plans
+     *   /store/hosting/wordpress            WordPress plans
      */
-    public function clientPlans($type)
+    public function clientPlans(Request $request, $type)
     {
-        $catalog = [
+        if ($type === HostingPlan::TYPE_WORDPRESS) {
+            $region = HostingPlan::REGION_WORDPRESS;
+        } else {
+            $region = $request->query('region') === HostingPlan::REGION_USA
+                ? HostingPlan::REGION_USA
+                : HostingPlan::REGION_LOCAL;
+        }
+
+        $section = HostingPlan::normalizeSection($region, $type);
+        if ($section === null) {
+            abort(404);
+        }
+        [$region, $type] = $section;
+
+        $copy = [
             'shared' => [
                 'title' => 'Shared Hosting',
-                'kicker' => 'HOSTING PACKAGE',
                 'subtitle' => 'Pick a plan, choose billing, and buy — all inside your client area.',
-                'plans' => $this->plans->plans('shared'),
-                'terms' => $this->plans->terms('shared'),
                 'active' => 'hosting-shared',
             ],
             'vps' => [
                 'title' => 'VPS Hosting',
-                'kicker' => 'HOSTING PACKAGE',
                 'subtitle' => 'Dedicated resources with root access — pick a plan and buy.',
-                'plans' => $this->plans->plans('vps'),
-                'terms' => $this->plans->terms('vps'),
                 'active' => 'hosting-vps',
             ],
             'dedicated' => [
                 'title' => 'Dedicated Hosting',
-                'kicker' => 'HOSTING PACKAGE',
                 'subtitle' => 'Maximum power on your own server — pick a plan and buy.',
-                'plans' => $this->plans->plans('dedicated'),
-                'terms' => $this->plans->terms('dedicated'),
                 'active' => 'hosting-dedicated',
             ],
-        ];
+            'wordpress' => [
+                'title' => 'WordPress Hosting',
+                'subtitle' => 'Hosting tuned for WordPress — pick a plan and buy.',
+                'active' => 'hosting-wordpress',
+            ],
+        ][$type];
 
-        if (!isset($catalog[$type])) {
-            abort(404);
-        }
+        $regionLabel = HostingPlan::REGION_SHORT[$region];
 
-        return view('hosting.client', array_merge($catalog[$type], ['type' => $type]));
+        return view('hosting.client', [
+            'title' => $region === HostingPlan::REGION_WORDPRESS ? $copy['title'] : $regionLabel . ' ' . $copy['title'],
+            'kicker' => 'HOSTING PACKAGE',
+            'subtitle' => $copy['subtitle'],
+            'plans' => $this->plans->plans($type, $region),
+            'terms' => $this->plans->terms($type, $region),
+            'active' => $copy['active'],
+            'type' => $type,
+            'region' => $region,
+            'publicUrl' => $region === HostingPlan::REGION_WORDPRESS
+                ? route('hosting.wordpress')
+                : route('hosting.region', ['region' => $region, 'type' => $type]),
+        ]);
     }
 }

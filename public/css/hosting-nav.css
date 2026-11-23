@@ -79,3 +79,19 @@
 .hosting-rail a.is-active{background:#0f172a;color:#fff;box-shadow:none}
 .hosting-rail a.is-active .di-svg{background:rgba(255,255,255,.16);color:#fff}
 @media(max-width:1180px){.hosting-rail{display:none}}
+
+/* Left switcher: a thin divider before the "jump" items (other region, WordPress). */
+.hosting-rail a.rail-divider{position:relative;margin-top:8px}
+.hosting-rail a.rail-divider:before{content:"";position:absolute;top:-7px;left:14px;right:14px;height:1px;background:#e5e7eb}
+.hosting-rail a strong{font-weight:500}
+
+/* "Plans coming soon" card shown when a Local / USA section has no visible plans yet. */
+.hosting-empty{max-width:620px;margin:34px auto 40px;padding:44px 36px;border:1px solid #e5e7eb;border-radius:18px;background:#fff;box-shadow:0 18px 50px rgba(20,43,85,.1);text-align:center;font-family:'DM Sans',sans-serif}
+.hosting-empty-pill{display:inline-block;padding:6px 14px;border-radius:999px;background:#0f172a;color:#fff;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px}
+.hosting-empty h3{margin:0 0 10px;color:#0f172a;font:800 1.45rem/1.25 'Manrope',sans-serif;letter-spacing:-.03em}
+.hosting-empty p{margin:0 0 24px;color:#64748b;font-size:.98rem;line-height:1.6}
+.hosting-empty-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.hosting-empty-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;font-size:.95rem;text-decoration:none;transition:background .2s ease,transform .2s ease}
+.hosting-empty-btn:hover{background:#1d4ed8;transform:translateY(-1px)}
+.hosting-empty-btn.is-ghost{background:#fff;color:#0f172a;border:1px solid #e5e7eb}
+.hosting-empty-btn.is-ghost:hover{background:#f8fafc}

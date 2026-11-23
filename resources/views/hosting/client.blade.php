@@ -45,11 +45,18 @@
 <main class="domain-main">@include('partials.topbar', ['title' => $title, 'avatar' => strtoupper(substr(session('customer.name', 'C'), 0, 2)), 'cartCount' => count(session('domain_cart', [])), 'customerName' => session('customer.name', 'Client'), 'customerEmail' => session('customer.email', '')])<div class="domain-content standalone-content">
 <span class="domain-kicker">{{ $kicker }}</span><h1 class="workspace-title">{{ $title }} plans.</h1><p class="workspace-subtitle">{{ $subtitle }}</p>
 
-<div class="hosting-type-row" aria-label="Hosting type">
-    <a href="{{ route('client.hosting', 'shared') }}" {!! $type === 'shared' ? 'class="is-active"' : '' !!}>Shared</a>
-    <a href="{{ route('client.hosting', 'vps') }}" {!! $type === 'vps' ? 'class="is-active"' : '' !!}>VPS</a>
-    <a href="{{ route('client.hosting', 'dedicated') }}" {!! $type === 'dedicated' ? 'class="is-active"' : '' !!}>Dedicated</a>
+<div class="hosting-type-row" aria-label="Hosting region">
+    <a href="{{ route('client.hosting', ['type' => $region === 'wordpress' ? 'shared' : $type]) }}" {!! $region === 'local' ? 'class="is-active"' : '' !!}>Local</a>
+    <a href="{{ route('client.hosting', ['type' => $region === 'wordpress' ? 'shared' : $type, 'region' => 'usa']) }}" {!! $region === 'usa' ? 'class="is-active"' : '' !!}>USA</a>
+    <a href="{{ route('client.hosting', 'wordpress') }}" {!! $region === 'wordpress' ? 'class="is-active"' : '' !!}>WordPress</a>
 </div>
+@if($region !== 'wordpress')
+<div class="hosting-type-row" aria-label="Hosting type">
+    <a href="{{ route('client.hosting', ['type' => 'shared', 'region' => $region]) }}" {!! $type === 'shared' ? 'class="is-active"' : '' !!}>Shared</a>
+    <a href="{{ route('client.hosting', ['type' => 'vps', 'region' => $region]) }}" {!! $type === 'vps' ? 'class="is-active"' : '' !!}>VPS</a>
+    <a href="{{ route('client.hosting', ['type' => 'dedicated', 'region' => $region]) }}" {!! $type === 'dedicated' ? 'class="is-active"' : '' !!}>Dedicated</a>
+</div>
+@endif
 
 <div class="hosting-period-row" role="tablist" aria-label="Billing period">
     <button class="hosting-period-tab is-active" type="button" role="tab" aria-selected="true" data-period="monthly" data-soon="{{ $terms['monthly']['soon'] ? 'true' : 'false' }}">Monthly</button>
@@ -82,11 +89,12 @@
         <div class="hosting-plan-buy{{ $plan['terms']['monthly'] ? '' : ' is-coming-soon' }}">
             <span class="hosting-plan-price">৳<span class="hosting-price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}" data-soon-monthly="{{ $plan['terms']['monthly'] ? 'false' : 'true' }}" data-soon-yearly="{{ $plan['terms']['yearly'] ? 'false' : 'true' }}" data-soon-twoyear="{{ $plan['terms']['twoYear'] ? 'false' : 'true' }}" data-soon-threeyear="{{ $plan['terms']['threeYear'] ? 'false' : 'true' }}">{{ $plan['terms']['monthly'] ? number_format($plan['prices']['monthly']) : 'Coming soon' }}</span><small class="hosting-price-unit"> /month</small></span>
             <a class="hosting-buy-btn" href="{{ route('support') }}" {!! $plan['terms']['monthly'] ? '' : 'aria-disabled="true"' !!}>{{ $plan['terms']['monthly'] ? 'Buy now' : 'Coming soon' }}</a>
-            <a class="hosting-more-btn" href="{{ route('hosting.' . $type) }}">See more</a>
+            <a class="hosting-more-btn" href="{{ $publicUrl }}">See more</a>
         </div>
     </div>
 @endforeach
 </div>
+@if(count($plans))
 <div class="hosting-compare-wrap">
 <h2 class="hosting-compare-title">Compare {{ $title }} plans</h2>
 <p class="workspace-subtitle">Every spec, side by side. Prices follow the billing period you pick above.</p>
@@ -183,6 +191,9 @@ $tr0 = $em['threeYear'] ?? $m0;
 </table>
 </div>
 </div>
+@else
+<div class="hosting-compare-wrap"><h2 class="hosting-compare-title">Plans coming soon</h2><p class="workspace-subtitle">We are preparing {{ $title }} plans. Check back soon, or <a href="{{ route('support') }}">contact support</a>.</p></div>
+@endif
 <p class="workspace-subtitle" style="margin-top:16px">Buying opens a support request — our team confirms and provisions your {{ strtolower($title) }} plan.</p>
 </div>
 </main>

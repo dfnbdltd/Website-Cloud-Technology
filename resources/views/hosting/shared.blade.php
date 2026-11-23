@@ -8,7 +8,7 @@
       name="description"
       content="Affordable shared hosting with reliable performance for growing websites."
     />
-    <title>Cloud Technology | Shared Hosting</title>
+    <title>Cloud Technology | {{ $regionLabel }} Shared Hosting</title>
     @include('partials.favicon')
     <style>
       :root {
@@ -3929,17 +3929,15 @@
 @include('partials.site-navbar', ['navActive' => 'hosting'])
 </div>
 
-    <nav class="hosting-rail" aria-label="Switch hosting type">
-        <a href="{{ route('hosting.shared') }}" class="is-active" aria-current="page"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><strong>Shared</strong></a>
-        <a href="{{ route('hosting.vps') }}"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6.5" rx="2"/><rect x="3" y="13.5" width="18" height="6.5" rx="2"/><path d="M7 7.2h.01M7 16.7h.01"/></svg><strong>VPS</strong></a>
-        <a href="{{ route('hosting.dedicated') }}"><svg class="di-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg><strong>Dedicated</strong></a>
-    </nav>
+    @include('partials.hosting-rail', ['railRegion' => $region, 'railActive' => 'shared'])
     <section class="page-banner page-banner-compact page-banner-luxe">
       <div class="page-width">
-        <p class="banner-kicker">Shared hosting</p>
+        <p class="banner-kicker">{{ $regionLabel }} &middot; Shared hosting</p>
         <h1>Shared Hosting</h1>
         <nav class="breadcrumb" aria-label="Breadcrumb">
           <a href="{{ route('landing') }}">Home</a>
+          <span>/</span>
+          <a href="{{ route('hosting.region', ['region' => $region, 'type' => 'shared']) }}">{{ $regionLabel }} Hosting</a>
           <span>/</span>
           <strong>Shared Hosting</strong>
         </nav>
@@ -3973,6 +3971,18 @@
 .coming-soon-back{min-height:48px;padding:0 22px;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:800;cursor:pointer;transition:background .2s ease,transform .2s ease}
 .coming-soon-back:hover{background:var(--navy);transform:translateY(-1px)}
       </style>
+@php($hostingEmpty = count($plans) === 0)
+@if($hostingEmpty)
+<div class="hosting-empty">
+  <span class="hosting-empty-pill">Plans coming soon</span>
+  <h3>{{ $regionLabel }} {{ ['shared' => 'shared', 'vps' => 'VPS', 'dedicated' => 'dedicated'][$type] }} hosting plans are being prepared.</h3>
+  <p>We are adding plans for this section. Meanwhile, you can look at the other hosting options below or talk to our team.</p>
+  <div class="hosting-empty-actions">
+    <a class="hosting-empty-btn" href="{{ route('hosting.region', ['region' => $region === 'usa' ? 'local' : 'usa', 'type' => $type]) }}">See {{ $region === 'usa' ? 'Local' : 'USA' }} {{ ['shared' => 'shared', 'vps' => 'VPS', 'dedicated' => 'dedicated'][$type] }} plans</a>
+    <a class="hosting-empty-btn is-ghost" href="{{ route('support') }}">Contact support</a>
+  </div>
+</div>
+@else
       <div class="billing-row">
       <div class="billing-tabs" role="tablist" aria-label="Billing period">
         <button
@@ -4027,7 +4037,8 @@
         <p>2-year and 3-year plans aren't available yet. Choose monthly or yearly to get started today.</p>
         <button class="coming-soon-back" type="button">View monthly plans</button>
       </div>
-      <div class="plans" aria-label="Shared hosting plans">
+      @endif
+<div class="plans" aria-label="{{ $regionLabel }} Shared hosting plans">
         @foreach($plans as $plan)
         <article class="plan-card{{ $plan['badge'] === 'Most popular' ? ' plan-card-featured' : '' }}{{ $plan['terms']['monthly'] ? '' : ' is-coming-soon' }}" data-visible-monthly="{{ $plan['visibility']['monthly'] ? 'true' : 'false' }}" data-visible-yearly="{{ $plan['visibility']['yearly'] ? 'true' : 'false' }}" data-visible-twoyear="{{ $plan['visibility']['twoYear'] ? 'true' : 'false' }}" data-visible-threeyear="{{ $plan['visibility']['threeYear'] ? 'true' : 'false' }}">
           @if($plan['badge'] === 'Cheapest')

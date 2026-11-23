@@ -73,9 +73,16 @@ Route::get('/services/{service}', function (string $service) {
     ]);
 })->name('services.coming-soon');
 
-Route::get('/hosting/shared', [HostingController::class, 'shared'])->name('hosting.shared');
-Route::get('/hosting/vps', [HostingController::class, 'vps'])->name('hosting.vps');
-Route::get('/hosting/dedicated', [HostingController::class, 'dedicated'])->name('hosting.dedicated');
+// Hosting menu: Local Hosting / USA Hosting (each with shared, vps, dedicated) and WordPress Hosting.
+Route::get('/hosting/wordpress', [HostingController::class, 'wordpress'])->name('hosting.wordpress');
+Route::get('/hosting/{region}/{type}', [HostingController::class, 'region'])
+    ->where('region', 'local|usa')
+    ->where('type', 'shared|vps|dedicated')
+    ->name('hosting.region');
+// Old URLs keep working: they redirect to the Local page of the same type.
+Route::get('/hosting/shared', [HostingController::class, 'legacyRedirect'])->defaults('type', 'shared')->name('hosting.shared');
+Route::get('/hosting/vps', [HostingController::class, 'legacyRedirect'])->defaults('type', 'vps')->name('hosting.vps');
+Route::get('/hosting/dedicated', [HostingController::class, 'legacyRedirect'])->defaults('type', 'dedicated')->name('hosting.dedicated');
 Route::get('/support', [CustomerController::class, 'support'])->name('support');
 Route::get('/support/tickets/{ticket}', [CustomerController::class, 'ticket'])
     ->middleware('customer')
@@ -153,7 +160,7 @@ Route::middleware(['web', 'customer'])->group(function () {
         ->name('mystore.service');
     Route::get('/mystore/invoices', [MyStoreController::class, 'invoices'])->name('mystore.invoices');
     Route::get('/mystore/payments', [MyStoreController::class, 'payments'])->name('mystore.payments');
-    Route::get('/store/hosting/{type}', [HostingController::class, 'clientPlans'])->where('type', 'shared|vps|dedicated')->name('client.hosting');
+    Route::get('/store/hosting/{type}', [HostingController::class, 'clientPlans'])->where('type', 'shared|vps|dedicated|wordpress')->name('client.hosting');
     Route::post('/mystore/add-balance', [CustomerController::class, 'addBalance'])->name('mystore.add-balance');
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('/wallet/bkash', [WalletController::class, 'start'])->name('wallet.bkash.start');
@@ -222,16 +229,19 @@ Route::post('/admin/invoices/{invoice}/status', [AdminController::class, 'update
 
 /**
  * CMS: hosting plan cards (prices, features, per-feature availability,
- * billing terms) behind the shared / vps / dedicated hosting pages.
+ * billing terms) behind the Local / USA / WordPress hosting pages.
  */
-Route::get('/admin/hosting-plans/create/{type}', [AdminController::class, 'createHostingPlan'])->where('type', 'shared|vps|dedicated')->name('admin.hosting.plans.create');
+$hostingRegion = 'local|usa|wordpress';
+$hostingType = 'shared|vps|dedicated|wordpress';
+Route::get('/admin/hosting-plans/create/{region}/{type}', [AdminController::class, 'createHostingPlan'])->where('region', $hostingRegion)->where('type', $hostingType)->name('admin.hosting.plans.create');
 Route::post('/admin/hosting-plans', [AdminController::class, 'storeHostingPlan'])->name('admin.hosting.plans.store');
-Route::get('/admin/hosting-plans/{type?}/{term?}', [AdminController::class, 'hostingPlans'])->where('type', 'shared|vps|dedicated')->where('term', 'monthly|yearly|twoYear|threeYear')->name('admin.hosting.plans');
-Route::post('/admin/hosting-plans/{type}/{term}/save', [AdminController::class, 'saveHostingPlanTerm'])->where('type', 'shared|vps|dedicated')->where('term', 'monthly|yearly|twoYear|threeYear')->name('admin.hosting.plans.saveTerm');
-Route::get('/admin/hosting-plans/{plan}/edit', [AdminController::class, 'editHostingPlan'])->name('admin.hosting.plans.edit');
-Route::post('/admin/hosting-plans/{plan}', [AdminController::class, 'updateHostingPlan'])->name('admin.hosting.plans.update');
-Route::post('/admin/hosting-plans/{plan}/visibility', [AdminController::class, 'toggleHostingPlanVisibility'])->name('admin.hosting.plans.visibility');
-Route::post('/admin/hosting-plans/{plan}/delete', [AdminController::class, 'deleteHostingPlan'])->name('admin.hosting.plans.delete');
+Route::get('/admin/hosting-plans/{region?}/{type?}', [AdminController::class, 'hostingPlans'])->where('region', $hostingRegion)->where('type', $hostingType)->name('admin.hosting.plans');
+Route::post('/admin/hosting-plans/{region}/{type}/save', [AdminController::class, 'saveHostingPlans'])->where('region', $hostingRegion)->where('type', $hostingType)->name('admin.hosting.plans.save');
+Route::post('/admin/hosting-plans/{region}/{type}/copy', [AdminController::class, 'copyHostingPlans'])->where('region', $hostingRegion)->where('type', $hostingType)->name('admin.hosting.plans.copy');
+Route::get('/admin/hosting-plans/{plan}/edit', [AdminController::class, 'editHostingPlan'])->where('plan', '[0-9]+')->name('admin.hosting.plans.edit');
+Route::post('/admin/hosting-plans/{plan}', [AdminController::class, 'updateHostingPlan'])->where('plan', '[0-9]+')->name('admin.hosting.plans.update');
+Route::post('/admin/hosting-plans/{plan}/visibility', [AdminController::class, 'toggleHostingPlanVisibility'])->where('plan', '[0-9]+')->name('admin.hosting.plans.visibility');
+Route::post('/admin/hosting-plans/{plan}/delete', [AdminController::class, 'deleteHostingPlan'])->where('plan', '[0-9]+')->name('admin.hosting.plans.delete');
 Route::get('/admin/ssl-plans', [AdminController::class, 'sslPlans'])->name('admin.ssl.plans');
 Route::get('/admin/ssl-plans/create', [AdminController::class, 'createSslPlan'])->name('admin.ssl.plans.create');
 Route::post('/admin/ssl-plans', [AdminController::class, 'storeSslPlan'])->name('admin.ssl.plans.store');

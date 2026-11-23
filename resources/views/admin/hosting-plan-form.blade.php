@@ -34,154 +34,182 @@
         .hp-form-note { margin:10px 2px 0; color:#8190a1; font-size:13px; }
         .hp-save { position:sticky; bottom:0; padding:16px 0; background:linear-gradient(#f7f9fc00,#f7f9fc 40%); display:flex; gap:10px; align-items:center; }
         @media(max-width:900px){ .hp-row { grid-template-columns:1fr 1fr; } .hp-row-head { display:none; } }
+        .hp-term-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; }
+        .hp-term-box { padding:14px; border:1px solid #e5ebf3; border-radius:10px; background:#f8fafc; }
+        .hp-term-box h3 { margin:0 0 8px; font-size:14px; color:#1f2937; }
+        .hp-term-box label { display:block; margin-top:8px; font-size:11px; font-weight:700; color:#77879a; text-transform:uppercase; letter-spacing:.05em; }
+        .hp-term-box input, .hp-term-box select { display:block; box-sizing:border-box; width:100%; margin-top:4px; padding:9px 11px; border:1px solid #dfe6ee; border-radius:6px; font:14px 'DM Sans',sans-serif; background:#fff; }
+        .hp-ftabs { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 14px; }
+        .hp-ftab { padding:8px 16px; border:1px solid #dfe6ee; border-radius:999px; background:#fff; color:#475569; font:700 13px 'DM Sans',sans-serif; cursor:pointer; }
+        .hp-ftab.is-active { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+        .hp-pane[hidden] { display:none; }
+        .hp-same { display:flex; align-items:center; gap:8px; margin:0 0 12px; padding:10px 12px; border-radius:8px; background:#f0f6ff; color:#1e3a8a; font-size:13px; font-weight:700; }
+        .hp-pane.is-same .hp-pane-body { opacity:.4; pointer-events:none; }
+        details.hp-names { margin-top:14px; }
+        details.hp-names summary { cursor:pointer; color:#1d4ed8; font-weight:700; font-size:13px; }
     </style>
 </head>
 <body class="domain-app admin-app">
     @include('partials.admin-sidebar', ['active' => 'hosting-plans'])
 <main class="domain-main">
-    <header class="domain-topbar"><div><span class="crumb">CMS /</span><strong>Hosting plans</strong></div><a class="cart-badge" href="{{ route('admin.hosting.plans', ['type' => $type, 'term' => $returnTerm ?? 'monthly']) }}">↑ Back to list</a></header>
+    @php
+        $sectionLabel = $region === 'wordpress' ? 'WordPress' : (\App\Models\HostingPlan::REGION_SHORT[$region] . ' ' . \App\Models\HostingPlan::TYPE_LABELS[$type]);
+        $listUrl = route('admin.hosting.plans', ['region' => $region, 'type' => $type]);
+    @endphp
+    <header class="domain-topbar"><div><span class="crumb">CMS /</span><strong>Hosting plans</strong></div><a class="cart-badge" href="{{ $listUrl }}">&uarr; Back to list</a></header>
     <div class="domain-content standalone-content">
-        <span class="domain-kicker">{{ $plan ? 'EDIT PLAN CARD' : 'ADD PLAN CARD' }}</span>
-        <h1 class="workspace-title">{{ $plan ? 'Edit ' . ($termName !== '' ? $termName : $plan->name) : 'Add a ' . ucfirst($type) . ' plan card' }}.</h1>
-        <p class="workspace-subtitle">Everything here renders on the public hosting page and in the client area. Unavailable features show the red cross &times;; available ones show the check icon.</p>
+        <span class="domain-kicker">{{ $plan ? 'EDIT CARD' : 'ADD CARD' }} &middot; {{ strtoupper($sectionLabel) }}</span>
+        <h1 class="workspace-title">{{ $plan ? 'Edit ' . $plan->name : 'Add a ' . $sectionLabel . ' card' }}.</h1>
+        <p class="workspace-subtitle">What you save here appears on the public hosting page and in the client area. Unavailable features show a red cross.</p>
         @if($errors->any())<div class="domain-alert error">{{ $errors->first() }}</div>@endif
 
         <form method="POST" action="{{ $plan ? route('admin.hosting.plans.update', $plan) : route('admin.hosting.plans.store') }}">@csrf
-            <input type="hidden" name="return_term" value="{{ $returnTerm ?? 'monthly' }}">
+            <input type="hidden" name="region" value="{{ $region }}">
+            <input type="hidden" name="type" value="{{ $type }}">
+
             <section class="store-panel hp-form-panel">
-                <h2>Card</h2>
+                <h2>1. Card details</h2>
                 <div class="hp-grid">
-                    <label>Hosting type
-                        <input type="hidden" name="type" value="{{ $plan ? $plan->type : $type }}">
-                        <input type="text" value="{{ ucfirst($plan ? $plan->type : $type) }}" disabled>
+                    <label>Section
+                        <input type="text" value="{{ $sectionLabel }}" disabled>
                     </label>
-                    <label>Plan name &mdash; {{ $termMeta['label'] }}
-                        <input type="text" name="name" value="{{ old('name', $plan ? $termName : '') }}" placeholder="Plan A" required>
+                    <label>Plan name
+                        <input type="text" name="name" value="{{ old('name', $plan->name ?? '') }}" placeholder="Starter" required>
                     </label>
                     <label>Circle style
                         <select name="style_class">
                             @foreach(\App\Models\HostingPlan::STYLE_CLASSES as $classValue => $classLabel)
-                            <option value="{{ $classValue }}" {!! ($plan->style_class ?? 'plan-circle-basic') === $classValue ? 'selected' : '' !!}>{{ $classLabel }} ({{ $classValue }})</option>
+                            <option value="{{ $classValue }}" {!! old('style_class', $plan->style_class ?? 'plan-circle-basic') === $classValue ? 'selected' : '' !!}>{{ $classLabel }}</option>
                             @endforeach
                         </select>
                     </label>
-                    <label>Badge <span style="text-transform:none">(Cheapest / Most popular)</span>
+                    <label>Badge <span style="text-transform:none">(e.g. Cheapest, Most popular)</span>
                         <input type="text" name="badge" value="{{ old('badge', $plan->badge ?? '') }}" placeholder="leave empty for no badge">
                     </label>
                     <label>Sort order
                         <input type="number" name="sort" value="{{ old('sort', $plan->sort ?? 0) }}" min="0" max="999" required>
                     </label>
-                    <label>Description
+                    <label>Short description
                         <input type="text" name="description" value="{{ old('description', $plan->description ?? '') }}" placeholder="For small websites.">
                     </label>
                 </div>
-@if($plan && $termMeta['slug'] === 'monthly')
-                <p class="hp-form-note">Monthly is this card&rsquo;s main name &mdash; every billing term without its own name follows it. Rename a term separately from its own Edit page.</p>
-@elseif($plan && $nameInherited)
-                <p class="hp-form-note">This card has no separate <strong>{{ strtolower($termMeta['label']) }}</strong> name yet, so it shows the Monthly name. Saving below gives {{ strtolower($termMeta['label']) }} its own name &mdash; Monthly and other terms stay untouched.</p>
-@elseif($plan)
-                <p class="hp-form-note">Saving below renames <strong>only this card&rsquo;s {{ strtolower($termMeta['label']) }}</strong> view &mdash; Monthly and every other term keep their own name.</p>
-@else
-                <p class="hp-form-note">A new card shows this name on every billing term until a term gets its own name from its Edit page.</p>
-@endif
                 <div class="hp-checks">
-                    <label><input type="checkbox" name="{{ $termMeta['visibility'] }}" value="1" {!! ($plan === null || $plan->{$termMeta['visibility']}) ? 'checked' : '' !!}> Card is visible for {{ $termMeta['label'] }}</label>
+                    <label><input type="checkbox" name="is_visible" value="1" {!! old('is_visible', $plan ? $plan->is_visible : true) ? 'checked' : '' !!}> Show this card on the website</label>
                 </div>
-            </section>
-
-            <section class="store-panel hp-form-panel">
-                <h2>{{ $termMeta['label'] }} price &amp; billing</h2>
-                @php $flagDefault = $plan ? $plan->{$termMeta['flag']} : in_array($termMeta['flag'], ['term_monthly_active', 'term_yearly_active']); @endphp
-                <div class="hp-grid">
-                    <label>{{ $termMeta['label'] }} price (৳)
-                        <input type="number" step="1" min="0" name="{{ $termMeta['column'] }}" value="{{ old($termMeta['column'], $plan && $plan->{$termMeta['column']} !== null ? $plan->{$termMeta['column']} : '') }}" placeholder="&mdash;">
-                    </label>
-                </div>
-                <div class="hp-checks">
-                    <label><input type="checkbox" name="{{ $termMeta['flag'] }}" value="1" {!! $flagDefault ? 'checked' : '' !!}> {{ $termMeta['label'] }} active</label>
-                </div>
-                <p class="hp-form-note">Only this billing term ({{ strtolower($termMeta['label']) }}) is saved here. Untick to show &ldquo;Coming soon&rdquo; on this card&rsquo;s {{ strtolower($termMeta['label']) }} price &amp; button. Every other term is edited from its own section on the list page.</p>
-            </section>
-
-            <section class="store-panel hp-form-panel">
-                <h2>Features &mdash; {{ $termMeta['label'] }}</h2>
-                <input type="hidden" name="features_term" value="{{ $termMeta['slug'] }}">
-@if(!$plan)
-                <p class="hp-form-note">These feature rows are saved as this new card&rsquo;s <strong>{{ strtolower($termMeta['label']) }}</strong> features (the other billing terms show the Monthly rows until you edit them).</p>
-@elseif($featuresInherited && $termMeta['slug'] !== 'monthly')
-                <p class="hp-form-note">This card has no separate <strong>{{ strtolower($termMeta['label']) }}</strong> features yet, so it shows the Monthly rows. Saving below gives {{ strtolower($termMeta['label']) }} its own feature list &mdash; Monthly stays untouched.</p>
-@else
-                <p class="hp-form-note">Saving below replaces <strong>only this card&rsquo;s {{ strtolower($termMeta['label']) }}</strong> feature rows.</p>
-@endif
-@php
-    $hpIndex = 0;
-    $groups = ['primary' => 'Core resources', 'extra' => 'Extra features'];
-@endphp
-@foreach($groups as $groupKey => $groupLabel)
-                <h3 class="hp-group-title">{{ $groupLabel }}</h3>
-                <div class="hp-row-head">
-                    <span>Feature line &mdash; value + name (e.g. 20 GB NVMe storage)</span>
-                    <span>Shown as</span>
-                    <span></span>
-                </div>
-                <div class="hp-rows" data-group="{{ $groupKey }}">
-@foreach($featureRows->where('group', $groupKey) as $feature)
-@php
-    $i = $hpIndex++;
-@endphp
-                    <div class="hp-row">
-                        <div class="hp-line-cell">
-                            <input type="text" name="features[{{ $i }}][line]" value="{{ $feature['line'] }}" placeholder="e.g. 20 GB NVMe storage">
-                            <div class="hp-preview"></div>
-                        </div>
-                        <label class="hp-avail"><input type="checkbox" name="features[{{ $i }}][is_available]" value="1" {!! $feature['is_available'] ? 'checked' : '' !!}> <span class="hp-avail-text">Available</span></label>
-                        <div class="hp-btn-group"><button type="button" class="hp-move" data-dir="-1" title="Move up">↑</button><button type="button" class="hp-move" data-dir="1" title="Move down">↓</button><button type="button" class="hp-del" title="Remove row">✕</button></div>
-                        <input type="hidden" name="features[{{ $i }}][group]" value="{{ $groupKey }}">
-                        <input type="hidden" name="features[{{ $i }}][feature_key]" value="{{ $feature['feature_key'] }}">
+                <details class="hp-names">
+                    <summary>Different name for a billing period (optional)</summary>
+                    <div class="hp-grid" style="margin-top:10px">
+                        @foreach($terms as $termKey => $termMeta)
+                        @if($termMeta['name'])
+                        <label>{{ $termMeta['label'] }} name
+                            <input type="text" name="names[{{ $termKey }}]" value="{{ old('names.' . $termKey, $plan->{$termMeta['name']} ?? '') }}" placeholder="same as plan name">
+                        </label>
+                        @endif
+                        @endforeach
                     </div>
-@endforeach
+                </details>
+            </section>
+
+            <section class="store-panel hp-form-panel">
+                <h2>2. Prices &amp; status</h2>
+                <div class="hp-term-grid">
+                    @foreach($terms as $termKey => $termMeta)
+                    <div class="hp-term-box">
+                        <h3>{{ $termMeta['label'] }}</h3>
+                        <label>Price (&#2547;)
+                            <input type="number" step="0.01" min="0" name="price[{{ $termKey }}]" value="{{ old('price.' . $termKey, $plan && $plan->{$termMeta['column']} !== null ? rtrim(rtrim(number_format((float) $plan->{$termMeta['column']}, 2, '.', ''), '0'), '.') : '') }}" placeholder="&mdash;">
+                        </label>
+                        <label>Status
+                            <select name="status[{{ $termKey }}]">
+                                @foreach(['on' => 'On sale', 'soon' => 'Coming soon', 'hidden' => 'Hidden'] as $statusValue => $statusLabel)
+                                <option value="{{ $statusValue }}" {!! old('status.' . $termKey, $statuses[$termKey]) === $statusValue ? 'selected' : '' !!}>{{ $statusLabel }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                    </div>
+                    @endforeach
                 </div>
-                <div class="hp-addrow"><button type="button" class="hp-add-row" data-group="{{ $groupKey }}">+ Add row</button></div>
-@endforeach
-                <p class="hp-form-note">Core resources render under &ldquo;Core resources&rdquo;; extras appear under &ldquo;Account &amp; databases&rdquo;, and unticked (crossed) extras move under &ldquo;Advanced &amp; security&rdquo; on the public page. Up/down reorders within the group.</p>
+                <p class="hp-form-note">On sale = customers can order. Coming soon = the tab shows &ldquo;Coming soon&rdquo;. Hidden = this billing period is not shown for this card. A card with no price cannot be On sale.</p>
+            </section>
+
+            <section class="store-panel hp-form-panel">
+                <h2>3. Features</h2>
+                <p class="hp-form-note" style="margin:0 0 10px">Each billing period can have its own list. Tick &ldquo;Same as Monthly&rdquo; to reuse the Monthly list.</p>
+                <div class="hp-ftabs">
+                    @foreach($terms as $termKey => $termMeta)
+                    <button type="button" class="hp-ftab{{ $loop->first ? ' is-active' : '' }}" data-pane="{{ $termKey }}">{{ $termMeta['label'] }}</button>
+                    @endforeach
+                </div>
+
+                @foreach($terms as $termKey => $termMeta)
+                @php $oldSame = old('same.' . $termKey, $same[$termKey]); @endphp
+                <div class="hp-pane{{ $oldSame ? ' is-same' : '' }}" data-pane="{{ $termKey }}" {!! $loop->first ? '' : 'hidden' !!}>
+                    @if($termKey !== 'monthly')
+                    <label class="hp-same"><input type="checkbox" class="hp-same-box" name="same[{{ $termKey }}]" value="1" {{ $oldSame ? 'checked' : '' }}> Same as Monthly ({{ $termMeta['label'] }} uses the Monthly feature list)</label>
+                    @endif
+                    <div class="hp-pane-body">
+                    @php $hpIndex = 0; @endphp
+                    @foreach(['primary' => 'Core resources', 'extra' => 'Extra features'] as $groupKey => $groupLabel)
+                        <h3 class="hp-group-title">{{ $groupLabel }}</h3>
+                        <div class="hp-row-head"><span>Feature line (e.g. 20 GB NVMe storage)</span><span>Shown as</span><span></span></div>
+                        <div class="hp-rows" data-group="{{ $groupKey }}">
+                        @foreach(collect($featureRows[$termKey])->where('group', $groupKey) as $feature)
+                            @php $i = $hpIndex++; @endphp
+                            <div class="hp-row">
+                                <div class="hp-line-cell">
+                                    <input type="text" name="features[{{ $termKey }}][{{ $i }}][line]" value="{{ $feature['line'] }}" placeholder="e.g. 20 GB NVMe storage">
+                                    <div class="hp-preview"></div>
+                                </div>
+                                <label class="hp-avail"><input type="checkbox" name="features[{{ $termKey }}][{{ $i }}][is_available]" value="1" {!! $feature['is_available'] ? 'checked' : '' !!}> <span class="hp-avail-text">{{ $feature['is_available'] ? 'Available' : 'Crossed' }}</span></label>
+                                <div class="hp-btn-group"><button type="button" class="hp-move" data-dir="-1" title="Move up">&uarr;</button><button type="button" class="hp-move" data-dir="1" title="Move down">&darr;</button><button type="button" class="hp-del" title="Remove">&times;</button></div>
+                                <input type="hidden" name="features[{{ $termKey }}][{{ $i }}][group]" value="{{ $groupKey }}">
+                                <input type="hidden" name="features[{{ $termKey }}][{{ $i }}][feature_key]" value="{{ $feature['feature_key'] }}">
+                            </div>
+                        @endforeach
+                        </div>
+                        <div class="hp-addrow"><button type="button" class="hp-add-row" data-group="{{ $groupKey }}" data-next="{{ $hpIndex }}">+ Add row</button></div>
+                    @endforeach
+                    </div>
+                </div>
+                @endforeach
             </section>
 
             <div class="hp-save">
-                <button class="checkout-submit" type="submit">{{ $plan ? 'Save plan card' : 'Create plan card' }} <b>→</b></button>
-                <a href="{{ route('admin.hosting.plans', ['type' => $type, 'term' => $returnTerm ?? 'monthly']) }}" style="font-size:12px;color:#8190a1;font-weight:700;text-decoration:none">Cancel</a>
+                <button class="checkout-submit" type="submit">{{ $plan ? 'Save card' : 'Create card' }} <b>&rarr;</b></button>
+                <a href="{{ $listUrl }}" style="font-size:12px;color:#8190a1;font-weight:700;text-decoration:none">Cancel</a>
             </div>
         </form>
     </div>
 </main>
 <script>
 (function () {
-    var firstWrap = document.querySelector('.hp-rows');
-    if (!firstWrap) return;
-    var idx = document.querySelectorAll('.hp-row').length;
+    var rowIndex = {};
 
-    // Mirrors the server-side split in HostingPlanService::leadAndRest():
-    // "20 GB NVMe storage" -> bold "20 GB", regular "NVMe storage".
     function updatePreview(input) {
         var preview = input.closest('.hp-line-cell').querySelector('.hp-preview');
-        if (!preview) return;
         var line = input.value.trim();
+        if (!line) { preview.textContent = ''; return; }
         var match = line.match(/^(\d[\d.,]*(?:\s*(?:GB|MB|TB|Mbps|Core|Cores))?)(?:\s+(.*))?$/i);
-        if (!line) { preview.innerHTML = ''; return; }
+        preview.textContent = '';
+        preview.appendChild(document.createTextNode('renders as: '));
+        var bold = document.createElement('b');
         if (match && match[2]) {
-            preview.innerHTML = 'renders as: <b>' + match[1] + '</b> ' + match[2];
+            bold.textContent = match[1];
+            preview.appendChild(bold);
+            preview.appendChild(document.createTextNode(' ' + match[2]));
         } else {
-            preview.innerHTML = 'renders as: <b>' + line + '</b>';
+            bold.textContent = line;
+            preview.appendChild(bold);
         }
     }
 
     function wireRow(row) {
-        row.querySelectorAll('.hp-line-cell input[type=text]').forEach(function (input) {
+        var input = row.querySelector('.hp-line-cell input[type=text]');
+        if (input) {
             input.addEventListener('input', function () { updatePreview(input); });
             input.addEventListener('focus', function () { updatePreview(input); });
-            input.addEventListener('blur', function () {
-                input.closest('.hp-line-cell').querySelector('.hp-preview').innerHTML = '';
-            });
-        });
+            input.addEventListener('blur', function () { row.querySelector('.hp-preview').textContent = ''; });
+        }
         var avail = row.querySelector('.hp-avail input');
         if (avail) {
             avail.addEventListener('change', function () {
@@ -190,52 +218,79 @@
         }
     }
 
-    document.querySelectorAll('.hp-row').forEach(wireRow);
-
-    // Each group ("Core resources" / "Extra features") gets its own rows —
-    // a new row is appended to the group whose + Add row was clicked.
-    function newRow(group, wrap) {
-        var div = document.createElement('div');
-        div.className = 'hp-row';
-        div.innerHTML =
-            '<div class="hp-line-cell">' +
-            '<input type="text" name="features[' + idx + '][line]" placeholder="e.g. 20 GB NVMe storage">' +
-            '<div class="hp-preview"></div></div>' +
-            '<label class="hp-avail"><input type="checkbox" name="features[' + idx + '][is_available]" value="1" checked> <span class="hp-avail-text">Available</span></label>' +
-            '<div class="hp-btn-group"><button type="button" class="hp-move" data-dir="-1" title="Move up">\u2191</button><button type="button" class="hp-move" data-dir="1" title="Move down">\u2193</button><button type="button" class="hp-del" title="Remove row">\u2715</button></div>' +
-            '<input type="hidden" name="features[' + idx + '][group]" value="' + group + '">' +
-            '<input type="hidden" name="features[' + idx + '][feature_key]" value="">';
-        wrap.appendChild(div);
-        wireRow(div);
-        idx++;
+    function el(tag, attrs) {
+        var node = document.createElement(tag);
+        Object.keys(attrs || {}).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+        return node;
     }
 
-    document.querySelectorAll('.hp-add-row').forEach(function (button) {
-        button.addEventListener('click', function () {
-            var group = button.dataset.group;
-            var wrap = button.closest('.hp-form-panel').querySelector('.hp-rows[data-group="' + group + '"]');
-            if (wrap) newRow(group, wrap);
+    function newRow(pane, group, wrap) {
+        var term = pane.dataset.pane;
+        var key = term;
+        rowIndex[key] = (rowIndex[key] || 0);
+        var n = 1000 + rowIndex[key]++;
+        var base = 'features[' + term + '][' + n + ']';
+        var row = el('div', {'class': 'hp-row'});
+        var cell = el('div', {'class': 'hp-line-cell'});
+        cell.appendChild(el('input', {type: 'text', name: base + '[line]', placeholder: 'e.g. 20 GB NVMe storage'}));
+        cell.appendChild(el('div', {'class': 'hp-preview'}));
+        var label = el('label', {'class': 'hp-avail'});
+        var box = el('input', {type: 'checkbox', name: base + '[is_available]', value: '1'});
+        box.checked = true;
+        var txt = el('span', {'class': 'hp-avail-text'});
+        txt.textContent = 'Available';
+        label.appendChild(box);
+        label.appendChild(document.createTextNode(' '));
+        label.appendChild(txt);
+        var btns = el('div', {'class': 'hp-btn-group'});
+        [['hp-move', '-1', '\u2191'], ['hp-move', '1', '\u2193'], ['hp-del', '', '\u00d7']].forEach(function (b) {
+            var button = el('button', {type: 'button', 'class': b[0]});
+            if (b[1]) { button.dataset.dir = b[1]; }
+            button.textContent = b[2];
+            btns.appendChild(button);
+        });
+        row.appendChild(cell);
+        row.appendChild(label);
+        row.appendChild(btns);
+        row.appendChild(el('input', {type: 'hidden', name: base + '[group]', value: group}));
+        row.appendChild(el('input', {type: 'hidden', name: base + '[feature_key]', value: ''}));
+        wrap.appendChild(row);
+        wireRow(row);
+    }
+
+    document.querySelectorAll('.hp-row').forEach(wireRow);
+
+    document.querySelectorAll('.hp-ftab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            document.querySelectorAll('.hp-ftab').forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+            document.querySelectorAll('.hp-pane').forEach(function (p) { p.hidden = p.dataset.pane !== tab.dataset.pane; });
         });
     });
 
-    firstWrap.closest('.hp-form-panel').addEventListener('click', function (event) {
-        var button = event.target.closest('button');
-        if (!button) return;
-        if (button.classList.contains('hp-add-row')) return; // handled above
-        var row = button.closest('.hp-row');
-        if (!row) return;
-        if (button.classList.contains('hp-del')) {
-            row.remove();
-            return;
-        }
-        if (button.classList.contains('hp-move')) {
-            // Up/down stays inside the row's own group container.
-            if (button.dataset.dir === '-1' && row.previousElementSibling) {
-                row.parentNode.insertBefore(row, row.previousElementSibling);
-            } else if (button.dataset.dir === '1' && row.nextElementSibling) {
-                row.parentNode.insertBefore(row.nextElementSibling, row);
+    document.querySelectorAll('.hp-same-box').forEach(function (box) {
+        box.addEventListener('change', function () { box.closest('.hp-pane').classList.toggle('is-same', box.checked); });
+    });
+
+    document.querySelectorAll('.hp-pane').forEach(function (pane) {
+        pane.addEventListener('click', function (event) {
+            var button = event.target.closest('button');
+            if (!button) return;
+            if (button.classList.contains('hp-add-row')) {
+                var wrap = pane.querySelector('.hp-rows[data-group="' + button.dataset.group + '"]');
+                if (wrap) newRow(pane, button.dataset.group, wrap);
+                return;
             }
-        }
+            var row = button.closest('.hp-row');
+            if (!row) return;
+            if (button.classList.contains('hp-del')) { row.remove(); return; }
+            if (button.classList.contains('hp-move')) {
+                if (button.dataset.dir === '-1' && row.previousElementSibling) {
+                    row.parentNode.insertBefore(row, row.previousElementSibling);
+                } else if (button.dataset.dir === '1' && row.nextElementSibling) {
+                    row.parentNode.insertBefore(row.nextElementSibling, row);
+                }
+            }
+        });
     });
 })();
 </script>
