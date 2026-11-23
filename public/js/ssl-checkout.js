@@ -13,6 +13,9 @@
         var state = field.querySelector('.sslx-field-state');
         var wildcardPlan = input.getAttribute('data-wildcard') === '1';
         var defaultHint = hint.getAttribute('data-default') || '';
+        // Other flows (hosting) reuse this script and set their own wording.
+        var validPrefix = hint.getAttribute('data-valid-prefix') || 'Certificate will be issued for';
+        var wildMessage = hint.getAttribute('data-wild-message') || 'A wildcard name (*.) needs a Wildcard SSL plan.';
         // Same rule as App\Services\SslOrderService::DOMAIN_PATTERN.
         var pattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})$/i;
 
@@ -46,9 +49,9 @@
 
             if (valid) {
                 var shown = wildcardPlan ? '*.' + parsed.name : parsed.name;
-                setHint('Certificate will be issued for <strong>' + escapeHtml(shown) + '</strong>');
+                setHint(escapeHtml(validPrefix) + ' <strong>' + escapeHtml(shown) + '</strong>');
             } else if (!wildcardPlan && parsed.wild) {
-                setHint('A wildcard name (*.) needs a Wildcard SSL plan.');
+                setHint(escapeHtml(wildMessage));
             } else {
                 setHint(defaultHint);
             }
@@ -111,7 +114,8 @@
             if (details) {
                 details.hidden = !(customer && verified);
             }
-            if (submit) {
+            // data-locked: the button stays disabled (e.g. hosting: payment not connected yet).
+            if (submit && submit.getAttribute('data-locked') !== '1') {
                 submit.disabled = customer && !verified;
             }
         };
@@ -181,7 +185,7 @@
                 var trigger = document.createElement('button');
                 trigger.type = 'button';
                 trigger.className = 'coming-soon-trigger';
-                trigger.setAttribute('data-service', 'SSL Certificate ordering');
+                trigger.setAttribute('data-service', checkout.getAttribute('data-service') || 'SSL Certificate ordering');
                 trigger.hidden = true;
                 (submit || checkout).parentNode.appendChild(trigger);
                 trigger.click();

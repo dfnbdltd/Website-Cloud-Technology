@@ -17,8 +17,10 @@
         </details>
         <a href="{{ route('cart.index') }}">Cart <b class="site-count">{{ count(session('domain_cart', [])) }}</b></a>
         <a href="{{ route('support') }}">Support Tickets</a>
+        @if(config('services.wallet_enabled'))
         <a href="{{ route('wallet.index') }}">Wallet</a>
         <a href="{{ route('wallet.index') }}#add-balance">Add Balance</a>
+        @endif
     </nav>
 </details>
 <script>

@@ -58,8 +58,8 @@ class MyStorePagesTest extends TestCase
             ->assertSee('No invoices yet.')
             ->assertSee('No payments yet.');
 
-        // Balance cards belong to the overview.
-        $response->assertSee('AVAILABLE BALANCE')->assertSee('PAID TO DATE');
+        // The wallet balance card is hidden while WALLET_ENABLED is off; the paid-to-date card stays.
+        $response->assertDontSee('AVAILABLE BALANCE')->assertSee('PAID TO DATE');
     }
 
     public function testOverviewFillsTheCardsThatHoldSomething()

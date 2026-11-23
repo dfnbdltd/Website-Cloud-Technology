@@ -88,7 +88,7 @@
         </div>
         <div class="hosting-plan-buy{{ $plan['terms']['monthly'] ? '' : ' is-coming-soon' }}">
             <span class="hosting-plan-price">৳<span class="hosting-price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}" data-soon-monthly="{{ $plan['terms']['monthly'] ? 'false' : 'true' }}" data-soon-yearly="{{ $plan['terms']['yearly'] ? 'false' : 'true' }}" data-soon-twoyear="{{ $plan['terms']['twoYear'] ? 'false' : 'true' }}" data-soon-threeyear="{{ $plan['terms']['threeYear'] ? 'false' : 'true' }}">{{ $plan['terms']['monthly'] ? number_format($plan['prices']['monthly']) : 'Coming soon' }}</span><small class="hosting-price-unit"> /month</small></span>
-            <a class="hosting-buy-btn" href="{{ route('support') }}" {!! $plan['terms']['monthly'] ? '' : 'aria-disabled="true"' !!}>{{ $plan['terms']['monthly'] ? 'Buy now' : 'Coming soon' }}</a>
+            <a class="hosting-buy-btn" href="{{ route('hosting.connect', ['region' => $region, 'type' => $type, 'plan' => $plan['id'], 'period' => 'monthly']) }}" data-base-href="{{ route('hosting.connect', ['region' => $region, 'type' => $type, 'plan' => $plan['id']]) }}" {!! $plan['terms']['monthly'] ? '' : 'aria-disabled="true"' !!}>{{ $plan['terms']['monthly'] ? 'Buy now' : 'Coming soon' }}</a>
             <a class="hosting-more-btn" href="{{ $publicUrl }}">See more</a>
         </div>
     </div>
@@ -184,7 +184,7 @@ $tr0 = $em['threeYear'] ?? $m0;
 <tr>
 <th></th>
 @foreach($plans as $plan)
-<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><a class="hosting-buy-btn hosting-compare-buy" href="{{ route('support') }}" {!! $plan['terms']['monthly'] ? '' : 'aria-disabled="true"' !!}>{{ $plan['terms']['monthly'] ? 'Buy now' : 'Coming soon' }}</a></td>
+<td class="{{ $plan['badge'] === 'Most popular' ? 'is-featured' : '' }}"><a class="hosting-buy-btn hosting-compare-buy" href="{{ route('hosting.connect', ['region' => $region, 'type' => $type, 'plan' => $plan['id'], 'period' => 'monthly']) }}" data-base-href="{{ route('hosting.connect', ['region' => $region, 'type' => $type, 'plan' => $plan['id']]) }}" {!! $plan['terms']['monthly'] ? '' : 'aria-disabled="true"' !!}>{{ $plan['terms']['monthly'] ? 'Buy now' : 'Coming soon' }}</a></td>
 @endforeach
 </tr>
 </tbody>
@@ -194,7 +194,7 @@ $tr0 = $em['threeYear'] ?? $m0;
 @else
 <div class="hosting-compare-wrap"><h2 class="hosting-compare-title">Plans coming soon</h2><p class="workspace-subtitle">We are preparing {{ $title }} plans. Check back soon, or <a href="{{ route('support') }}">contact support</a>.</p></div>
 @endif
-<p class="workspace-subtitle" style="margin-top:16px">Buying opens a support request — our team confirms and provisions your {{ strtolower($title) }} plan.</p>
+<p class="workspace-subtitle" style="margin-top:16px">Choose a plan, connect your domain name and check out.</p>
 </div>
 </main>
 
@@ -226,6 +226,7 @@ $tr0 = $em['threeYear'] ?? $m0;
             wrap.classList.toggle('is-coming-soon',soon);
             buy.setAttribute('aria-disabled',soon?'true':'false');
             buy.textContent=soon?'Coming soon':'Buy now';
+            buy.setAttribute('href',soon||!buy.dataset.baseHref?'#':buy.dataset.baseHref+(buy.dataset.baseHref.indexOf('?')>-1?'&':'?')+'period='+encodeURIComponent(period));
             // Plan name + specs summary follow the billing term too.
             var nameEl=row.querySelector('.hosting-plan-name');
             if(nameEl){var termName=nameEl.dataset[period+'Name'];if(termName!==undefined){nameEl.textContent=termName;}}
@@ -257,6 +258,7 @@ $tr0 = $em['threeYear'] ?? $m0;
             if(!buy){return;}
             buy.setAttribute('aria-disabled',soon?'true':'false');
             buy.textContent=soon?'Coming soon':'Buy now';
+            buy.setAttribute('href',soon||!buy.dataset.baseHref?'#':buy.dataset.baseHref+(buy.dataset.baseHref.indexOf('?')>-1?'&':'?')+'period='+encodeURIComponent(period));
         });
     }
     tabs.forEach(function(tab){tab.addEventListener('click',function(){select(tab);});});

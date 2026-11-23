@@ -5,20 +5,24 @@
 
     <span class="domain-kicker">MY STORE</span>
     <h1 class="workspace-title">Everything of yours, in one place.</h1>
-    <p class="workspace-subtitle">Domains, hosting, invoices, payments and your available balance — all seven sections, always listed, filled in as you buy.</p>
+    <p class="workspace-subtitle">Domains, hosting, invoices and payments — all your sections, always listed, filled in as you buy.</p>
 
     <div class="store-balance-row" id="balance">
+        @if(config('services.wallet_enabled'))
         <div class="balance-card">
             <small>AVAILABLE BALANCE</small>
             <strong>৳ {{ number_format(session('customer.balance', 0), 2) }}</strong>
             <span>{{ $pendingTopup ? $pendingTopup . ' top-up awaiting approval' : 'Top up instantly with bKash' }}</span>
         </div>
+        @endif
         <div class="balance-card alt">
             <small>PAID TO DATE</small>
             <strong>৳ {{ number_format($paidTotal, 2) }}</strong>
             <span>{{ $domainCount }} domain order{{ $domainCount === 1 ? '' : 's' }} placed</span>
         </div>
+        @if(config('services.wallet_enabled'))
         <a class="add-balance-toggle button-like" href="{{ route('wallet.index') }}#add-balance">＋ Add Balance</a>
+        @endif
     </div>
 
     <div class="store-section-head">

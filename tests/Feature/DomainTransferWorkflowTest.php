@@ -31,6 +31,7 @@ class DomainTransferWorkflowTest extends TestCase
     public function testPaidTransferIsSubmittedToResellerClubAndEppCodeIsEncrypted()
     {
         config([
+            'services.wallet_enabled' => true,
             'services.resellerclub.customer_id' => 'reseller-customer',
             'services.resellerclub.reg_contact_id' => 'registration-contact',
             'services.resellerclub.admin_contact_id' => 'admin-contact',

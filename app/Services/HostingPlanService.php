@@ -157,6 +157,8 @@ class HostingPlanService
 
         foreach ($rows as $row) {
             $plans[] = [
+                // Stable id the checkout flow uses to find this card again.
+                'id' => (string) $row->id,
                 'name' => $row->name,
                 'names' => [
                     'monthly' => $row->name,
@@ -387,6 +389,7 @@ class HostingPlanService
             }
 
             $plans[] = [
+                'id' => \Illuminate\Support\Str::slug($def[0]),
                 'name' => $def[0],
                 'names' => ['monthly' => $def[0], 'yearly' => $def[0], 'twoYear' => $def[0], 'threeYear' => $def[0]],
                 'class' => $def[1],
@@ -489,6 +492,7 @@ class HostingPlanService
             }
 
             $plans[] = [
+                'id' => \Illuminate\Support\Str::slug($def[0]),
                 'name' => $def[0],
                 'names' => ['monthly' => $def[0], 'yearly' => $def[0], 'twoYear' => $def[0], 'threeYear' => $def[0]],
                 'class' => $def[1],

@@ -286,7 +286,7 @@ class DomainController extends Controller
             && !empty($accountDetails['email']);
         $methods = $this->payments->methods();
         $defaultPaymentMethod = key($methods);
-        if ($user) {
+        if ($user && config('services.wallet_enabled')) {
             $methods = ['wallet' => [
                 'label' => 'Wallet balance · ৳ ' . number_format((float) $user->balance, 2),
                 'description' => 'Pay using your available account balance',
@@ -339,7 +339,7 @@ class DomainController extends Controller
             }
         }
         $allowedMethods = array_keys($this->payments->methods());
-        if ($user) {
+        if ($user && config('services.wallet_enabled')) {
             array_unshift($allowedMethods, 'wallet');
         }
         $purchaseFor = $request->input('purchase_for');

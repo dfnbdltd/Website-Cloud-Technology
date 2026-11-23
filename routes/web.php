@@ -13,6 +13,7 @@ use App\Http\Controllers\HostingController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyStoreController;
 use App\Http\Controllers\SslCheckoutController;
+use App\Http\Controllers\HostingCheckoutController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     $trustItems = array_values(array_filter(array_map('trim', explode(',', (string) \App\Models\Setting::get('trust_items')))));
@@ -72,6 +73,17 @@ Route::get('/services/{service}', function (string $service) {
         'backUrl' => $back,
     ]);
 })->name('services.coming-soon');
+
+// Hosting purchase: connect a domain name -> checkout. Both pages are public (a guest
+// sees the BDT price, then signs in and comes back to checkout); only the customer
+// lookup needs a signed-in customer. Payment is not connected yet, so there is no
+// order-placing route. Declared before /hosting/{region}/{type} on purpose.
+Route::get('/hosting/connect', [HostingCheckoutController::class, 'connect'])->name('hosting.connect');
+Route::post('/hosting/connect', [HostingCheckoutController::class, 'storeDomain'])->middleware('throttle:30,1')->name('hosting.connect.store');
+Route::get('/hosting/checkout', [HostingCheckoutController::class, 'checkout'])->name('hosting.checkout');
+Route::post('/hosting/checkout/customer', [HostingCheckoutController::class, 'lookupCustomer'])
+    ->middleware(['customer', 'throttle:10,1'])
+    ->name('hosting.customer.lookup');
 
 // Hosting menu: Local Hosting / USA Hosting (each with shared, vps, dedicated) and WordPress Hosting.
 Route::get('/hosting/wordpress', [HostingController::class, 'wordpress'])->name('hosting.wordpress');

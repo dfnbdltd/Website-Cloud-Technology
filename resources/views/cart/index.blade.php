@@ -70,7 +70,7 @@
                         account, or <a href="{{ route('register') }}">create one</a>.</p>@endunless
                     <div class="cart-trust"><span>✓</span>
                         <p>Secure
-                            checkout<br><small>{{ session('customer') ? 'Pay with bKash or your wallet balance' : 'Pay securely without creating an account' }}</small>
+                            checkout<br><small>{{ session('customer') ? (config('services.wallet_enabled') ? 'Pay with bKash or your wallet balance' : 'Pay with bKash or Nagad') : 'Pay securely without creating an account' }}</small>
                         </p>
                     </div>
                 </aside>

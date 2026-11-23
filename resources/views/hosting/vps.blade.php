@@ -567,7 +567,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
           <h3 class="plan-circle {{ $plan['class'] }}" data-monthly-name="{{ $plan['names']['monthly'] }}" data-yearly-name="{{ $plan['names']['yearly'] }}" data-two-year-name="{{ $plan['names']['twoYear'] }}" data-three-year-name="{{ $plan['names']['threeYear'] }}">{{ $plan['names']['monthly'] }}</h3>
           <p class="plan-description">{{ $plan['description'] }}</p>
           <div class="price"><span class="currency">&#2547;</span><span class="price-value" data-monthly="{{ $plan['prices']['monthly'] }}" data-yearly="{{ $plan['prices']['yearly'] }}" data-two-year="{{ $plan['prices']['twoYear'] }}" data-three-year="{{ $plan['prices']['threeYear'] }}" data-soon-monthly="{{ $plan['terms']['monthly'] ? 'false' : 'true' }}" data-soon-yearly="{{ $plan['terms']['yearly'] ? 'false' : 'true' }}" data-soon-twoyear="{{ $plan['terms']['twoYear'] ? 'false' : 'true' }}" data-soon-threeyear="{{ $plan['terms']['threeYear'] ? 'false' : 'true' }}">{{ $plan['terms']['monthly'] ? $plan['prices']['monthly'] : 'Coming soon' }}</span><small class="price-unit">/ month</small></div>
-          <a class="purchase-button" href="{{ route('register') }}">
+          <a class="purchase-button" href="{{ route('hosting.connect', ['region' => $region, 'type' => $type, 'plan' => $plan['id']]) }}">
             <span data-monthly-label="Get {{ $plan['names']['monthly'] }}" data-yearly-label="Get {{ $plan['names']['yearly'] }}" data-two-year-label="Get {{ $plan['names']['twoYear'] }}" data-three-year-label="Get {{ $plan['names']['threeYear'] }}">Get {{ $plan['names']['monthly'] }}</span>
           </a>
           <ul>

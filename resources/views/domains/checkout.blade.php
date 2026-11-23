@@ -109,6 +109,11 @@
         .buyfor-status.is-bad { color:#d93a3a; }
         .buyfor-details { display:block; margin-top:10px; padding:12px 14px; border:1px solid #d6ebdf; border-radius:11px; background:#f4fcf8; }
         .buyfor-details[hidden] { display:none; }
+        /* "Myself" details sit directly under the Myself option, before Customer. */
+        .buyfor .checkout-contact-section { margin:10px 0 0; }
+        .buyfor .checkout-contact-section .checkout-account-summary { margin:0; }
+        .buyfor .checkout-contact-section h2 { margin:6px 0 10px; font-size:15px; }
+        .buyfor .checkout-contact-section .checkout-fields { margin-bottom:4px; }
         .buyfor-details-title { display:block; margin-bottom:7px; color:#21815d; font:800 10.5px 'DM Sans',sans-serif; letter-spacing:.8px; text-transform:uppercase; }
         .buyfor-detail { display:flex; gap:12px; padding:3px 0; font-size:13px; line-height:1.5; }
         .buyfor-detail-label { flex:none; width:58px; color:#6f9b88; font-weight:700; }
@@ -221,6 +226,27 @@
                             <span><strong>Myself</strong><small>{{ $accountDetails['email'] }}</small></span>
                         </span>
                     </label>
+                    <section
+                        class="checkout-contact-section"
+                        id="checkoutContactSection"
+                        data-account-details-complete="{{ $accountDetailsComplete ? 'true' : 'false' }}"
+                    >
+                        @if($accountDetailsComplete)
+                            <div class="checkout-account-summary" id="checkoutAccountSummary">
+                                <strong>{{ $accountDetails['name'] }}</strong>
+                                <span>{{ $accountDetails['email'] }}</span>
+                                @if($accountDetails['phone'])<span>{{ $accountDetails['phone'] }}</span>@endif
+                                <small>Using your account details</small>
+                            </div>
+                        @else
+                            <h2>Contact details</h2>
+                            <div class="checkout-fields" id="checkoutContactFields">
+                                <label>Full name<input name="full_name" value="{{ old('full_name', $accountDetails['name']) }}" required></label>
+                                <label>Email address<input name="email" type="email" value="{{ old('email', $accountDetails['email']) }}" autocomplete="email" required></label>
+                                <label>Phone number<input name="phone" type="tel" value="{{ old('phone', $accountDetails['phone']) }}" placeholder="01XXXXXXXXX" required></label>
+                            </div>
+                        @endif
+                    </section>
                     <label class="buyfor-choice">
                         <span class="buyfor-row">
                             <input type="radio" name="purchase_for" value="customer" {{ $purchaseFor === 'customer' ? 'checked' : '' }}>
@@ -244,27 +270,6 @@
                     </label>
                 </section>
 
-                <section
-                    class="checkout-contact-section"
-                    id="checkoutContactSection"
-                    data-account-details-complete="{{ $accountDetailsComplete ? 'true' : 'false' }}"
-                >
-                    @if($accountDetailsComplete)
-                        <div class="checkout-account-summary" id="checkoutAccountSummary">
-                            <strong>{{ $accountDetails['name'] }}</strong>
-                            <span>{{ $accountDetails['email'] }}</span>
-                            @if($accountDetails['phone'])<span>{{ $accountDetails['phone'] }}</span>@endif
-                            <small>Using your account details</small>
-                        </div>
-                    @else
-                        <h2>Contact details</h2>
-                        <div class="checkout-fields" id="checkoutContactFields">
-                            <label>Full name<input name="full_name" value="{{ old('full_name', $accountDetails['name']) }}" required></label>
-                            <label>Email address<input name="email" type="email" value="{{ old('email', $accountDetails['email']) }}" autocomplete="email" required></label>
-                            <label>Phone number<input name="phone" type="tel" value="{{ old('phone', $accountDetails['phone']) }}" placeholder="01XXXXXXXXX" required></label>
-                        </div>
-                    @endif
-                </section>
                 <h2>Choose payment method</h2>
                 <div class="payment-options">
                     @php($walletEmpty = (float) session('customer.balance', 0) <= 0)

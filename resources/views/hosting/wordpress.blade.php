@@ -93,7 +93,7 @@
                                 @endif
                             </div>
                             @if($wpActive)
-                                <a class="wp-cta" href="{{ route('register', ['period' => $wpSlugs[$wpKey]]) }}">Get started</a>
+                                <a class="wp-cta" href="{{ route('hosting.connect', ['region' => 'wordpress', 'type' => 'wordpress', 'plan' => $plan['id'], 'period' => $wpKey]) }}">Get started</a>
                             @else
                                 <span class="wp-cta is-disabled" aria-disabled="true">Not available yet</span>
                             @endif

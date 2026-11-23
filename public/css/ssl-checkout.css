@@ -290,6 +290,27 @@
 .sslx-choice strong { display: block; font-size: 15.5px; }
 .sslx-choice small { display: block; margin-top: 2px; color: var(--x-body); font-size: 13.5px; word-break: break-all; }
 
+/* "Myself" account details: shown right under the Myself option, before Customer.
+   Used by the SSL and hosting checkouts. Hidden while Customer is selected. */
+.sslx-myself {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 10px 0 0;
+    padding: 14px 18px;
+    border: 1.5px solid #d6ebdf;
+    border-radius: 14px;
+    background: #f4fcf8;
+    font-size: 14px;
+}
+.sslx-myself strong { font-size: 15.5px; color: var(--x-ink); }
+.sslx-myself span { color: var(--x-body); word-break: break-all; }
+.sslx-myself small { margin-top: 4px; color: var(--x-green); font-size: 12.5px; font-weight: 700; }
+.sslx-card:has(input[value="customer"]:checked) .sslx-myself { display: none; }
+
+/* Place order stays locked until the payment gateway is connected */
+.sslx-submit:disabled, .sslx-submit.is-locked { opacity: .55; cursor: not-allowed; box-shadow: none; transform: none; }
+
 .sslx-customer { display: none; margin: 14px 0 0 30px; }
 .sslx-choice:has(input:checked) .sslx-customer { display: block; }
 .sslx-customer-row { display: flex; gap: 10px; }

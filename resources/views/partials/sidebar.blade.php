@@ -47,8 +47,10 @@
         </div>
         <a data-sidebar-label="Cart" {!! $active === 'cart' ? 'class="active"' : '' !!} href="{{ route('cart.index') }}"><b>🛒</b><span>Cart</span> @if(count(session('domain_cart', [])))<i class="nav-count">{{ count(session('domain_cart', [])) }}</i>@endif</a>
         <a data-sidebar-label="Support Tickets" {!! $active === 'support' ? 'class="active"' : '' !!} href="{{ route('support') }}"><b>↪</b><span>Support Tickets</span></a>
+        @if(config('services.wallet_enabled'))
         <a data-sidebar-label="Wallet" {!! $walletActive ? 'class="active"' : '' !!} href="{{ route('wallet.index') }}"><b>৳</b><span>Wallet</span> @if(session('customer'))<i class="nav-count nav-balance">৳{{ number_format(session('customer.balance', 0)) }}</i>@endif</a>
         <a data-sidebar-label="Add Balance" {!! $active === 'add-balance' ? 'class="active"' : '' !!} href="{{ route('wallet.index') }}#add-balance"><b>＋</b><span>Add Balance</span></a>
+        @endif
     </nav>
 </aside>
 <button class="sidebar-backdrop" type="button" aria-label="Close navigation menu" onclick="document.getElementById('clientSidebar').classList.remove('mobile-open');document.querySelector('.sidebar-toggle').setAttribute('aria-expanded','false')"></button>

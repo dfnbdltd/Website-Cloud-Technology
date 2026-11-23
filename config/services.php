@@ -128,4 +128,8 @@ return [
     // Set SSL_CHECKOUT_ENABLED=true in .env to open it.
     'ssl_checkout_enabled' => env('SSL_CHECKOUT_ENABLED', false),
 
+    // Customer wallet (pay-with-wallet at checkout, balance in the menus, Add Balance links).
+    // Hidden for now. Set WALLET_ENABLED=true in .env to show it everywhere again.
+    'wallet_enabled' => env('WALLET_ENABLED', false),
+
 ];

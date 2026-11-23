@@ -59,6 +59,14 @@
                             </span>
                         </label>
 
+                        {{-- Your own details, right under "Myself" and before "Customer". --}}
+                        <div class="sslx-myself" id="sslMyself">
+                            <strong>{{ $user->name }}</strong>
+                            <span>{{ $user->email }}</span>
+                            @if($user->phone)<span>{{ $user->phone }}</span>@endif
+                            <small>Using your account details</small>
+                        </div>
+
                         <label class="sslx-choice">
                             <span class="sslx-choice-row">
                                 <input type="radio" name="purchase_for" value="customer" {{ $purchaseFor === 'customer' ? 'checked' : '' }}>

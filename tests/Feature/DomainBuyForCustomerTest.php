@@ -29,6 +29,9 @@ class DomainBuyForCustomerTest extends TestCase
         DomainOrder::resetPlacedByCache();
         Mail::fake();
 
+        // These tests exercise wallet payment, which is hidden by default.
+        config(['services.wallet_enabled' => true]);
+
         config(['services.test_domains' => [
             'example.com' => ['price' => 1200, 'renewal' => 1200],
         ]]);
