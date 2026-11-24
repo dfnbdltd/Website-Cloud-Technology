@@ -372,10 +372,14 @@ class MyStoreController extends Controller
     {
         $inventory = $this->inventory($request);
 
+        $hostingOrders = $inventory->paidHostingOrders();
+
         return view('store.invoices', [
             'section' => StoreInventory::section('invoices'),
             'orders' => $inventory->paidOrders(),
             'invoiceMap' => $inventory->invoiceMap(),
+            'hostingOrders' => $hostingOrders,
+            'hostingInvoiceMap' => $inventory->hostingInvoiceMap($hostingOrders),
         ]);
     }
 

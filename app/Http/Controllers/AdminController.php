@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\HostingHostedMail;
 use App\Mail\InvoiceMail;
 use App\Models\ChatMessage;
 use App\Models\DomainOrder;
+use App\Models\HostingOrder;
 use App\Models\HostingPlan;
 use App\Models\HostingPlanFeature;
 use App\Models\Invoice;
@@ -613,6 +615,79 @@ class AdminController extends Controller
             ->appends(['q' => $search]);
 
         return view('admin.invoices', ['invoices' => $invoices, 'search' => $search]);
+    }
+
+    /**
+     * Paid hosting orders: the ones waiting for the admin to set the hosting up
+     * on the server by hand come first, hosted ones after (domain, the
+     * customer's account email, plan, period, invoice number, date).
+     */
+    public function hostingOrders(Request $request)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        if (!Schema::hasTable('hosting_orders')) {
+            return view('admin.hosting-orders', ['orders' => null, 'invoices' => collect(), 'tableMissing' => true]);
+        }
+
+        $orders = HostingOrder::with('owner')
+            ->where('payment_status', 'paid')
+            ->whereIn('status', [HostingOrder::STATUS_PAID, HostingOrder::STATUS_AWAITING_SETUP, HostingOrder::STATUS_PROCESSING, HostingOrder::STATUS_HOSTED])
+            ->orderByRaw("CASE WHEN status = 'hosted' THEN 1 ELSE 0 END")
+            ->orderBy('paid_at')
+            ->orderBy('id')
+            ->paginate(25);
+
+        $invoices = Invoice::where('source_type', HostingOrder::class)
+            ->whereIn('source_id', $orders->pluck('id')->all())
+            ->get()
+            ->keyBy('source_id');
+
+        return view('admin.hosting-orders', ['orders' => $orders, 'invoices' => $invoices, 'tableMissing' => false]);
+    }
+
+    /**
+     * Step 7: the admin has set the hosting up on the server. Saves the time and
+     * the optional note (e.g. the cPanel username), marks the order Hosted and
+     * emails the customer (the owner's account email). Safe against a double
+     * click: a second request finds the order already hosted and does nothing.
+     */
+    public function markHostingOrderHosted(Request $request, $order)
+    {
+        if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
+
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:1000']]);
+        $note = trim((string) ($data['note'] ?? ''));
+
+        $firstTime = false;
+        $row = DB::transaction(function () use ($order, $note, &$firstTime) {
+            $row = HostingOrder::whereKey($order)->lockForUpdate()->firstOrFail();
+
+            if ($row->payment_status !== 'paid' || $row->isCancelled() || $row->isHosted()) {
+                return $row;
+            }
+
+            $row->forceFill([
+                'status' => HostingOrder::STATUS_HOSTED,
+                'hosted_at' => now(),
+                'admin_note' => $note !== '' ? $note : null,
+            ])->save();
+            $firstTime = true;
+
+            return $row;
+        });
+
+        if (!$firstTime) {
+            return redirect()->route('admin.hosting.orders')
+                ->withErrors(['hosting' => $row->domain . ' cannot be marked as hosted (it is already hosted, unpaid or cancelled).']);
+        }
+
+        $owner = User::find($row->user_id);
+        $to = $owner && $owner->email ? $owner->email : $row->customer_email;
+        $sent = $to ? Notifier::send($to, new HostingHostedMail($row->fresh())) : false;
+
+        return redirect()->route('admin.hosting.orders')->with('success',
+            $row->domain . ' is now Hosted.' . ($sent ? ' The customer was emailed at ' . $to . '.' : ' The email to the customer could not be sent - check the mail log.'));
     }
 
     public function showInvoice(Request $request, Invoice $invoice)

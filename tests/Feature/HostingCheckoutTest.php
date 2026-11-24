@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 /**
  * Hosting purchase flow: plan card → connect domain name → checkout.
- * Payment is NOT connected yet, so Place order is locked and nothing is saved.
+ * Place order (bKash) now saves the order; see HostingBkashController for the payment flow.
  *
  * Also covers the "hide the wallet for now" switch (services.wallet_enabled)
  * and the Myself details card that sits under the Myself option.
@@ -245,8 +245,8 @@ class HostingCheckoutTest extends TestCase
             ->assertSee('Who are you buying for?')
             ->assertSee('Using your account details')
             ->assertSee('Email or ID of existing customer')
-            ->assertSee('Payment coming soon')
-            ->assertSee('data-locked="1"', false)
+            ->assertSee('Place order')
+            ->assertSee(route('hosting.place-order'), false)
             ->assertSee('Server location')
             ->assertSee(HostingOrderService::money($plan->price_monthly));
 

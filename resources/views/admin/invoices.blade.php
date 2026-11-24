@@ -77,7 +77,7 @@
                                 $clientEmail = $invoice->user ? $invoice->user->email : (isset($source->customer_email) ? $source->customer_email : 'Customer record unavailable');
                                 $clientPhone = $invoice->user ? $invoice->user->phone : (isset($source->customer_phone) ? $source->customer_phone : null);
                                 $domainItems = $invoice->items->filter(function ($item) {
-                                    return in_array($item->item_type, ['domain-registration', 'domain-renewal', 'domain-transfer'], true);
+                                    return in_array($item->item_type, ['domain-registration', 'domain-renewal', 'domain-transfer', 'hosting'], true);
                                 });
                                 $hasUnknownCost = $domainItems->contains(function ($item) {
                                     return $item->purchase_price === null;

@@ -266,7 +266,15 @@ class CustomerController extends Controller
             ->get()
             ->keyBy('source_id');
 
-        return view('billing.invoices', ['orders' => $orders, 'invoiceMap' => $invoiceMap]);
+        $inventory = new \App\Support\StoreInventory((int) session('customer.id'));
+        $hostingOrders = $inventory->paidHostingOrders();
+
+        return view('billing.invoices', [
+            'orders' => $orders,
+            'invoiceMap' => $invoiceMap,
+            'hostingOrders' => $hostingOrders,
+            'hostingInvoiceMap' => $inventory->hostingInvoiceMap($hostingOrders),
+        ]);
     }
 
     public function support(Request $request)

@@ -16,9 +16,13 @@
                         @endif
                     </p>
                 </div>
-                <span class="table-status {{ $item['invoice'] ? $item['invoice']->status : 'paid' }}">
-                    {{ ucfirst($item['invoice'] ? $item['invoice']->status : 'active') }}
-                </span>
+                @if(!empty($item['status_label']))
+                    <span class="table-status {{ $item['status_class'] }}">{{ $item['status_label'] }}</span>
+                @else
+                    <span class="table-status {{ $item['invoice'] ? $item['invoice']->status : 'paid' }}">
+                        {{ ucfirst($item['invoice'] ? $item['invoice']->status : 'active') }}
+                    </span>
+                @endif
             </header>
 
             <div class="store-facts">

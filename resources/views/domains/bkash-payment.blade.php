@@ -25,7 +25,10 @@
 .bkash-foot{padding:14px 22px;border-top:1px solid #eef0f5;background:#fff}
 .bkash-foot small{color:#8a90a3;font-size:12px}
 .bkash-foot a{font-size:13px;color:#3b62e0;text-decoration:none}
-</style></head><body class="domain-app">@php($backUrl = $backUrl ?? route('domains.confirmation', ['reference' => $order['reference']]))<main class="checkout-page">
+</style></head><body class="domain-app">@php
+    $backUrl = $backUrl ?? route('domains.confirmation', ['reference' => $order['reference']]);
+    $cancelUrl = $cancelUrl ?? route('domains.index');
+@endphp<main class="checkout-page">
 <a class="domain-brand checkout-brand" href="{{ route('domains.index') }}">@include('partials.logo', ['gid' => 'b'])</a>
 <div class="checkout-head"><div><span class="domain-kicker">SECURE PAYMENT</span><h1>{{ $heading ?? 'Pay with bKash.' }}</h1><p>Complete the payment in the official bKash window — wallet number, then the OTP and PIN.</p></div></div>
 
@@ -56,7 +59,7 @@
             </div>
             <div class="bkash-body">
                 <div class="bkash-error" style="display:block">bKash is not configured on this server yet. Your order is saved — our billing team will contact you with payment instructions for reference {{ $order['reference'] }}.</div>
-                <a class="checkout-submit bkash-cancel-link" style="display:inline-block" href="{{ route('domains.index') }}">Back <b>→</b></a>
+                <a class="checkout-submit bkash-cancel-link" style="display:inline-block" href="{{ $cancelUrl }}">Back <b>→</b></a>
             </div>
         </div>
     @else
@@ -75,7 +78,7 @@
             </div>
             <div class="bkash-foot">
                 <small>🔒 The payment window is provided by bKash. Never share your PIN outside this window.</small>
-                <a class="bkash-cancel-link" href="{{ route('domains.index') }}">{{ $backLabel ?? 'Cancel and go back →' }}</a>
+                <a class="bkash-cancel-link" href="{{ $cancelUrl }}">{{ $backLabel ?? 'Cancel and go back →' }}</a>
             </div>
         </div>
 
@@ -117,7 +120,7 @@
                     event.preventDefault();
                     link.style.pointerEvents = 'none';
                     setStatus('Cancelling checkout…', '');
-                    post('{{ route('bkash.cancel') }}').then(function (result) {
+                    post('{{ $endpoints['cancel'] ?? route('bkash.cancel') }}').then(function (result) {
                         window.location.href = result.data.redirect || link.href;
                     }).catch(function () {
                         window.location.href = link.href;
@@ -132,10 +135,10 @@
             }
 
             function cancelCheckout() {
-                post('{{ route('bkash.cancel') }}').then(function (result) {
-                    window.location.href = result.data.redirect || '{{ route('domains.index') }}';
+                post('{{ $endpoints['cancel'] ?? route('bkash.cancel') }}').then(function (result) {
+                    window.location.href = result.data.redirect || '{{ $cancelUrl }}';
                 }).catch(function () {
-                    window.location.href = '{{ route('domains.index') }}';
+                    window.location.href = '{{ $cancelUrl }}';
                 });
             }
 

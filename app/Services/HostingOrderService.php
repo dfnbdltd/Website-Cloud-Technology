@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\HostingOrder;
 use App\Models\HostingPlan;
+use App\User;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Prices a hosting selection for the connect-domain and checkout pages.
@@ -12,8 +15,8 @@ use App\Models\HostingPlan;
  * HostingPlanService on each page view, so a stale or tampered cart can never
  * change what the customer sees.
  *
- * This class stops at "selection priced". Payment and the order record come
- * later (the Place order button is locked until the gateway is connected).
+ * place() saves the order + its unpaid invoice (money frozen at that moment);
+ * the bKash payment is handled by HostingBkashController.
  */
 class HostingOrderService
 {
@@ -115,6 +118,53 @@ class HostingOrderService
         }
 
         return null;
+    }
+
+    /** Payment methods a hosting order can be placed with (Nagad comes later). */
+    const PAYMENT_METHODS = ['bkash'];
+
+    /**
+     * Save the order and its (unpaid) invoice. Money is frozen here, from the
+     * freshly re-derived quote - never from the browser.
+     *
+     * @param  array      $quote     result of quote()
+     * @param  string     $domain    already checked/normalised
+     * @param  \App\User $owner     whose hosting it is (the customer when buying for one)
+     * @param  \App\User $placedBy  who is checking out and paying
+     * @param  string     $method    one of PAYMENT_METHODS
+     * @return \App\Models\HostingOrder
+     */
+    public function place(array $quote, $domain, User $owner, User $placedBy, $method)
+    {
+        return DB::transaction(function () use ($quote, $domain, $owner, $placedBy, $method) {
+            $order = HostingOrder::create([
+                'reference' => 'HST-' . date('Ymd') . '-' . strtoupper(substr(sha1(uniqid('', true)), 0, 6)),
+                'user_id' => $owner->id,
+                'placed_by_user_id' => $placedBy->id,
+                'region' => $quote['region'],
+                'type' => $quote['type'],
+                'plan_id' => $quote['plan_id'],
+                'plan_name' => $quote['name'],
+                'product' => $quote['product'],
+                'period' => $quote['period'],
+                'period_label' => $quote['period_label'],
+                'months' => (int) $quote['months'],
+                'domain' => $domain,
+                'total' => $quote['total'],
+                'status' => HostingOrder::STATUS_PAYMENT_PENDING,
+                'payment_method' => $method,
+                'payment_status' => 'pending',
+                'provider' => $method,
+                // The owner's account email is used everywhere (invoice, mail, pages).
+                'customer_name' => $owner->name,
+                'customer_email' => $owner->email,
+                'customer_phone' => (string) $owner->phone,
+            ]);
+
+            app(InvoiceService::class)->createForHostingOrder($order);
+
+            return $order;
+        });
     }
 
     /** "Local Shared Hosting", "USA VPS Hosting", "WordPress Hosting". */

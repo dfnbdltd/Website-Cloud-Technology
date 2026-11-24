@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DomainOrder;
+use App\Models\HostingOrder;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
@@ -141,6 +142,93 @@ class InvoiceService
             'amount_paid' => $invoice->amount_paid > 0 ? $invoice->amount_paid : (float) $invoice->total,
             'paid_at' => now(),
         ])->save();
+    }
+
+    /**
+     * Invoice for a hosting order: unpaid until the bKash payment is confirmed,
+     * then flipped by markHostingOrderPaid(). The line's item_type starts with
+     * "hosting" so My Store → Web Hosting lists it once it is paid.
+     */
+    public function createForHostingOrder(HostingOrder $order): ?Invoice
+    {
+        if (!$order->exists) {
+            return null;
+        }
+
+        $existing = $this->findForSource(HostingOrder::class, $order->id);
+        if ($existing) {
+            return $existing;
+        }
+
+        $paid = $order->payment_status === 'paid';
+        // Whole years only (monthly = 0): the term is already priced into the total.
+        $years = intdiv((int) $order->months, 12);
+
+        return DB::transaction(function () use ($order, $paid, $years) {
+            $invoice = Invoice::create([
+                'invoice_number' => Invoice::generateNumber(),
+                'user_id' => $order->user_id,
+                'source_type' => HostingOrder::class,
+                'source_id' => $order->id,
+                'type' => Invoice::TYPE_ORDER,
+                'status' => $paid ? Invoice::STATUS_PAID : Invoice::STATUS_UNPAID,
+                'payment_method' => $order->payment_method,
+                'amount_paid' => $paid ? (float) $order->total : 0,
+                'currency' => 'BDT',
+                'vat_percent' => 0,
+                'paid_at' => $paid ? now() : null,
+                'created_by' => $paid ? 'system' : null,
+            ]);
+
+            $invoice->items()->create([
+                'sl_no' => 1,
+                'description' => $order->product . ' — ' . $order->plan_name . ' (' . $order->period_label . ') for ' . $order->domain,
+                'item_type' => 'hosting',
+                'years' => $years,
+                'quantity' => 1,
+                'unit_price' => $years > 0 ? round((float) $order->total / $years, 2) : round((float) $order->total, 2),
+                'line_total' => round((float) $order->total, 2),
+            ]);
+
+            $this->recalculate($invoice);
+
+            return $invoice;
+        });
+    }
+
+    /** Flip the hosting order's invoice to paid (call when the payment is confirmed). */
+    public function markHostingOrderPaid(HostingOrder $order): void
+    {
+        $invoice = $this->findForSource(HostingOrder::class, $order->id);
+        if (!$invoice || $invoice->status === Invoice::STATUS_PAID || $invoice->status === Invoice::STATUS_VOID) {
+            return;
+        }
+
+        $invoice->forceFill([
+            'status' => Invoice::STATUS_PAID,
+            'amount_paid' => $invoice->amount_paid > 0 ? $invoice->amount_paid : (float) $invoice->total,
+            'paid_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Cancel an unpaid hosting order (customer closed the bKash window): the
+     * unpaid invoice is removed so it cannot be mistaken for a pending payment.
+     */
+    public function cancelHostingOrder(HostingOrder $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $invoice = $this->findForSource(HostingOrder::class, $order->id);
+            if ($invoice && $invoice->status !== Invoice::STATUS_PAID) {
+                $invoice->items()->delete();
+                $invoice->delete();
+            }
+
+            $order->forceFill([
+                'status' => HostingOrder::STATUS_CANCELLED,
+                'payment_status' => 'cancelled',
+            ])->save();
+        });
     }
 
     /**

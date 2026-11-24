@@ -22,17 +22,28 @@
     $opFor = $opCustomer['purchase_for'] ?? null;
     $opItems = isset($order['items']) && is_array($order['items']) ? array_values($order['items']) : [];
     $opHasPerson = $opName !== '' || $opEmail !== '' || $opPhone !== '';
+    // Hosting orders also pass 'plan' => ['name', 'meta'], 'items_heading' and a per-item 'label'.
+    $opPlan = isset($order['plan']) && is_array($order['plan']) ? $order['plan'] : null;
 @endphp
-@if($opItems || $opHasPerson)
+@if($opItems || $opHasPerson || $opPlan)
     <section class="ordp" aria-label="Order details">
+        @if($opPlan)
+            <div class="ordp-col">
+                <small>Hosting plan</small>
+                <div class="ordp-dom">
+                    <strong>{{ $opPlan['name'] ?? '' }}</strong>
+                    @if(!empty($opPlan['meta']))<span>{{ $opPlan['meta'] }}</span>@endif
+                </div>
+            </div>
+        @endif
         @if($opItems)
             <div class="ordp-col">
-                <small>{{ count($opItems) > 1 ? 'Domains' : 'Domain' }}</small>
+                <small>{{ $order['items_heading'] ?? (count($opItems) > 1 ? 'Domains' : 'Domain') }}</small>
                 @foreach($opItems as $opItem)
                     @php($opYears = max(1, (int) ($opItem['years'] ?? 1)))
                     <div class="ordp-dom">
                         <strong>{{ $opItem['domain'] ?? '' }}</strong>
-                        <span>{{ ($opItem['order_type'] ?? 'registration') === 'transfer' ? 'Transfer' : 'Registration' }} · {{ $opYears }} {{ $opYears > 1 ? 'years' : 'year' }}</span>
+                        <span>{{ $opItem['label'] ?? ((($opItem['order_type'] ?? 'registration') === 'transfer' ? 'Transfer' : 'Registration') . ' · ' . $opYears . ' ' . ($opYears > 1 ? 'years' : 'year')) }}</span>
                     </div>
                 @endforeach
             </div>

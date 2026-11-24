@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HostingOrder;
 use App\Models\HostingPlan;
 use App\Services\HostingDomainCheckService;
 use App\Services\HostingOrderService;
+use App\Services\InvoiceService;
 use App\Support\CustomerLookup;
 use App\User;
 use Illuminate\Http\Request;
@@ -20,9 +22,8 @@ use Illuminate\Http\Request;
  * (the same return_to mechanism domain and SSL checkout use). The chosen
  * plan/period/domain waits in session('hosting_cart').
  *
- * PAYMENT IS NOT CONNECTED YET. The checkout page is complete, but "Place
- * order" is locked ("Payment coming soon") and there is deliberately no order
- * POST route: nothing is saved or charged until the gateway is built.
+ * Place order (bKash) saves the order + an unpaid invoice and sends the buyer
+ * to the bKash page (HostingBkashController). Nagad is not connected yet.
  *
  * The cart stores only region + type + plan id + period + domain. Every price
  * shown is recomputed by HostingOrderService::quote().
@@ -155,6 +156,85 @@ class HostingCheckoutController extends Controller
             'methods' => $methods,
             'verifiedCustomer' => $verifiedCustomer,
         ]);
+    }
+
+    /**
+     * Step 1 - Place order. Saves the order + unpaid invoice, then goes to the
+     * bKash payment page. The price is re-derived here, never read from the form.
+     */
+    public function placeOrder(Request $request)
+    {
+        $user = $this->currentUser($request);
+        if (!$user) {
+            return redirect()->route('login', ['return_to' => route('hosting.checkout', [], false)]);
+        }
+
+        $cart = $this->cart($request);
+        $quote = $cart
+            ? $this->orders->quote($cart['region'], $cart['type'], $cart['plan'], $cart['period'])
+            : null;
+        if (!$cart || !$quote || empty($cart['domain_checked'])) {
+            $request->session()->forget(self::CART_KEY);
+
+            return $this->backToPlans($cart['region'] ?? null, $cart['type'] ?? null);
+        }
+
+        $buyingForCustomer = $request->input('purchase_for') === 'customer';
+        $data = $request->validate([
+            'purchase_for' => ['required', 'in:myself,customer'],
+            'customer_identifier' => $buyingForCustomer ? ['required', 'string', 'max:255'] : ['nullable'],
+            'payment_method' => ['required', 'in:' . implode(',', HostingOrderService::PAYMENT_METHODS)],
+        ], [
+            'customer_identifier.required' => 'Enter the email or ID of the customer you are buying for.',
+            'payment_method.required' => 'Choose bKash to continue.',
+            'payment_method.in' => $request->input('payment_method') === 'nagad'
+                ? 'Nagad is coming soon. Please pay with bKash.'
+                : 'Choose bKash to continue.',
+        ]);
+
+        // The owner: you, or the existing customer you are buying for.
+        $owner = $user;
+        if ($buyingForCustomer) {
+            $owner = CustomerLookup::find($data['customer_identifier']);
+            if (!$owner) {
+                return back()->withInput()->withErrors(['customer_identifier' => CustomerLookup::NOT_FOUND]);
+            }
+        }
+
+        // An earlier unpaid attempt from this session is replaced, not left dangling.
+        $previousId = $request->session()->get(HostingBkashController::ORDER_KEY);
+        if ($previousId) {
+            $previous = HostingOrder::where('id', $previousId)->where('placed_by_user_id', $user->id)->first();
+            if ($previous && !$previous->isPaid() && !$previous->isCancelled()) {
+                app(InvoiceService::class)->cancelHostingOrder($previous);
+            }
+        }
+
+        $order = $this->orders->place($quote, $cart['domain'], $owner, $user, $data['payment_method']);
+
+        $request->session()->put(HostingBkashController::ORDER_KEY, $order->id);
+
+        return redirect()->route('hosting.bkash.pay');
+    }
+
+    /** The saved order (the owner or the person who placed it only). */
+    public function order(Request $request, $reference)
+    {
+        $user = $this->currentUser($request);
+
+        $order = HostingOrder::where('reference', $reference)
+            ->where(function ($query) use ($user) {
+                $query->where('user_id', $user->id)->orWhere('placed_by_user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        // The invoice page only opens for the account that owns the invoice.
+        $invoice = app(InvoiceService::class)->findForSource(HostingOrder::class, $order->id);
+        if ($invoice && (int) $invoice->user_id !== (int) $user->id) {
+            $invoice = null;
+        }
+
+        return view('hosting.order', ['order' => $order, 'invoice' => $invoice]);
     }
 
     /** AJAX: does this customer exist? (the "Confirm" button) */

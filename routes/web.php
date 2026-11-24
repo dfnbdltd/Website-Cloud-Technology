@@ -14,6 +14,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyStoreController;
 use App\Http\Controllers\SslCheckoutController;
 use App\Http\Controllers\HostingCheckoutController;
+use App\Http\Controllers\HostingBkashController;
 
 Route::get('/', function (\App\Services\ResellerClubClient $resellerClub) {
     $trustItems = array_values(array_filter(array_map('trim', explode(',', (string) \App\Models\Setting::get('trust_items')))));
@@ -76,8 +77,8 @@ Route::get('/services/{service}', function (string $service) {
 
 // Hosting purchase: connect a domain name -> checkout. Both pages are public (a guest
 // sees the BDT price, then signs in and comes back to checkout); only the customer
-// lookup needs a signed-in customer. Payment is not connected yet, so there is no
-// order-placing route. Declared before /hosting/{region}/{type} on purpose.
+// lookup, placing the order and paying need a signed-in customer (see below).
+// Declared before /hosting/{region}/{type} on purpose.
 Route::get('/hosting/connect', [HostingCheckoutController::class, 'connect'])->name('hosting.connect');
 Route::post('/hosting/connect', [HostingCheckoutController::class, 'storeDomain'])->middleware('throttle:30,1')->name('hosting.connect.store');
 Route::post('/hosting/connect/check', [HostingCheckoutController::class, 'checkDomain'])->middleware('throttle:20,1')->name('hosting.connect.check');
@@ -85,6 +86,17 @@ Route::get('/hosting/checkout', [HostingCheckoutController::class, 'checkout'])-
 Route::post('/hosting/checkout/customer', [HostingCheckoutController::class, 'lookupCustomer'])
     ->middleware(['customer', 'throttle:10,1'])
     ->name('hosting.customer.lookup');
+
+// Hosting order: place it (bKash) -> bKash payment page -> confirmed order page.
+Route::middleware('customer')->group(function () {
+    Route::post('/hosting/checkout', [HostingCheckoutController::class, 'placeOrder'])->middleware('throttle:10,1')->name('hosting.place-order');
+    Route::get('/hosting/orders/{reference}', [HostingCheckoutController::class, 'order'])->name('hosting.order');
+    Route::get('/hosting/bkash/pay', [HostingBkashController::class, 'pay'])->name('hosting.bkash.pay');
+    Route::post('/hosting/bkash/create', [HostingBkashController::class, 'create'])->name('hosting.bkash.create');
+    Route::post('/hosting/bkash/execute', [HostingBkashController::class, 'execute'])->name('hosting.bkash.execute');
+    Route::post('/hosting/bkash/query', [HostingBkashController::class, 'query'])->name('hosting.bkash.query');
+    Route::post('/hosting/bkash/cancel', [HostingBkashController::class, 'cancel'])->name('hosting.bkash.cancel');
+});
 
 // Hosting menu: Local Hosting / USA Hosting (each with shared, vps, dedicated) and WordPress Hosting.
 Route::get('/hosting/wordpress', [HostingController::class, 'wordpress'])->name('hosting.wordpress');
@@ -215,6 +227,8 @@ Route::get('/admin/login', [AdminController::class, 'loginForm'])->name('admin.l
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login.submit');
 Route::get('/admin', [AdminController::class, 'customers'])->name('admin.dashboard');
 Route::get('/admin/orders', [AdminController::class, 'dashboard'])->name('admin.orders');
+Route::get('/admin/hosting-orders', [AdminController::class, 'hostingOrders'])->name('admin.hosting.orders');
+Route::post('/admin/hosting-orders/{order}/hosted', [AdminController::class, 'markHostingOrderHosted'])->where('order', '[0-9]+')->name('admin.hosting.orders.hosted');
 Route::get('/admin/apis', [AdminController::class, 'apis'])->name('admin.apis');
 Route::post('/admin/logout', [AdminController::class, 'logout'])->name('admin.logout');
 Route::post('/admin/orders/{order}/status', [AdminController::class, 'updateOrder'])->name('admin.orders.status');

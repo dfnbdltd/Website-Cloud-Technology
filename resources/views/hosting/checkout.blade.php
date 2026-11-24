@@ -5,8 +5,8 @@
                  Both links carry return_to, so they land back here afterwards.
     Signed in  → who is it for (myself / an existing customer) and bKash / Nagad.
 
-    PAYMENT IS NOT CONNECTED YET: Place order is locked ("Payment coming soon").
-    There is no order route; nothing is saved or charged.
+    Place order (bKash) POSTs to hosting.place-order: the order + unpaid invoice are
+    saved, then the buyer lands on the bKash payment page. Nagad is not connected yet.
 
     Data: $quote, $domain, $user (null for guests), $methods (bkash, nagad),
           $verifiedCustomer.
@@ -41,7 +41,8 @@
         <div class="sslx-grid">
             <div>
             @if($user)
-                <form id="sslCheckoutForm" action="#" method="GET" onsubmit="return false;" data-lookup-url="{{ route('hosting.customer.lookup') }}" data-live="0" data-service="Hosting ordering" data-confirmed="{{ $verifiedCustomer ? old('customer_identifier') : '' }}" novalidate>
+                <form id="sslCheckoutForm" action="{{ route('hosting.place-order') }}" method="POST" data-lookup-url="{{ route('hosting.customer.lookup') }}" data-live="1" data-service="Hosting ordering" data-confirmed="{{ $verifiedCustomer ? old('customer_identifier') : '' }}" novalidate>
+                    @csrf
 
                     {{-- A customer-lookup error is already shown under the customer field. --}}
                     @if($errors->any() && !$errors->has('customer_identifier'))
@@ -96,14 +97,14 @@
                         <div class="sslx-pay">
                             @foreach($methods as $key => $method)
                                 <label>
-                                    <input type="radio" name="payment_method" value="{{ $key }}" {{ old('payment_method', 'bkash') === $key ? 'checked' : '' }}>
+                                    <input type="radio" name="payment_method" value="{{ $key }}" {{ old('payment_method', 'bkash') === $key ? 'checked' : '' }} {{ $key === 'bkash' ? '' : 'disabled' }}>
                                     @if(isset($logos[$key]))<img src="{{ asset('image/payments/' . $logos[$key]) }}" alt="">@endif
                                     <span>{{ $method['label'] }}</span>
                                 </label>
                             @endforeach
                         </div>
-                        <p class="sslx-note">Online payment is being connected. You will be able to place this order very soon.</p>
-                        <button class="sslx-btn is-wide sslx-submit is-locked" id="sslPlaceOrder" type="button" data-locked="1" disabled aria-disabled="true">Payment coming soon</button>
+                        <p class="sslx-note">You will be taken to the secure bKash window to pay ৳{{ $money($quote['total']) }}. Nagad is coming soon.</p>
+                        <button class="sslx-btn is-wide sslx-submit" id="sslPlaceOrder" type="submit">Place order</button>
                     </section>
                 </form>
             @else

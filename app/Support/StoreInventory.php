@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\DomainOrder;
+use App\Models\HostingOrder;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Topup;
@@ -244,6 +245,32 @@ class StoreInventory
      *
      * @return \Illuminate\Support\Collection
      */
+    /** Paid hosting orders owned by this customer (their invoices appear in the invoice lists). */
+    public function paidHostingOrders()
+    {
+        if (!Schema::hasTable('hosting_orders')) {
+            return collect();
+        }
+
+        return HostingOrder::where('user_id', $this->userId)
+            ->where('payment_status', 'paid')
+            ->latest('paid_at')
+            ->get();
+    }
+
+    /** Invoices of the given hosting orders, keyed by hosting order id. */
+    public function hostingInvoiceMap($hostingOrders)
+    {
+        if ($hostingOrders->isEmpty() || !Schema::hasTable('invoices')) {
+            return collect();
+        }
+
+        return Invoice::where('source_type', HostingOrder::class)
+            ->whereIn('source_id', $hostingOrders->modelKeys())
+            ->get()
+            ->keyBy('source_id');
+    }
+
     public function invoiceMap()
     {
         if ($this->invoiceMap === null) {
@@ -371,12 +398,25 @@ class StoreInventory
         }
 
         $rows = collect();
+        $invoices = $this->paidInvoices();
+        $hostingOrders = $key === 'hosting' ? $this->hostingOrdersFor($invoices) : collect();
 
-        foreach ($this->paidInvoices() as $invoice) {
+        foreach ($invoices as $invoice) {
             foreach ($invoice->items as $item) {
                 $type = strtolower(trim((string) $item->item_type));
                 if ($type === '' || !$this->matchesAnyPrefix($type, $prefixes[$key])) {
                     continue;
+                }
+
+                // A hosting plan shows its setup progress ("Setting up") until it is live.
+                $statusLabel = null;
+                $statusClass = null;
+                $hostingOrder = $invoice->source_type === HostingOrder::class
+                    ? $hostingOrders->get($invoice->source_id)
+                    : null;
+                if ($hostingOrder) {
+                    $statusLabel = $hostingOrder->isSettingUp() ? 'Setting up' : ($hostingOrder->isHosted() ? 'Active' : $hostingOrder->statusLabel());
+                    $statusClass = $hostingOrder->isSettingUp() ? 'pending' : 'paid';
                 }
 
                 $years = (int) $item->years;
@@ -390,6 +430,8 @@ class StoreInventory
                     'unit_price' => (float) $item->unit_price,
                     'line_total' => (float) $item->line_total,
                     'invoice' => $invoice,
+                    'status_label' => $statusLabel,
+                    'status_class' => $statusClass,
                     'started_at' => $started,
                     'expires_at' => $years > 0 && $started ? $started->copy()->addYears($years) : null,
                 ]);
@@ -404,6 +446,18 @@ class StoreInventory
      *
      * @return \Illuminate\Support\Collection
      */
+    /** The hosting orders behind these invoices, keyed by id (one query). */
+    private function hostingOrdersFor($invoices)
+    {
+        $ids = $invoices->where('source_type', HostingOrder::class)->pluck('source_id')->unique()->values()->all();
+
+        if (!$ids || !Schema::hasTable('hosting_orders')) {
+            return collect();
+        }
+
+        return HostingOrder::whereIn('id', $ids)->get()->keyBy('id');
+    }
+
     private function paidInvoices()
     {
         if (!Schema::hasTable('invoices')) {

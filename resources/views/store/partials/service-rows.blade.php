@@ -17,6 +17,9 @@
                 @if($item['years'] > 0)
                     · {{ $item['years'] }} year{{ $item['years'] > 1 ? 's' : '' }}
                 @endif
+                @if(!empty($item['status_label']))
+                    · <span class="table-status {{ $item['status_class'] }}">{{ $item['status_label'] }}</span>
+                @endif
             </small>
         </div>
         <b class="store-card-row-value">৳ {{ number_format($item['line_total'], 2) }}</b>
