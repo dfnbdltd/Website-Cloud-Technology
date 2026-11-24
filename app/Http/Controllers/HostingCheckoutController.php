@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\HostingPlan;
+use App\Services\HostingDomainCheckService;
 use App\Services\HostingOrderService;
 use App\Support\CustomerLookup;
 use App\User;
@@ -31,10 +32,12 @@ class HostingCheckoutController extends Controller
     const CART_KEY = 'hosting_cart';
 
     private $orders;
+    private $domainCheck;
 
-    public function __construct(HostingOrderService $orders)
+    public function __construct(HostingOrderService $orders, HostingDomainCheckService $domainCheck)
     {
         $this->orders = $orders;
+        $this->domainCheck = $domainCheck;
     }
 
     /** Step 1 — which domain name is the plan for? */
@@ -57,10 +60,25 @@ class HostingCheckoutController extends Controller
             && (string) ($cart['plan'] ?? '') === $quote['plan_id']
             && ($cart['period'] ?? null) === $quote['period'];
 
+        // A domain already checked for this very plan stays ticked when the page is reopened.
+        $verified = $sameChoice && !empty($cart['domain_checked']) && !empty($cart['domain']);
+
         return view('hosting.connect', [
             'quote' => $quote,
             'domain' => old('domain', $sameChoice ? ($cart['domain'] ?? '') : ''),
+            'verified' => $verified && old('domain') === null,
         ]);
+    }
+
+    /**
+     * AJAX: the "Check" button. Is the typed domain registered, so a hosting
+     * plan can be connected to it? Same ResellerClub lookup as the domain search.
+     */
+    public function checkDomain(Request $request)
+    {
+        $data = $request->validate(['domain' => ['required', 'string', 'max:300']]);
+
+        return response()->json($this->domainCheck->check($data['domain']));
     }
 
     public function storeDomain(Request $request)
@@ -78,12 +96,12 @@ class HostingCheckoutController extends Controller
             return $this->backToPlans($data['region'], $data['type']);
         }
 
-        $domain = HostingOrderService::normalizeDomain($data['domain']);
-        if ($domain === null) {
-            return back()->withInput()->withErrors([
-                'domain' => 'Enter a valid domain name, like example.com.',
-            ]);
+        // Checked again here: the tick in the browser is only feedback, this is the proof.
+        $check = $this->domainCheck->check($data['domain']);
+        if (!$check['ok']) {
+            return back()->withInput()->withErrors(['domain' => $check['message']]);
         }
+        $domain = $check['domain'];
 
         $request->session()->put(self::CART_KEY, [
             'region' => $quote['region'],
@@ -91,6 +109,7 @@ class HostingCheckoutController extends Controller
             'plan' => $quote['plan_id'],
             'period' => $quote['period'],
             'domain' => $domain,
+            'domain_checked' => true,
         ]);
 
         return redirect()->route('hosting.checkout');
@@ -108,6 +127,16 @@ class HostingCheckoutController extends Controller
             $request->session()->forget(self::CART_KEY);
 
             return $this->backToPlans($cart['region'] ?? null, $cart['type'] ?? null);
+        }
+
+        // The domain must have passed the "is it registered" check (storeDomain sets the flag).
+        if (empty($cart['domain_checked'])) {
+            return redirect()->route('hosting.connect', [
+                'region' => $quote['region'],
+                'type' => $quote['type'],
+                'plan' => $quote['plan_id'],
+                'period' => $quote['period'],
+            ]);
         }
 
         $user = $this->currentUser($request);

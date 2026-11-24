@@ -80,6 +80,7 @@ Route::get('/services/{service}', function (string $service) {
 // order-placing route. Declared before /hosting/{region}/{type} on purpose.
 Route::get('/hosting/connect', [HostingCheckoutController::class, 'connect'])->name('hosting.connect');
 Route::post('/hosting/connect', [HostingCheckoutController::class, 'storeDomain'])->middleware('throttle:30,1')->name('hosting.connect.store');
+Route::post('/hosting/connect/check', [HostingCheckoutController::class, 'checkDomain'])->middleware('throttle:20,1')->name('hosting.connect.check');
 Route::get('/hosting/checkout', [HostingCheckoutController::class, 'checkout'])->name('hosting.checkout');
 Route::post('/hosting/checkout/customer', [HostingCheckoutController::class, 'lookupCustomer'])
     ->middleware(['customer', 'throttle:10,1'])

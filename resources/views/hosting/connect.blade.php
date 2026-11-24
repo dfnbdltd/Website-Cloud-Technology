@@ -1,15 +1,18 @@
 {{--
     Step 1 of buying hosting: which domain name is the plan for?
 
-    Public page: a guest sees the same thing as a customer. The Continue button
-    stays disabled until the typed name is a valid domain (public/js/ssl-checkout.js,
-    shared with the SSL flow); the server validates again in
-    HostingCheckoutController::storeDomain().
+    Public page: a guest sees the same thing as a customer. The customer types a
+    domain and presses Check: the server asks ResellerClub (the same lookup the
+    domain search uses) whether the domain is ALREADY registered. Only then does
+    the green tick appear and Continue to Cart unlock (public/js/hosting-connect.js).
+    The server checks again in HostingCheckoutController::storeDomain(), so the
+    tick is feedback only.
 
-    Data: $quote (HostingOrderService::quote), $domain (prefill).
+    Data: $quote (HostingOrderService::quote), $domain (prefill),
+          $verified (prefill was already checked for this plan).
 --}}
 @php($sslxCssVersion = @md5_file(public_path('css/ssl-checkout.css')))
-@php($sslxJsVersion = @md5_file(public_path('js/ssl-checkout.js')))
+@php($hostJsVersion = @md5_file(public_path('js/hosting-connect.js')))
 <!doctype html>
 <html lang="en">
 
@@ -40,7 +43,8 @@
             <h1 id="sslxTitle">Connect Domain Name</h1>
             <p>Enter a domain name to associate with the order</p>
 
-            <form class="sslx-form" id="sslConnectForm" method="POST" action="{{ route('hosting.connect.store') }}" novalidate>
+            <form class="sslx-form" id="hostConnectForm" method="POST" action="{{ route('hosting.connect.store') }}"
+                data-check-url="{{ route('hosting.connect.check') }}" data-verified="{{ !empty($verified) ? '1' : '0' }}" novalidate>
                 @csrf
                 <input type="hidden" name="region" value="{{ $quote['region'] }}">
                 <input type="hidden" name="type" value="{{ $quote['type'] }}">
@@ -54,16 +58,16 @@
                             <path d="M3 12h18M12 3c2.6 2.6 4 5.6 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.6-4-9s1.4-6.4 4-9z" />
                         </svg>
                     </span>
-                    <input id="sslDomain" name="domain" type="text" inputmode="url" autocomplete="off"
+                    <input id="hostDomain" name="domain" type="text" inputmode="url" autocomplete="off"
                         autocapitalize="none" spellcheck="false" placeholder="example.com" value="{{ $domain }}"
-                        data-wildcard="0" aria-label="Domain name" aria-describedby="sslDomainHint" autofocus>
+                        aria-label="Domain name" aria-describedby="hostDomainHint" autofocus>
+                    <button type="button" class="sslx-field-check" id="hostCheck">Check</button>
                     <span class="sslx-field-state" aria-hidden="true">✓</span>
                 </div>
 
-                <p class="sslx-hint" id="sslDomainHint" data-default="Example: example.com"
-                    data-valid-prefix="This plan will be connected to"
-                    data-wild-message="Enter a plain domain name, like example.com." aria-live="polite">Example: example.com</p>
-                @error('domain')<p class="sslx-error" role="alert">{{ $message }}</p>@enderror
+                <p class="sslx-hint" id="hostDomainHint" data-default="Enter your registered domain, then press Check." aria-live="polite">Enter your registered domain, then press Check.</p>
+                <p class="sslx-error" id="hostDomainError" role="alert" @unless($errors->has('domain')) hidden @endunless>@error('domain'){{ $message }}@enderror</p>
+                <p class="sslx-hint" id="hostRegisterLink" hidden><a href="{{ route('domains.index') }}">Register this domain →</a></p>
 
                 <ul class="sslx-points" style="margin-top:26px">
                     <li>Pay with bKash or Nagad</li>
@@ -88,14 +92,14 @@
                     <strong>৳{{ \App\Services\HostingOrderService::money($quote['total']) }}</strong>
                     <small>per {{ $quote['unit'] }}</small>
                 </div>
-                <button class="sslx-btn" id="sslContinue" type="submit" form="sslConnectForm" disabled
+                <button class="sslx-btn" id="hostContinue" type="submit" form="hostConnectForm" disabled
                     aria-disabled="true">Continue to Cart <span aria-hidden="true">→</span></button>
             </div>
         </div>
     </main>
 
     @include('partials.site-footer')
-    <script src="{{ asset('js/ssl-checkout.js') }}?v={{ $sslxJsVersion }}" defer></script>
+    <script src="{{ asset('js/hosting-connect.js') }}?v={{ $hostJsVersion }}" defer></script>
     @include('partials.chat')
 </body>
 

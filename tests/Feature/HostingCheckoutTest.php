@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\HostingPlan;
+use App\Services\HostingDomainCheckService;
 use App\Services\HostingOrderService;
+use App\Services\ResellerClubClient;
 use App\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -19,6 +21,40 @@ use Tests\TestCase;
 class HostingCheckoutTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** The ResellerClub stand-in: domain => status, plus a log of every lookup. */
+    private $rc;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // These tests are about the real prices; the ৳1 test price has its own tests below.
+        config([
+            'services.hosting_plan_a_test_price' => 0,
+            'services.resellerclub.hosting_domain_check' => true,
+        ]);
+        cache()->flush();
+
+        $this->rc = new class extends ResellerClubClient {
+            /** @var array  'example.com' => 'regthroughothers' | 'available' | 'unknown' */
+            public $answers = ['example.com' => 'regthroughothers'];
+            public $calls = [];
+
+            public function checkAvailability($domain, $tld)
+            {
+                $key = $domain . '.' . $tld;
+                $this->calls[] = $key;
+
+                if (!isset($this->answers[$key])) {
+                    return null; // lookup failed
+                }
+
+                return [$key => ['status' => $this->answers[$key], 'classkey' => 'domcno']];
+            }
+        };
+        $this->app->instance(ResellerClubClient::class, $this->rc);
+    }
 
     private function plan($region = 'local', $type = 'shared', $name = 'Plan A')
     {
@@ -73,6 +109,7 @@ class HostingCheckoutTest extends TestCase
             'plan' => (string) $plan->id,
             'period' => $period,
             'domain' => $domain,
+            'domain_checked' => true,
         ]];
     }
 
@@ -110,7 +147,9 @@ class HostingCheckoutTest extends TestCase
             ->assertSee('Connect Domain Name')
             ->assertSee('Enter a domain name to associate with the order')
             ->assertSee('Continue to Cart')
-            ->assertSee('id="sslContinue"', false)
+            ->assertSee('id="hostContinue"', false)
+            ->assertSee('id="hostCheck"', false)
+            ->assertSee('data-check-url="' . e(route('hosting.connect.check')) . '"', false)
             ->assertSee(HostingOrderService::money($plan->price_monthly))
             ->assertSee('Local Shared Hosting');
     }
@@ -368,5 +407,254 @@ class HostingCheckoutTest extends TestCase
         $customer = strpos($html, 'value="customer"');
         $this->assertNotFalse($summary);
         $this->assertLessThan($customer, $summary, 'The Myself details card must sit before the Customer option.');
+    }
+    // ------------------------------------------- domain must be registered
+
+    private function storeDomain(HostingPlan $plan, $domain, $period = 'monthly')
+    {
+        return $this->from($this->connectUrl($plan, $period))
+            ->post(route('hosting.connect.store'), [
+                'region' => 'local',
+                'type' => 'shared',
+                'plan' => (string) $plan->id,
+                'period' => $period,
+                'domain' => $domain,
+            ]);
+    }
+
+    public function test_check_says_ok_for_a_registered_domain()
+    {
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'Example.com'])
+            ->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'state' => 'ok',
+                'domain' => 'example.com',
+                'registrable' => 'example.com',
+            ]);
+
+        $this->assertSame(['example.com'], $this->rc->calls);
+    }
+
+    public function test_check_treats_regthroughus_as_registered_too()
+    {
+        $this->rc->answers['ours.com'] = 'regthroughus';
+
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'ours.com'])
+            ->assertOk()
+            ->assertJson(['ok' => true, 'state' => 'ok']);
+    }
+
+    public function test_check_refuses_a_domain_that_is_not_registered_and_points_to_registration()
+    {
+        $this->rc->answers['free-name.com'] = 'available';
+
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'free-name.com'])
+            ->assertOk()
+            ->assertJson([
+                'ok' => false,
+                'state' => 'available',
+                'register_url' => route('domains.index', ['domain' => 'free-name.com']),
+            ]);
+    }
+
+    public function test_check_refuses_when_resellerclub_cannot_be_read()
+    {
+        // 'nolookup.com' is not in the stand-in's answers: the API "failed".
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'nolookup.com'])
+            ->assertOk()
+            ->assertJson(['ok' => false, 'state' => 'unverified']);
+
+        $this->rc->answers['weird.com'] = 'unknown';
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'weird.com'])
+            ->assertOk()
+            ->assertJson(['ok' => false, 'state' => 'unverified']);
+    }
+
+    public function test_check_refuses_an_invalid_domain_without_calling_resellerclub()
+    {
+        foreach (['not a domain', 'nodot', '*.example.com'] as $bad) {
+            $this->postJson(route('hosting.connect.check'), ['domain' => $bad])
+                ->assertOk()
+                ->assertJson(['ok' => false, 'state' => 'invalid']);
+        }
+
+        $this->postJson(route('hosting.connect.check'), ['domain' => ''])->assertStatus(422);
+        $this->assertSame([], $this->rc->calls);
+    }
+
+    public function test_a_failed_lookup_is_not_remembered_but_a_clear_answer_is()
+    {
+        // Failed lookup: asked again next time.
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'later.com'])->assertJson(['ok' => false]);
+        $this->rc->answers['later.com'] = 'regthroughothers';
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'later.com'])->assertJson(['ok' => true]);
+        $this->assertSame(['later.com', 'later.com'], $this->rc->calls);
+
+        // Clear answer: the second request is served from the cache.
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'later.com'])->assertJson(['ok' => true]);
+        $this->assertSame(['later.com', 'later.com'], $this->rc->calls);
+    }
+
+    public function test_a_subdomain_is_checked_by_its_registrable_name_but_kept_as_typed()
+    {
+        $plan = $this->plan();
+
+        $this->storeDomain($plan, 'www.example.com')->assertRedirect(route('hosting.checkout'));
+
+        $this->assertSame(['example.com'], $this->rc->calls);
+        $this->assertSame('www.example.com', session('hosting_cart')['domain']);
+    }
+
+    public function test_two_part_suffixes_are_looked_up_whole()
+    {
+        $this->assertSame(['name' => 'example', 'tld' => 'com'], HostingDomainCheckService::registrableParts('www.shop.example.com'));
+        $this->assertSame(['name' => 'example', 'tld' => 'com.bd'], HostingDomainCheckService::registrableParts('blog.example.com.bd'));
+        $this->assertSame(['name' => 'example', 'tld' => 'com.bd'], HostingDomainCheckService::registrableParts('example.com.bd'));
+        $this->assertNull(HostingDomainCheckService::registrableParts('com.bd'));
+        $this->assertNull(HostingDomainCheckService::registrableParts('localhost'));
+    }
+
+    public function test_submitting_a_domain_that_is_not_registered_is_refused_by_the_server()
+    {
+        $plan = $this->plan();
+        $this->rc->answers['free-name.com'] = 'available';
+
+        $this->storeDomain($plan, 'free-name.com')->assertSessionHasErrors('domain');
+
+        $this->assertNull(session('hosting_cart'));
+    }
+
+    public function test_submitting_when_the_lookup_fails_is_refused_by_the_server()
+    {
+        $plan = $this->plan();
+
+        $this->storeDomain($plan, 'nolookup.com')->assertSessionHasErrors('domain');
+
+        $this->assertNull(session('hosting_cart'));
+    }
+
+    public function test_a_registered_domain_is_saved_as_checked()
+    {
+        $plan = $this->plan();
+
+        $this->storeDomain($plan, 'example.com')->assertRedirect(route('hosting.checkout'));
+
+        $this->assertTrue(session('hosting_cart')['domain_checked']);
+    }
+
+    public function test_checkout_sends_an_unchecked_cart_back_to_the_connect_page()
+    {
+        $plan = $this->plan();
+        $cart = $this->cart($plan);
+        unset($cart['hosting_cart']['domain_checked']);
+
+        $this->withSession($cart)
+            ->get(route('hosting.checkout'))
+            ->assertRedirect(route('hosting.connect', [
+                'region' => 'local',
+                'type' => 'shared',
+                'plan' => (string) $plan->id,
+                'period' => 'monthly',
+            ]));
+    }
+
+    public function test_connect_page_keeps_the_tick_for_a_domain_already_checked_for_this_plan()
+    {
+        $plan = $this->plan();
+
+        $this->withSession($this->cart($plan))
+            ->get($this->connectUrl($plan))
+            ->assertOk()
+            ->assertSee('data-verified="1"', false)
+            ->assertSee('value="example.com"', false);
+
+        // A different plan period is a different choice: not pre-ticked.
+        $this->withSession($this->cart($plan))
+            ->get($this->connectUrl($plan, 'yearly'))
+            ->assertOk()
+            ->assertSee('data-verified="0"', false);
+    }
+
+    public function test_the_domain_check_can_be_switched_off_without_a_deploy()
+    {
+        config(['services.resellerclub.hosting_domain_check' => false]);
+        $plan = $this->plan();
+
+        $this->storeDomain($plan, 'anything-at-all.com')->assertRedirect(route('hosting.checkout'));
+
+        $this->assertSame([], $this->rc->calls);
+    }
+
+    public function test_check_endpoint_is_throttled()
+    {
+        for ($i = 0; $i < 20; $i++) {
+            $this->postJson(route('hosting.connect.check'), ['domain' => 'example.com'])->assertOk();
+        }
+
+        $this->postJson(route('hosting.connect.check'), ['domain' => 'example.com'])->assertStatus(429);
+    }
+
+    // ----------------------------------------------- Plan A test price (৳1)
+
+    public function test_local_shared_plan_a_costs_one_taka_while_the_test_price_is_on()
+    {
+        config(['services.hosting_plan_a_test_price' => 1]);
+        $plan = $this->plan('local', 'shared', 'Plan A');
+        $orders = app(HostingOrderService::class);
+
+        foreach (['monthly', 'yearly', 'twoYear', 'threeYear'] as $period) {
+            $quote = $orders->quote('local', 'shared', (string) $plan->id, $period);
+            if ($quote === null) {
+                continue; // a period this plan does not sell stays unsold
+            }
+            $this->assertEquals(1, $quote['total'], $period);
+        }
+
+        $this->assertNotNull($orders->quote('local', 'shared', (string) $plan->id, 'monthly'));
+        // The real price in the database is untouched.
+        $this->assertEquals(300, $plan->fresh()->price_monthly);
+    }
+
+    public function test_plan_a_test_price_shows_on_the_public_page_the_connect_page_and_checkout()
+    {
+        config(['services.hosting_plan_a_test_price' => 1]);
+        $plan = $this->plan();
+        $user = $this->user();
+
+        $this->get(route('hosting.region', ['region' => 'local', 'type' => 'shared']))
+            ->assertOk()
+            ->assertSee('data-monthly="1"', false);
+
+        $this->get($this->connectUrl($plan))
+            ->assertOk()
+            ->assertSee('৳1</strong>', false);
+
+        $this->withSession($this->customerSession($user, $this->cart($plan)))
+            ->get(route('hosting.checkout'))
+            ->assertOk()
+            ->assertDontSee('৳300');
+    }
+
+    public function test_other_plans_and_other_sections_keep_their_real_price_under_the_test_price()
+    {
+        config(['services.hosting_plan_a_test_price' => 1]);
+        $planB = $this->plan('local', 'shared', 'Plan B');
+        $vpsA = $this->plan('local', 'vps', 'Plan A');
+        $orders = app(HostingOrderService::class);
+
+        $this->assertEquals($planB->price_monthly, $orders->quote('local', 'shared', (string) $planB->id, 'monthly')['total']);
+        $this->assertEquals($vpsA->price_monthly, $orders->quote('local', 'vps', (string) $vpsA->id, 'monthly')['total']);
+    }
+
+    public function test_setting_the_test_price_to_zero_brings_the_real_price_back()
+    {
+        config(['services.hosting_plan_a_test_price' => 0]);
+        $plan = $this->plan();
+
+        $this->assertEquals(
+            $plan->price_monthly,
+            app(HostingOrderService::class)->quote('local', 'shared', (string) $plan->id, 'monthly')['total']
+        );
     }
 }

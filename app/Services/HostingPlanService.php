@@ -52,10 +52,48 @@ class HostingPlanService
         [$region, $type] = $section;
 
         if ($this->isManaged($type, $region)) {
-            return $this->fromDatabase($type, $region);
+            return $this->applyTestPricing($this->fromDatabase($type, $region), $region, $type);
         }
 
-        return $region === HostingPlan::REGION_LOCAL ? $this->legacy($type) : [];
+        return $region === HostingPlan::REGION_LOCAL
+            ? $this->applyTestPricing($this->legacy($type), $region, $type)
+            : [];
+    }
+
+    /**
+     * TEST PRICE — Local Shared Hosting "Plan A" is sold for a fixed amount
+     * (services.hosting_plan_a_test_price, ৳1 by default) so the bKash payment
+     * can be tried with real money. Every price shown or charged for that card
+     * (plan page, client area, connect page, checkout) comes through plans(),
+     * so this one place covers them all. Only billing periods the plan already
+     * sells are touched. The admin CMS and the database keep the real prices.
+     *
+     * TO GO LIVE: set HOSTING_PLAN_A_TEST_PRICE=0 in .env (then `php artisan
+     * config:clear`) and the real prices come back; no deploy needed.
+     */
+    private function applyTestPricing(array $cards, $region, $type)
+    {
+        $override = config('services.hosting_plan_a_test_price');
+        if (!is_numeric($override) || (float) $override <= 0) {
+            return $cards;
+        }
+        if ($region !== HostingPlan::REGION_LOCAL || $type !== HostingPlan::TYPE_SHARED) {
+            return $cards;
+        }
+
+        foreach ($cards as &$card) {
+            if (strtolower(trim((string) ($card['name'] ?? ''))) !== 'plan a') {
+                continue;
+            }
+            foreach (['monthly', 'yearly', 'twoYear', 'threeYear'] as $period) {
+                if (isset($card['prices'][$period]) && (float) $card['prices'][$period] > 0) {
+                    $card['prices'][$period] = (float) $override;
+                }
+            }
+        }
+        unset($card);
+
+        return $cards;
     }
 
     /**

@@ -64,6 +64,12 @@ return [
         // /admin/ssl-plans with no deploy and no migration — the rollback
         // lever if a live price ever looks wrong.
         'ssl_live_pricing' => env('RESELLERCLUB_SSL_LIVE_PRICING', true),
+
+        // Hosting checkout only accepts a domain that is ALREADY registered
+        // (checked against ResellerClub's availability API, the same call the
+        // domain search uses). Flip to false to skip that check with no deploy
+        // — the rollback lever if the lookup ever misbehaves.
+        'hosting_domain_check' => env('RESELLERCLUB_HOSTING_DOMAIN_CHECK', true),
     ],
 
     'payments' => [
@@ -127,6 +133,11 @@ return [
     // popup) until the bKash/Nagad payment and ResellerClub order are built.
     // Set SSL_CHECKOUT_ENABLED=true in .env to open it.
     'ssl_checkout_enabled' => env('SSL_CHECKOUT_ENABLED', false),
+
+    // TEST PRICE: Local Shared Hosting "Plan A" is sold for this many taka (every
+    // billing period it offers) so the bKash payment can be tested for real.
+    // Set HOSTING_PLAN_A_TEST_PRICE=0 in .env to go back to the real prices.
+    'hosting_plan_a_test_price' => env('HOSTING_PLAN_A_TEST_PRICE', 1),
 
     // Customer wallet (pay-with-wallet at checkout, balance in the menus, Add Balance links).
     // Hidden for now. Set WALLET_ENABLED=true in .env to show it everywhere again.
