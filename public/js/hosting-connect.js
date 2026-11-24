@@ -93,23 +93,58 @@
         checkBtn.disabled = true;
         render('checking');
 
-        fetch(checkUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': token ? token.getAttribute('content') : ''
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({ domain: typed })
-        }).then(function (response) {
-            return response.json().catch(function () { return {}; }).then(function (body) {
-                return { status: response.status, body: body };
+        var currentToken = function () {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        };
+
+        var send = function () {
+            return fetch(checkUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': currentToken()
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ domain: typed })
+            }).then(function (response) {
+                return response.json().catch(function () { return {}; }).then(function (body) {
+                    return { status: response.status, body: body };
+                });
             });
+        };
+
+        // 419 = the page's security token no longer matches the session (logged in in
+        // another tab, session expired, page served from a cache). Get a fresh token
+        // from the server and try once more, instead of showing "CSRF token mismatch".
+        var refreshToken = function () {
+            return fetch(window.location.href, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function (response) {
+                return response.text();
+            }).then(function (html) {
+                var match = html.match(/name="csrf-token" content="([^"]+)"/);
+                if (!match) { return; }
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) { meta.setAttribute('content', match[1]); }
+                var hidden = form.querySelector('input[name="_token"]');
+                if (hidden) { hidden.value = match[1]; }
+            }).catch(function () { /* the retry below will report the failure */ });
+        };
+
+        send().then(function (result) {
+            if (result.status !== 419) { return result; }
+            return refreshToken().then(send);
         }).then(function (result) {
             if (mine !== requestId) { return; }   // the field changed while we waited
-            if (result.status === 429) {
+            if (result.status === 419) {
+                verifiedValue = null;
+                render('bad', 'This page has expired. Please reload it (Ctrl+F5) and try again.');
+            } else if (result.status === 429) {
                 verifiedValue = null;
                 render('bad', 'Too many checks. Please wait a minute and try again.');
             } else if (result.body && result.body.ok === true) {
