@@ -33,6 +33,7 @@
 </head>
 
 <body class="cs-page">
+    @include('partials.spinner-overlay')
     @include('partials.site-navbar', ['navActive' => 'hosting'])
 
     <main class="sslx">

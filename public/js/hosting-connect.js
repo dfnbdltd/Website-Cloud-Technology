@@ -67,6 +67,21 @@
         return n.toLocaleString('en-US', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 });
     };
 
+    /* The shared site spinner (public/js/site-spinner.js, loaded by partials.head). */
+    var spinOn = function (title) {
+        if (window.SiteSpinner) { window.SiteSpinner.show({ title: title }); }
+    };
+    var spinOff = function () {
+        if (window.SiteSpinner) { window.SiteSpinner.hide(); }
+    };
+    // Leaving the page: arm the same handoff the search forms use, so the next page can keep the loader painted.
+    var spinNavigate = function (title) {
+        try {
+            window.sessionStorage.setItem('sspin-handoff', JSON.stringify({ label: title, t: Date.now() }));
+        } catch (e) { /* storage unavailable: the overlay still shows until the page unloads */ }
+        spinOn(title);
+    };
+
     var showError = function (text) {
         errorBox.textContent = text || '';
         errorBox.hidden = !text;
@@ -223,6 +238,7 @@
         yearsInput.value = String(years || 1);
         input.value = domain;
         if (modeSelect) { modeSelect.value = 'register'; }
+        spinNavigate(isCustomer ? 'Adding to cart…' : 'Loading…');
         form.submit();   // native submit: the server re-checks the name, then opens the domain checkout
     };
 
@@ -326,6 +342,7 @@
         var mine = ++requestId;
         clearResults();
         render('checking');
+        spinOn('Searching…');
 
         postJson(searchUrl, { domain: input.value.trim() }).then(function (result) {
             if (mine !== requestId) { return; }
@@ -347,6 +364,7 @@
             if (mine !== requestId) { return; }
             render('bad', 'We could not search right now. Please try again in a moment.');
         }).then(function () {
+            spinOff();
             if (mine === requestId) { busy = false; }
         });
     };
@@ -361,6 +379,7 @@
         }
         checkBtn.disabled = true;
         input.value = name;
+        spinNavigate('Opening domain transfer…');
         form.submit();   // the server remembers the plan and opens the Domain Transfer page with this name
     };
 
@@ -441,6 +460,15 @@
         if (!ownVerified()) {
             event.preventDefault();
             input.focus();
+        }
+    });
+
+    // Back button (bfcache) after leaving: make sure no overlay or disabled button is left behind.
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            spinOff();
+            Array.prototype.forEach.call(document.querySelectorAll('.host-result-buy'), function (b) { b.disabled = false; });
+            checkBtn.disabled = false;
         }
     });
 
