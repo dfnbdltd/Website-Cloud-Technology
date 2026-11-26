@@ -49,7 +49,7 @@ class HostingFlowTest extends TestCase
 
             public function catalog(array $classkeys = [])
             {
-                return ['com' => ['price' => 1200.0]];
+                return ['com' => ['price' => 1200.0, 'renewal' => 1300.0, 'year_prices' => [1 => 1200.0, 2 => 2400.0], 'classkey' => 'domcno']];
             }
 
             public function validateDomainTransferIn($domain)
@@ -155,6 +155,47 @@ class HostingFlowTest extends TestCase
 
         $taken = $this->postJson(route('hosting.connect.check'), ['domain' => 'example.com', 'mode' => 'register'])->json();
         $this->assertFalse($taken['ok']);
+    }
+
+    public function test_register_search_lists_names_like_the_domain_page()
+    {
+        // A bare name searches every extension we sell (only .com in this fake catalog).
+        $json = $this->postJson(route('hosting.connect.search'), ['domain' => 'free-name'])->assertOk()->json();
+        $this->assertTrue($json['ok']);
+        $this->assertSame('free-name.com', $json['results'][0]['domain']);
+        $this->assertTrue($json['results'][0]['available']);
+        $this->assertEquals(2400.0, $json['results'][0]['year_prices'][2]);
+
+        // A taken name is listed as registered (the page offers "Use My Domain").
+        $taken = $this->postJson(route('hosting.connect.search'), ['domain' => 'https://www.example.com/'])->json();
+        $this->assertSame('example.com', $taken['results'][0]['domain']);
+        $this->assertFalse($taken['results'][0]['available']);
+
+        $this->postJson(route('hosting.connect.search'), ['domain' => 'not a domain!'])->assertStatus(422);
+    }
+
+    public function test_transfer_validate_goes_to_the_transfer_page_with_the_name_filled_in()
+    {
+        $plan = $this->plan();
+        $this->post(route('hosting.connect.store'), [
+            'region' => 'local', 'type' => 'shared', 'plan' => (string) $plan->id, 'period' => 'monthly',
+            'domain' => 'Move-Me.com', 'mode' => 'transfer',
+        ])->assertRedirect(route('services.coming-soon', ['service' => 'domain-transfer', 'domain' => 'move-me.com']));
+
+        $this->assertSame(['mode' => 'transfer', 'domain' => 'move-me.com'], session('hosting_cart.pending_domain'));
+        $this->assertFalse(session('hosting_cart.domain_checked'));
+
+        $html = $this->get(route('services.coming-soon', ['service' => 'domain-transfer', 'domain' => 'move-me.com']))->assertOk()->getContent();
+        $this->assertStringContainsString('value="move-me.com"', $html);
+        $this->assertStringContainsString('data-dt-autostart', $html);
+    }
+
+    public function test_connect_page_no_longer_shows_the_helper_texts()
+    {
+        $html = $this->get(route('hosting.connect', ['region' => 'local', 'type' => 'shared', 'plan' => $this->plan()->id, 'period' => 'monthly']))->getContent();
+        foreach (['Search a new name and register it', 'Move your domain from another registrar', 'Already registered with us?', 'Type the domain you want to register', 'Authorization (EPP) code', 'press Validate', 'press Check'] as $gone) {
+            $this->assertStringNotContainsString($gone, $html);
+        }
     }
 
     public function test_transfer_mode_validates_eligibility()

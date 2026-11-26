@@ -82,6 +82,7 @@ Route::get('/services/{service}', function (string $service) {
 Route::get('/hosting/connect', [HostingCheckoutController::class, 'connect'])->name('hosting.connect');
 Route::post('/hosting/connect', [HostingCheckoutController::class, 'storeDomain'])->middleware('throttle:30,1')->name('hosting.connect.store');
 Route::post('/hosting/connect/check', [HostingCheckoutController::class, 'checkDomain'])->middleware('throttle:20,1')->name('hosting.connect.check');
+Route::post('/hosting/connect/search', [HostingCheckoutController::class, 'searchDomains'])->middleware('throttle:30,1')->name('hosting.connect.search');
 Route::get('/hosting/checkout', [HostingCheckoutController::class, 'checkout'])->name('hosting.checkout');
 // Billing dropdown on checkout: keeps the cart's term in sync (public: a guest picks a term before signing in).
 Route::post('/hosting/checkout/period', [HostingCheckoutController::class, 'updatePeriod'])->middleware('throttle:60,1')->name('hosting.checkout.period');

@@ -271,4 +271,9 @@
             first.focus();
         }
     });
+
+    // Sent here from hosting with a domain name: validate it straight away (opens the EPP code dialog).
+    if (form.hasAttribute('data-dt-autostart') && domainInput.value.trim() !== '') {
+        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }
 }(window, document));

@@ -11,6 +11,8 @@
     Transfer requests use the shared domain checkout and ResellerClub integration.
 --}}
 @php($dtVariant = $dtVariant ?? 'public')
+{{-- Arriving from hosting "Transfer Domain" -> Validate (?domain=example.com): fill the box and validate at once. --}}
+@php($dtPrefill = old('domain', substr(preg_replace('/[^a-z0-9.\-]/i', '', (string) request()->query('domain', '')), 0, 253)))
 
 <section class="dt-hero" aria-labelledby="dtTitle">
     <div class="dt-art" aria-hidden="true">
@@ -23,13 +25,13 @@
         <h1 class="dt-title" id="dtTitle">Transfer your domain with confidence</h1>
         <p class="dt-lede">Bring your domain to CloudTech and keep your website, email and visitors moving without interruption.</p>
 
-        <form class="dt-search" method="get" action="#" data-dt-form novalidate>
+        <form class="dt-search" method="get" action="#" data-dt-form @if($dtPrefill !== '' && !$errors->any()) data-dt-autostart @endif novalidate>
             <div class="dt-field">
                 <span class="dt-search-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16.2 16.2 4.3 4.3"/></svg>
                 </span>
                 <label class="dt-sr-only" for="dtDomain">Domain name you want to transfer</label>
-                <input class="dt-input" id="dtDomain" name="domain" type="text" value="{{ old('domain') }}" placeholder="Insert Your Domain Here" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="dtError" data-dt-domain>
+                <input class="dt-input" id="dtDomain" name="domain" type="text" value="{{ $dtPrefill }}" placeholder="Insert Your Domain Here" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="dtError" data-dt-domain>
             </div>
 
             <button class="dt-submit" type="submit">

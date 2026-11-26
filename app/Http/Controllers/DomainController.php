@@ -8,6 +8,7 @@ use App\Services\InvoiceService;
 use App\Services\Notifier;
 use App\Services\ResellerClubClient;
 use App\Services\DomainRegistrationService;
+use App\Services\DomainSearchService;
 use App\Services\DomainTransferService;
 use App\Models\DomainOrder;
 use App\Models\DomainOrderItem;
@@ -44,71 +45,8 @@ class DomainController extends Controller
     public function search(Request $request)
     {
         $data = $request->validate(['domain' => ['required', 'regex:/^[a-z0-9][a-z0-9.-]{1,62}$/i']]);
-        $parts = explode('.', strtolower(trim($data['domain'])), 2);
-        $name = $parts[0];
-        $requestedTld = isset($parts[1]) ? $parts[1] : null;
-        $domain = strtolower(trim($data['domain']));
-        $testDomains = config('services.test_domains', []);
-        if (isset($testDomains[$domain])) {
-            $results = [[
-                'domain' => $domain,
-                'tld' => 'test',
-                'available' => true,
-                'price' => $testDomains[$domain]['price'],
-                'renewal' => $testDomains[$domain]['renewal'],
-                'year_prices' => [1 => (float) $testDomains[$domain]['price']],
-                'classkey' => 'test',
-                'source' => 'test',
-            ]];
-            $request->session()->put('domain_results', $results);
 
-            return redirect()->route('domains.index', ['domain' => $data['domain']]);
-        }
-
-        $catalog = $this->resellerClub->catalog();
-
-        // Search all catalog TLDs, or just the requested one when it is in the catalog.
-        if ($requestedTld && isset($catalog[$requestedTld])) {
-            $tldList = [$requestedTld => $catalog[$requestedTld]];
-        } else {
-            $tldList = $catalog;
-        }
-
-        $results = [];
-        foreach ($tldList as $tld => $plan) {
-            $remote = $this->resellerClub->checkAvailability($name, $tld);
-            $entry = is_array($remote) ? ($remote[$name . '.' . $tld] ?? null) : null;
-            $status = is_array($entry) ? strtolower($entry['status'] ?? '') : '';
-            // null = the lookup failed (API error / IP not whitelisted), not "taken".
-            $available = $status === '' ? null : in_array($status, ['available', 'notinuse'], true);
-
-            // If the classkey differs from the catalog, pull its price live.
-            $price = $plan['price'];
-            $renewal = $plan['renewal'];
-            $yearPrices = $plan['year_prices'];
-            if (!empty($entry['classkey']) && $entry['classkey'] !== $plan['classkey']) {
-                $pricing = $this->resellerClub->pricesForClasskey($entry['classkey'], [
-                    'add' => $price,
-                    'renew' => $renewal,
-                ]);
-                $price = $pricing['price'];
-                $renewal = $pricing['renewal'];
-                $yearPrices = $pricing['year_prices'];
-            }
-
-            $results[] = [
-                'domain' => $name . '.' . $tld,
-                'tld' => $tld,
-                'available' => $available,
-                'price' => $price,
-                'renewal' => $renewal,
-                'year_prices' => $yearPrices,
-                'classkey' => $plan['classkey'],
-                'source' => $status ? 'resellerclub' : 'catalog',
-            ];
-        }
-
-        $request->session()->put('domain_results', $results);
+        $request->session()->put('domain_results', app(DomainSearchService::class)->search($data['domain']));
 
         return redirect()->route('domains.index', ['domain' => $data['domain']]);
     }

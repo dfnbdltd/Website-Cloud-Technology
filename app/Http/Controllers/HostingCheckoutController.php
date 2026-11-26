@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\HostingOrder;
 use App\Models\HostingPlan;
+use App\Services\DomainSearchService;
 use App\Services\HostingDomainCheckService;
 use App\Services\HostingOrderService;
 use App\Services\InvoiceService;
@@ -91,6 +92,54 @@ class HostingCheckoutController extends Controller
         return response()->json($this->domainCheck->checkForMode($data['mode'] ?? null, $data['domain']));
     }
 
+    /**
+     * AJAX: the "Search" button of "Register a New Domain". Same search as the Domain
+     * Registration page ("xyz" lists every extension, "xyz.com" just that one), answered
+     * as JSON so the results can appear under the box. Nothing is saved here: the
+     * customer picks a result and storeDomain() re-checks it.
+     */
+    public function searchDomains(Request $request)
+    {
+        $data = $request->validate(['domain' => ['required', 'string', 'max:300']]);
+
+        $typed = strtolower(trim($data['domain']));
+        $typed = preg_replace('#^[a-z][a-z0-9+.-]*://#', '', $typed);
+        $typed = preg_replace('~[/?#].*$~', '', $typed);
+        $typed = rtrim($typed, '.');
+        $typed = preg_replace('/^www\./', '', $typed);
+
+        if (strpos($typed, '.') !== false) {
+            $parts = HostingDomainCheckService::registrableParts($typed);
+            $typed = $parts ? $parts['name'] . '.' . $parts['tld'] : '';
+        }
+
+        if (!preg_match('/^[a-z0-9][a-z0-9.-]{1,62}$/', $typed)) {
+            return response()->json(['ok' => false, 'message' => 'Enter a valid domain name, like mynewbrand or mynewbrand.com.'], 422);
+        }
+
+        try {
+            $results = app(DomainSearchService::class)->search($typed);
+        } catch (\Throwable $e) {
+            \Log::warning('Hosting domain search failed', ['query' => $typed, 'error' => $e->getMessage()]);
+
+            return response()->json(['ok' => false, 'message' => 'We could not search right now. Please try again in a moment.'], 503);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'query' => $typed,
+            'results' => array_map(function ($row) {
+                return [
+                    'domain' => $row['domain'],
+                    'available' => $row['available'],
+                    'price' => (float) $row['price'],
+                    'renewal' => (float) $row['renewal'],
+                    'year_prices' => (object) $row['year_prices'],
+                ];
+            }, $results),
+        ]);
+    }
+
     public function storeDomain(Request $request)
     {
         $data = $request->validate([
@@ -101,12 +150,34 @@ class HostingCheckoutController extends Controller
             'domain' => ['required', 'string', 'max:300'],
             'mode' => ['nullable', 'string', 'in:' . implode(',', HostingDomainCheckService::MODES)],
             'auth_code' => ['nullable', 'string', 'max:255'],
+            'years' => ['nullable', 'integer', 'min:1', 'max:10'],
         ]);
         $mode = HostingDomainCheckService::normalizeMode($data['mode'] ?? null);
 
         $quote = $this->orders->quote($data['region'], $data['type'], $data['plan'], $data['period']);
         if (!$quote) {
             return $this->backToPlans($data['region'], $data['type']);
+        }
+
+        // Transfer: the domain transfer page validates the name, asks for the EPP code and
+        // runs the eligibility check. Here we only remember the hosting plan and go there.
+        if ($mode === HostingDomainCheckService::MODE_TRANSFER) {
+            $domain = HostingOrderService::normalizeDomain($data['domain']);
+            if ($domain === null || HostingDomainCheckService::registrableParts($domain) === null) {
+                return back()->withInput($request->except('auth_code'))->withErrors(['domain' => 'Enter a valid domain name, like example.com.']);
+            }
+
+            $request->session()->put(self::CART_KEY, [
+                'region' => $quote['region'],
+                'type' => $quote['type'],
+                'plan' => $quote['plan_id'],
+                'period' => $quote['period'],
+                'domain' => $domain,
+                'domain_checked' => false,
+                'pending_domain' => ['mode' => $mode, 'domain' => $domain],
+            ]);
+
+            return redirect()->route('services.coming-soon', ['service' => 'domain-transfer', 'domain' => $domain]);
         }
 
         // Checked again here: the tick in the browser is only feedback, this is the proof.
@@ -134,10 +205,6 @@ class HostingCheckoutController extends Controller
         // Register / transfer: the hosting plan waits in the session while the customer
         // goes through the normal domain flow and pays for it. Two separate payments:
         // hosting checkout re-checks the domain on return (see resumeAfterDomain()).
-        if ($mode === HostingDomainCheckService::MODE_TRANSFER && trim((string) ($data['auth_code'] ?? '')) === '') {
-            return back()->withInput($request->except('auth_code'))->withErrors(['auth_code' => 'Enter the authorization (EPP) code from your current registrar.']);
-        }
-
         $cart['pending_domain'] = ['mode' => $mode, 'domain' => $domain];
         $request->session()->put(self::CART_KEY, $cart);
 
@@ -156,7 +223,7 @@ class HostingCheckoutController extends Controller
             'POST',
             $mode === HostingDomainCheckService::MODE_TRANSFER
                 ? ['domain' => $domain, 'auth_code' => (string) $data['auth_code']]
-                : ['domain' => $domain, 'years' => 1]
+                : ['domain' => $domain, 'years' => (int) ($data['years'] ?? 1) ?: 1]
         );
         $sub->setLaravelSession($request->session());
         $sub->setUserResolver($request->getUserResolver());

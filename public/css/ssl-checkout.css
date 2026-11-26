@@ -516,3 +516,31 @@
 .sslx-planbox ul { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--x-body); }
 .sslx-planbox li { position: relative; padding: 2px 0 2px 20px; }
 .sslx-planbox li::before { content: '\2713'; position: absolute; left: 0; color: var(--x-green); font-weight: 800; }
+
+/* Hosting connect: nothing under the box until there is something to say; register search results. */
+.sslx-form-host .sslx-hint:empty { min-height: 0; margin: 0; }
+.host-results { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; text-align: left; }
+.host-results[hidden] { display: none; }
+.host-result { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto auto; align-items: center; gap: 8px 16px; padding: 16px 20px; background: #fff; border: 1.5px solid var(--x-line); border-radius: 14px; box-shadow: 0 8px 24px rgba(31, 70, 120, .06); }
+.host-result.is-registered { background: #fafbfd; }
+.host-result-status { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; font-size: 17px; font-weight: 800; background: #eef1f6; color: #8190a1; }
+.host-result-status.is-available { background: #e3f6ee; color: var(--x-green); }
+.host-result-name { min-width: 0; }
+.host-result-name strong { display: block; color: var(--x-ink); font-size: 19px; font-weight: 800; letter-spacing: -.3px; overflow-wrap: anywhere; }
+.host-result-name small { display: block; margin-top: 2px; color: #b38080; font-size: 12.8px; font-weight: 600; }
+.host-result-status.is-available + .host-result-name small { color: var(--x-green); }
+.host-result-price { text-align: right; }
+.host-result-price strong { display: block; color: var(--x-blue); font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+.host-result-period { margin-left: 4px; color: #74869b; font-size: 12.5px; font-weight: 700; }
+.host-result-price small { display: block; color: #90a0b4; font-size: 12px; }
+.host-result-actions { display: flex; align-items: center; gap: 8px; }
+.host-result-term { padding: 9px 10px; background: #fff; border: 1.5px solid var(--x-line); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--x-ink); }
+.host-result-buy, .host-result-use { padding: 10px 16px; border: 0; border-radius: 10px; background: var(--x-blue); color: #fff; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.host-result-buy:hover, .host-result-use:hover { filter: brightness(1.08); }
+.host-result-buy:disabled { opacity: .6; cursor: default; }
+.host-result-use { background: #eef3fb; color: var(--x-blue); }
+@media (max-width: 720px) {
+    .host-result { grid-template-columns: 34px minmax(0, 1fr); }
+    .host-result-price { grid-column: 2; text-align: left; }
+    .host-result-actions { grid-column: 1 / -1; justify-content: flex-end; }
+}

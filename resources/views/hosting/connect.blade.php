@@ -8,12 +8,14 @@
     The server checks again in HostingCheckoutController::storeDomain(), so the
     tick is feedback only.
 
-    Three option cards above the search box decide how Check works (browser AND server;
+    Three option cards above the search box decide what the button beside the box does (browser AND server;
     a hidden select #hostMode holds the value). Register is the default.
       own      Use my domain: must already be registered (ResellerClub)
-      register Register a new domain: must be free; the customer then goes through the
-               normal domain register flow and comes back to hosting checkout
-      transfer Transfer a domain: must be eligible; same idea through the transfer flow
+      register Register a new domain: Search lists the names (name only, e.g. "xyz", or "xyz.com")
+               under the box like the Domain Registration page; Purchase now / Add to cart on a
+               free name goes through the normal domain register flow and back to hosting checkout
+      transfer Transfer a domain: Validate sends the customer to the Domain Transfer page with
+               the name filled in; it is validated there (EPP code, eligibility, checkout)
     The server repeats the same check in storeDomain(); the tick is feedback only.
 
     Data: $quote (HostingOrderService::quote), $domain (prefill),
@@ -53,12 +55,12 @@
             <p>Enter a domain name to associate with the order</p>
 
             @php($modes = [
-                'register' => ['title' => 'Register a New Domain', 'text' => 'Search a new name and register it with your hosting.', 'placeholder' => 'mynewbrand.com', 'hint' => 'Type the domain you want to register, then press Search.', 'button' => 'Search'],
-                'transfer' => ['title' => 'Transfer Domain', 'text' => 'Move your domain from another registrar to us.', 'placeholder' => 'domain-to-transfer.com', 'hint' => 'Enter the domain you want to move to us, then press Validate.', 'button' => 'Validate'],
-                'own' => ['title' => 'Use My Domain', 'text' => 'Already registered with us? Connect it to this plan.', 'placeholder' => 'example.com', 'hint' => 'Enter your registered domain, then press Check.', 'button' => 'Check'],
+                'register' => ['title' => 'Register a New Domain', 'placeholder' => 'mynewbrand', 'button' => 'Search'],
+                'transfer' => ['title' => 'Transfer Domain', 'placeholder' => 'domain-to-transfer.com', 'button' => 'Validate'],
+                'own' => ['title' => 'Use My Domain', 'placeholder' => 'example.com', 'button' => 'Check'],
             ])
             <form class="sslx-form sslx-form-host" id="hostConnectForm" method="POST" action="{{ route('hosting.connect.store') }}"
-                data-check-url="{{ route('hosting.connect.check') }}" data-verified="{{ !empty($verified) ? '1' : '0' }}" data-mode="{{ $mode }}" novalidate>
+                data-check-url="{{ route('hosting.connect.check') }}" data-verified="{{ !empty($verified) ? '1' : '0' }}" data-mode="{{ $mode }}" data-search-url="{{ route('hosting.connect.search') }}" data-customer="{{ session('customer') ? '1' : '0' }}" novalidate>
                 @csrf
                 <input type="hidden" name="region" value="{{ $quote['region'] }}">
                 <input type="hidden" name="type" value="{{ $quote['type'] }}">
@@ -80,7 +82,6 @@
                                 @endif
                             </span>
                             <strong>{{ $meta['title'] }}</strong>
-                            <small>{{ $meta['text'] }}</small>
                         </button>
                     @endforeach
                 </div>
@@ -104,18 +105,13 @@
                     <span class="sslx-field-state" aria-hidden="true">✓</span>
                 </div>
 
-                {{-- Transfer only: the authorization (EPP) code from the current registrar. --}}
-                <div class="host-auth" id="hostAuthRow" @if($mode !== 'transfer') hidden @endif>
-                    <input id="hostAuth" name="auth_code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"
-                        placeholder="Authorization (EPP) code" aria-label="Authorization code" class="{{ $errors->has('auth_code') ? 'is-invalid' : '' }}">
-                    <small>Get it from your current registrar. It is only used for this transfer.</small>
-                </div>
-
-                <p class="sslx-hint" id="hostDomainHint" data-default="{{ $modes[$mode]['hint'] }}" aria-live="polite">{{ $modes[$mode]['hint'] }}</p>
-                <p class="sslx-error" id="hostDomainError" role="alert" @unless($errors->has('domain') || $errors->has('auth_code')) hidden @endunless>@error('domain'){{ $message }}@enderror @error('auth_code'){{ $message }}@enderror</p>
+                <p class="sslx-hint" id="hostDomainHint" aria-live="polite"></p>
+                <p class="sslx-error" id="hostDomainError" role="alert" @unless($errors->has('domain')) hidden @endunless>@error('domain'){{ $message }}@enderror</p>
+                {{-- Register mode: search results (same rows as the Domain Registration page). --}}
+                <div class="host-results" id="hostResults" aria-live="polite" hidden></div>
                 <p class="sslx-hint" id="hostSwitchLink" hidden><a href="#" id="hostSwitchRegister">Register this domain instead →</a></p>
                 @if(!empty($pendingDomain))
-                    <p class="host-pending">Your {{ $pendingDomain['mode'] === 'transfer' ? 'transfer' : 'registration' }} of <strong>{{ $pendingDomain['domain'] }}</strong> is waiting for payment or completion. Finish it, then choose <em>I already have a registered domain</em> and press Check to continue.</p>
+                    <p class="host-pending">Your {{ $pendingDomain['mode'] === 'transfer' ? 'transfer' : 'registration' }} of <strong>{{ $pendingDomain['domain'] }}</strong> is waiting for payment or completion. Finish it, then choose <em>Use My Domain</em> and press Check to continue.</p>
                 @endif
 
                 {{-- Important plan details, from the plan's own data. --}}
@@ -149,7 +145,7 @@
                     <small>per {{ $quote['unit'] }}</small>
                 </div>
                 <button class="sslx-btn" id="hostContinue" type="submit" form="hostConnectForm" disabled
-                    aria-disabled="true">Continue to Cart <span aria-hidden="true">→</span></button>
+                    aria-disabled="true" @if($mode !== 'own') style="display:none" @endif>Continue to Cart <span aria-hidden="true">→</span></button>
             </div>
         </div>
     </main>
