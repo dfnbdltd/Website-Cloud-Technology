@@ -11,7 +11,7 @@
 </table>
 <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;font-size:13px">
 <tr style="background:#f9fafb"><td style="padding:10px 14px;font-weight:bold">Item</td><td style="padding:10px 14px;font-weight:bold" align="right">Amount</td></tr>
-<tr><td style="padding:10px 14px;border-top:1px solid #eef0f3">{{ $order->product }} — {{ $order->plan_name }}<br><span style="color:#6b7280;font-size:12px">{{ $order->domain }} · {{ $order->period_label }}</span></td><td style="padding:10px 14px;border-top:1px solid #eef0f3" align="right">৳ {{ number_format($order->total, 2) }}</td></tr>
+<tr><td style="padding:10px 14px;border-top:1px solid #eef0f3">{{ $order->product }} — {{ $order->planLabel() }}<br><span style="color:#6b7280;font-size:12px">{{ $order->domain }} · {{ $order->period_label }}</span></td><td style="padding:10px 14px;border-top:1px solid #eef0f3" align="right">৳ {{ number_format($order->total, 2) }}</td></tr>
 <tr><td style="padding:12px 14px;border-top:1px solid #e5e7eb;font-weight:bold">Total paid</td><td style="padding:12px 14px;border-top:1px solid #e5e7eb;font-weight:bold" align="right">৳ {{ number_format($order->total, 2) }}</td></tr>
 </table>
 <p style="margin:20px 0 0"><a href="{{ route('invoices') }}" style="color:#2563eb">View your invoices in the client area →</a></p>

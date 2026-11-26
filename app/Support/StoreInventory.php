@@ -230,6 +230,33 @@ class StoreInventory
         }
     }
 
+    /**
+     * Number shown on the sidebar's My Store > Web Hosting badge: this customer's
+     * PAID, not-cancelled hosting orders (owner = this customer, so orders bought
+     * FOR them count too). One COUNT query; never throws: a failure hides the number.
+     *
+     * @param  int|string|null  $userId
+     * @return int
+     */
+    public static function hostingCountForUser($userId)
+    {
+        $userId = (int) $userId;
+        if ($userId < 1) {
+            return 0;
+        }
+
+        try {
+            return (int) \App\Models\HostingOrder::where('user_id', $userId)
+                ->where('payment_status', 'paid')
+                ->where('status', '!=', \App\Models\HostingOrder::STATUS_CANCELLED)
+                ->count();
+        } catch (\Throwable $exception) {
+            \Log::warning('Sidebar hosting count failed', ['error' => $exception->getMessage()]);
+
+            return 0;
+        }
+    }
+
     public function paidToDate()
     {
         return round((float) $this->paidOrders()->sum('total'), 2);

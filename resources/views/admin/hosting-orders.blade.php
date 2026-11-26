@@ -4,7 +4,8 @@
     (confirmation popup) - the customer is emailed and My Store shows Active.
 
     Data: $orders (paginator of HostingOrder, null when the table is missing),
-          $invoices (Invoice keyed by hosting order id), $tableMissing.
+          $invoices (Invoice keyed by hosting order id), $tableMissing,
+          $newIds (ids that were unseen before this visit: they carry the NEW tag).
 --}}
 <!doctype html>
 <html lang="en">
@@ -14,7 +15,7 @@
     <link rel="stylesheet" href="{{ asset('css/workspace.css') }}?v={{ filemtime(public_path('css/workspace.css')) }}">
     <style>
         .ho-wrap { overflow-x:auto; background:#fff; border:1px solid #e5ebf3; border-radius:12px; box-shadow:0 8px 24px rgba(31,41,55,.04); }
-        table.ho-table { width:100%; min-width:1240px; border-collapse:collapse; font-size:12px; }
+        table.ho-table { width:100%; min-width:1400px; border-collapse:collapse; font-size:12px; }
         .ho-table th { padding:13px 12px; background:#f7f9fc; border-bottom:1px solid #e5ebf3; color:#77879a; font-size:9px; font-weight:800; letter-spacing:.8px; text-align:left; text-transform:uppercase; white-space:nowrap; }
         .ho-table td { padding:14px 12px; border-bottom:1px solid #edf1f5; color:#344256; vertical-align:middle; }
         .ho-table tr:last-child td { border-bottom:0; }
@@ -50,6 +51,9 @@
         .ho-dialog-actions .ho-yes { border:0; background:#16a34a; color:#fff; }
         .ho-dialog-actions button:disabled { opacity:.6; cursor:not-allowed; }
         .ho-empty { padding:34px; text-align:center; color:#8190a1; }
+        .ho-new { display:inline-block; margin-left:6px; padding:2px 7px; border-radius:999px; background:#dc2626; color:#fff; font-size:9px; font-weight:800; letter-spacing:.6px; vertical-align:middle; }
+        .ho-by strong { display:block; color:#1f2937; word-break:break-all; }
+        .ho-by small { display:block; margin-top:3px; color:#8190a1; font-size:10px; }
         .ho-note { margin:10px 2px 0; color:#8190a1; font-size:11px; }
     </style>
 </head>
@@ -80,6 +84,7 @@
                                 <th>Date</th>
                                 <th>Status</th>
                                 <th>Note</th>
+                                <th>Confirmed by</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -92,9 +97,9 @@
                                 @endphp
                                 <tr>
                                     <td class="ho-serial">{{ $orders->firstItem() + $loop->index }}</td>
-                                    <td><div class="ho-copy"><strong>{{ $order->domain }}</strong><button type="button" class="ho-copy-btn" data-copy="{{ $order->domain }}">Copy</button></div></td>
+                                    <td><div class="ho-copy"><strong>{{ $order->domain }}</strong>@if(in_array($order->id, $newIds ?? []))<span class="ho-new">NEW</span>@endif<button type="button" class="ho-copy-btn" data-copy="{{ $order->domain }}">Copy</button></div></td>
                                     <td><div class="ho-copy"><strong>{{ $email }}</strong><button type="button" class="ho-copy-btn" data-copy="{{ $email }}">Copy</button></div></td>
-                                    <td class="ho-plan"><strong>{{ $order->plan_name }}</strong><small>{{ $order->product }}</small></td>
+                                    <td class="ho-plan"><strong>{{ $order->plan_name }}</strong><small>{{ $order->planLabel() }}</small><small>{{ $order->product }}</small></td>
                                     <td>{{ $order->period_label }}</td>
                                     <td>
                                         @if($invoice)
@@ -112,6 +117,15 @@
                                             <textarea class="ho-note-input" form="hostForm{{ $order->id }}" name="note" maxlength="1000" placeholder="Optional note, e.g. cPanel username" aria-label="Optional note for {{ $order->domain }}"></textarea>
                                         @endif
                                     </td>
+                                    <td class="ho-by">
+                                        @if($order->isHosted() && $order->hosted_by_admin_email)
+                                            <strong>{{ $order->hosted_by_admin_email }}</strong><small>{{ $order->hosted_at ? $order->hosted_at->format('d M Y, H:i') : '' }}</small>
+                                        @elseif($order->isHosted())
+                                            —
+                                        @else
+                                            <small>—</small>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if($order->isHosted())
                                             <button type="button" class="ho-mark" disabled>Marked as hosted</button>
@@ -124,7 +138,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td class="ho-empty" colspan="10">No hosting orders are waiting for setup.</td></tr>
+                                <tr><td class="ho-empty" colspan="11">No hosting orders are waiting for setup.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

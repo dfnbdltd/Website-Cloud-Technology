@@ -117,13 +117,13 @@
 
         <table class="inv-items">
             <tr>
-                <th style="width:46px">SL</th><th>Description</th><th class="num">Years</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Total</th>
+                <th style="width:46px">SL</th><th>Description</th><th class="num">{{ $invoice->termHeading() }}</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Total</th>
             </tr>
             @foreach($invoice->items as $item)
                 <tr>
                     <td>{{ $item->sl_no }}</td>
-                    <td>{{ $item->description }}<br><small>{{ $item->item_type ? str_replace('-', ' ', $item->item_type) : 'manual item' }}</small></td>
-                    <td class="num">{{ $item->years ?: '—' }}</td>
+                    <td>{{ $item->description }}<br><small>{{ $invoice->itemSubtitle($item) }}</small></td>
+                    <td class="num">{{ $item->termDisplay() }}</td>
                     <td class="num">{{ $item->quantity }}</td>
                     <td class="num">৳ {{ number_format($item->unit_price, 2) }}</td>
                     <td class="num"><b>৳ {{ number_format($item->line_total, 2) }}</b></td>

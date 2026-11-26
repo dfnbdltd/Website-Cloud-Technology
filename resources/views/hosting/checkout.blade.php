@@ -8,11 +8,17 @@
     Place order (bKash) POSTs to hosting.place-order: the order + unpaid invoice are
     saved, then the buyer lands on the bKash payment page. Nagad is not connected yet.
 
-    Data: $quote, $domain, $user (null for guests), $methods (bkash, nagad),
-          $verifiedCustomer.
+    Billing is a dropdown of the plan's active, visible terms ($terms, embedded as JSON).
+    Changing it updates price, total, plan name, PLAN LABEL and highlights without a
+    reload (public/js/hosting-checkout.js). The chosen term is submitted with Place
+    order; the server re-quotes it and ignores any price from the browser.
+
+    Data: $quote, $terms (period => term data), $domain, $user (null for guests),
+          $methods (bkash, nagad), $verifiedCustomer.
 --}}
 @php($sslxCssVersion = @md5_file(public_path('css/ssl-checkout.css')))
 @php($sslxJsVersion = @md5_file(public_path('js/ssl-checkout.js')))
+@php($hostJsVersion = @md5_file(public_path('js/hosting-checkout.js')))
 @php($money = function ($amount) { return \App\Services\HostingOrderService::money($amount); })
 @php($logos = ['bkash' => 'pay-bkash.svg', 'nagad' => 'pay-nagad.svg'])
 @php($purchaseFor = old('purchase_for', 'myself'))
@@ -103,7 +109,7 @@
                                 </label>
                             @endforeach
                         </div>
-                        <p class="sslx-note">You will be taken to the secure bKash window to pay ৳{{ $money($quote['total']) }}. Nagad is coming soon.</p>
+                        <p class="sslx-note">You will be taken to the secure bKash window to pay ৳<span id="hostPayAmount">{{ $money($quote['total']) }}</span>. Nagad is coming soon.</p>
                         <button class="sslx-btn is-wide sslx-submit" id="sslPlaceOrder" type="submit">Place order</button>
                     </section>
                 </form>
@@ -140,18 +146,40 @@
             @endif
             </div>
 
-            <aside class="sslx-card sslx-summary" aria-label="Order summary">
+            <aside class="sslx-card sslx-summary" aria-label="Order summary" id="hostSummary" data-period-url="{{ route('hosting.checkout.period') }}">
                 <span class="sslx-kicker">Order summary</span>
                 <h2>{{ $quote['product'] }}</h2>
-                <div class="sslx-line"><span>Plan name</span><b>{{ $quote['name'] }}</b></div>
-                <div class="sslx-line"><span>Domain name</span><b>{{ $domain }} <a href="{{ route('hosting.connect', ['region' => $quote['region'], 'type' => $quote['type'], 'plan' => $quote['plan_id'], 'period' => $quote['period']]) }}">Change</a></b></div>
+                <div class="sslx-line"><span>Plan name</span><b id="hostPlanName">{{ $quote['name'] }}</b></div>
+
+                {{-- What "Plan A" means: the plan label + its highlights. --}}
+                <div class="sslx-planbox" id="hostPlanBox">
+                    <strong id="hostPlanLabel">{{ $quote['plan_label'] }}</strong>
+                    <ul id="hostHighlights">
+                        @foreach($quote['highlights'] as $line)<li>{{ $line }}</li>@endforeach
+                    </ul>
+                </div>
+
+                <div class="sslx-line"><span>Domain name</span><b class="sslx-domain {{ strlen($domain) > 20 ? 'is-long' : '' }}"><span class="sslx-domain-name">{{ $domain }}</span> <a class="sslx-change" id="hostChangeLink" href="{{ route('hosting.connect', ['region' => $quote['region'], 'type' => $quote['type'], 'plan' => $quote['plan_id'], 'period' => $quote['period']]) }}">Change</a></b></div>
                 @if($quote['region'] !== 'wordpress')
                     <div class="sslx-line"><span>Server location</span><b>{{ $quote['region_label'] }}</b></div>
                 @endif
-                <div class="sslx-line"><span>Billing</span><b>{{ $quote['period_label'] }}</b></div>
-                <div class="sslx-line"><span>Price per {{ $quote['unit'] }}</span><b>৳{{ $money($quote['price']) }}</b></div>
-                <div class="sslx-total"><span>Total due</span><strong>৳{{ $money($quote['total']) }}</strong></div>
+                <div class="sslx-line">
+                    <span><label for="hostPeriod">Billing</label></span>
+                    @if(count($terms) > 1)
+                        <select class="sslx-billing" id="hostPeriod" name="period" @if($user) form="sslCheckoutForm" @endif aria-label="Billing period">
+                            @foreach($terms as $key => $term)
+                                <option value="{{ $key }}" {{ old('period', $quote['period']) === $key ? 'selected' : '' }}>{{ $term['label'] }}</option>
+                            @endforeach
+                        </select>
+                    @else
+                        <b>{{ $quote['period_label'] }}</b>
+                        @if($user)<input type="hidden" name="period" value="{{ $quote['period'] }}" form="sslCheckoutForm">@endif
+                    @endif
+                </div>
+                <div class="sslx-line"><span id="hostPriceLabel">Price per {{ $quote['unit'] }}</span><b>৳<span id="hostPrice">{{ $money($quote['price']) }}</span></b></div>
+                <div class="sslx-total"><span>Total due</span><strong>৳<span id="hostTotal">{{ $money($quote['total']) }}</span></strong></div>
                 <div class="sslx-secure"><span aria-hidden="true">🔒</span> Safe &amp; secure checkout</div>
+                <script type="application/json" id="hostTerms">{!! json_encode($terms, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!}</script>
             </aside>
         </div>
     </div>
@@ -159,6 +187,7 @@
 
 @include('partials.site-footer')
 <script src="{{ asset('js/ssl-checkout.js') }}?v={{ $sslxJsVersion }}" defer></script>
+<script src="{{ asset('js/hosting-checkout.js') }}?v={{ $hostJsVersion }}" defer></script>
 @include('partials.chat')
 </body>
 </html>

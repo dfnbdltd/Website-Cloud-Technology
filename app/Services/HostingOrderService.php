@@ -6,6 +6,7 @@ use App\Models\HostingOrder;
 use App\Models\HostingPlan;
 use App\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Prices a hosting selection for the connect-domain and checkout pages.
@@ -113,6 +114,10 @@ class HostingOrderService
                 'price' => $price,
                 'total' => $price,
                 'specs' => self::specsLine($card, $period),
+                // "10 GB | NVMe Storage" (or null) and "Plan A (10 GB | NVMe Storage)".
+                'highlights' => self::planHighlights($card, $period),
+                'plan_specs' => self::planSpecs($card, $period),
+                'plan_label' => self::planLabel($card, $period),
                 'plans_url' => self::plansUrl($region, $type),
             ];
         }
@@ -137,7 +142,7 @@ class HostingOrderService
     public function place(array $quote, $domain, User $owner, User $placedBy, $method)
     {
         return DB::transaction(function () use ($quote, $domain, $owner, $placedBy, $method) {
-            $order = HostingOrder::create([
+            $attributes = [
                 'reference' => 'HST-' . date('Ymd') . '-' . strtoupper(substr(sha1(uniqid('', true)), 0, 6)),
                 'user_id' => $owner->id,
                 'placed_by_user_id' => $placedBy->id,
@@ -159,12 +164,167 @@ class HostingOrderService
                 'customer_name' => $owner->name,
                 'customer_email' => $owner->email,
                 'customer_phone' => (string) $owner->phone,
-            ]);
+            ];
+
+            // Snapshot of the storage spec at purchase, so a later CMS edit never
+            // rewrites an old receipt. Skipped until the column exists (SQL not run yet).
+            if (self::hasPlanSpecsColumn()) {
+                $attributes['plan_specs'] = $quote['plan_specs'] ?? null;
+            }
+
+            $order = HostingOrder::create($attributes);
 
             app(InvoiceService::class)->createForHostingOrder($order);
 
             return $order;
         });
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* PLAN LABEL: "Plan A (10 GB | NVMe Storage)"                         */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * The plan label used on every page, invoice and email.
+     * Plan name of the chosen billing term + the storage spec of that term.
+     * Falls back to the plan name alone when the plan has no storage feature.
+     *
+     * @param  array  $card    HostingPlanService card
+     * @param  string $period  monthly | yearly | twoYear | threeYear
+     */
+    public static function planLabel(array $card, $period)
+    {
+        $period = self::normalizePeriod($period) ?: 'monthly';
+        $name = trim((string) (($card['names'][$period] ?? null) ?: ($card['name'] ?? '')));
+
+        return HostingOrder::formatPlanLabel($name, self::planSpecs($card, $period));
+    }
+
+    /**
+     * Just the spec part: "10 GB | NVMe Storage" / "50 GB | SSD Storage", or
+     * null when no available primary feature of the term (then of the Monthly
+     * set) mentions storage, NVMe, SSD or disk.
+     */
+    public static function planSpecs(array $card, $period)
+    {
+        $period = self::normalizePeriod($period) ?: 'monthly';
+
+        $sets = [$card['feature_sets'][$period]['primary'] ?? []];
+        if ($period !== 'monthly') {
+            $sets[] = $card['feature_sets']['monthly']['primary'] ?? [];
+        }
+        $sets[] = $card['primary_features'] ?? [];
+
+        foreach ($sets as $features) {
+            foreach ((array) $features as $feature) {
+                if (isset($feature['available']) && !$feature['available']) {
+                    continue;
+                }
+
+                // Feature rows are either lead+name ("10 GB" + "NVMe storage") or the older monthly+name shape.
+                $text = trim(((string) ($feature['lead'] ?? $feature['monthly'] ?? '')) . ' ' . ((string) ($feature['name'] ?? '')));
+                if ($text === '' || !preg_match('/storage|nvme|ssd|disk/i', $text)) {
+                    continue;
+                }
+
+                $specs = self::specsFromText($text);
+                if ($specs !== null) {
+                    return $specs;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * "Plan highlights": up to $limit available primary features of the term
+     * (Monthly set when the term has none), e.g. ["10 GB NVMe storage", "300 GB bandwidth/month"].
+     */
+    public static function planHighlights(array $card, $period, $limit = 4)
+    {
+        $period = self::normalizePeriod($period) ?: 'monthly';
+        $features = $card['feature_sets'][$period]['primary'] ?? [];
+        if (!$features && $period !== 'monthly') {
+            $features = $card['feature_sets']['monthly']['primary'] ?? [];
+        }
+        if (!$features) {
+            $features = $card['primary_features'] ?? [];
+        }
+
+        $out = [];
+        foreach ((array) $features as $feature) {
+            if (isset($feature['available']) && !$feature['available']) {
+                continue;
+            }
+            $text = trim(((string) ($feature['lead'] ?? $feature['monthly'] ?? '')) . ' ' . ((string) ($feature['name'] ?? '')));
+            if ($text !== '') {
+                $out[] = $text;
+            }
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Every billing term a plan sells (active AND visible AND priced), as small
+     * arrays the checkout page embeds as JSON. period => data. Empty if the plan is gone.
+     */
+    public function termOptions($region, $type, $planId)
+    {
+        $out = [];
+        foreach (array_keys(self::PERIODS) as $period) {
+            $quote = $this->quote($region, $type, $planId, $period);
+            if (!$quote) {
+                continue;
+            }
+
+            $out[$period] = [
+                'period' => $period,
+                'label' => $quote['period_label'],
+                'unit' => $quote['unit'],
+                'name' => $quote['name'],
+                'plan_label' => $quote['plan_label'],
+                'plan_specs' => $quote['plan_specs'],
+                'highlights' => $quote['highlights'],
+                'price' => $quote['price'],
+                'price_text' => self::money($quote['price']),
+                'total_text' => self::money($quote['total']),
+            ];
+        }
+
+        return $out;
+    }
+
+    /** "10 GB NVMe storage" -> "10 GB | NVMe Storage". Null if no size can be read. */
+    public static function specsFromText($text)
+    {
+        if (preg_match('/(\d+(?:[.,]\d+)?)\s*(TB|GB|MB)\b/i', $text, $m)) {
+            $size = str_replace(',', '', $m[1]) . ' ' . strtoupper($m[2]);
+        } elseif (preg_match('/\bunlimited\b/i', $text)) {
+            $size = 'Unlimited';
+        } else {
+            return null;
+        }
+
+        if (preg_match('/nvme/i', $text)) {
+            $type = 'NVMe Storage';
+        } elseif (preg_match('/ssd/i', $text)) {
+            $type = 'SSD Storage';
+        } else {
+            $type = 'Storage';
+        }
+
+        return $size . ' | ' . $type;
+    }
+
+    /** Cached check so place() still works before database/hosting_flow_phase0.sql is run. */
+    public static function hasPlanSpecsColumn()
+    {
+        return HostingOrder::columnExists('plan_specs');
     }
 
     /** "Local Shared Hosting", "USA VPS Hosting", "WordPress Hosting". */

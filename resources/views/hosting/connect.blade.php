@@ -8,8 +8,16 @@
     The server checks again in HostingCheckoutController::storeDomain(), so the
     tick is feedback only.
 
+    A dropdown beside the search box decides how Check works (browser AND server):
+      own      I already have a registered domain (DEFAULT): must already be registered
+      register Register a new domain: must be free; the customer then goes through the
+               normal domain register flow and comes back to hosting checkout
+      transfer Transfer a domain: must be eligible; same idea through the transfer flow
+    The server repeats the same check in storeDomain(); the tick is feedback only.
+
     Data: $quote (HostingOrderService::quote), $domain (prefill),
-          $verified (prefill was already checked for this plan).
+          $verified (prefill was already checked for this plan),
+          $mode (own|register|transfer), $pendingDomain (left for the domain flow, not finished).
 --}}
 @php($sslxCssVersion = @md5_file(public_path('css/ssl-checkout.css')))
 @php($hostJsVersion = @md5_file(public_path('js/hosting-connect.js')))
@@ -43,35 +51,68 @@
             <h1 id="sslxTitle">Connect Domain Name</h1>
             <p>Enter a domain name to associate with the order</p>
 
-            <form class="sslx-form" id="hostConnectForm" method="POST" action="{{ route('hosting.connect.store') }}"
-                data-check-url="{{ route('hosting.connect.check') }}" data-verified="{{ !empty($verified) ? '1' : '0' }}" novalidate>
+            @php($modes = [
+                'own' => ['label' => 'I already have a registered domain', 'placeholder' => 'example.com', 'hint' => 'Enter your registered domain, then press Check.', 'button' => 'Check'],
+                'register' => ['label' => 'Register a new domain', 'placeholder' => 'mynewbrand.com', 'hint' => 'Type the domain you want to register, then press Search.', 'button' => 'Search'],
+                'transfer' => ['label' => 'Transfer a domain', 'placeholder' => 'domain-to-transfer.com', 'hint' => 'Enter the domain you want to move to us, then press Validate.', 'button' => 'Validate'],
+            ])
+            <form class="sslx-form sslx-form-host" id="hostConnectForm" method="POST" action="{{ route('hosting.connect.store') }}"
+                data-check-url="{{ route('hosting.connect.check') }}" data-verified="{{ !empty($verified) ? '1' : '0' }}" data-mode="{{ $mode }}" novalidate>
                 @csrf
                 <input type="hidden" name="region" value="{{ $quote['region'] }}">
                 <input type="hidden" name="type" value="{{ $quote['type'] }}">
                 <input type="hidden" name="plan" value="{{ $quote['plan_id'] }}">
                 <input type="hidden" name="period" value="{{ $quote['period'] }}">
 
-                <div class="sslx-field">
-                    <span class="sslx-field-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="9" />
-                            <path d="M3 12h18M12 3c2.6 2.6 4 5.6 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.6-4-9s1.4-6.4 4-9z" />
-                        </svg>
-                    </span>
-                    <input id="hostDomain" name="domain" type="text" inputmode="url" autocomplete="off"
-                        autocapitalize="none" spellcheck="false" placeholder="example.com" value="{{ $domain }}"
-                        aria-label="Domain name" aria-describedby="hostDomainHint" autofocus>
-                    <button type="button" class="sslx-field-check" id="hostCheck">Check</button>
-                    <span class="sslx-field-state" aria-hidden="true">✓</span>
+                <div class="host-search">
+                    <label class="host-mode">
+                        <span class="host-mode-label">What do you need?</span>
+                        <select id="hostMode" name="mode" aria-label="Domain option">
+                            @foreach($modes as $key => $meta)
+                                <option value="{{ $key }}" {{ $mode === $key ? 'selected' : '' }}>{{ $meta['label'] }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <div class="sslx-field">
+                        <span class="sslx-field-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9" />
+                                <path d="M3 12h18M12 3c2.6 2.6 4 5.6 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.6-4-9s1.4-6.4 4-9z" />
+                            </svg>
+                        </span>
+                        <input id="hostDomain" name="domain" type="text" inputmode="url" autocomplete="off"
+                            autocapitalize="none" spellcheck="false" placeholder="{{ $modes[$mode]['placeholder'] }}" value="{{ $domain }}"
+                            aria-label="Domain name" aria-describedby="hostDomainHint" autofocus>
+                        <button type="button" class="sslx-field-check" id="hostCheck">{{ $modes[$mode]['button'] }}</button>
+                        <span class="sslx-field-state" aria-hidden="true">✓</span>
+                    </div>
                 </div>
 
-                <p class="sslx-hint" id="hostDomainHint" data-default="Enter your registered domain, then press Check." aria-live="polite">Enter your registered domain, then press Check.</p>
-                <p class="sslx-error" id="hostDomainError" role="alert" @unless($errors->has('domain')) hidden @endunless>@error('domain'){{ $message }}@enderror</p>
-                <p class="sslx-hint" id="hostRegisterLink" hidden><a href="{{ route('domains.index') }}">Register this domain →</a></p>
+                {{-- Transfer only: the authorization (EPP) code from the current registrar. --}}
+                <div class="host-auth" id="hostAuthRow" @if($mode !== 'transfer') hidden @endif>
+                    <input id="hostAuth" name="auth_code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"
+                        placeholder="Authorization (EPP) code" aria-label="Authorization code" class="{{ $errors->has('auth_code') ? 'is-invalid' : '' }}">
+                    <small>Get it from your current registrar. It is only used for this transfer.</small>
+                </div>
 
-                <ul class="sslx-points" style="margin-top:26px">
-                    <li>Pay with bKash or Nagad</li>
-                </ul>
+                <p class="sslx-hint" id="hostDomainHint" data-default="{{ $modes[$mode]['hint'] }}" aria-live="polite">{{ $modes[$mode]['hint'] }}</p>
+                <p class="sslx-error" id="hostDomainError" role="alert" @unless($errors->has('domain') || $errors->has('auth_code')) hidden @endunless>@error('domain'){{ $message }}@enderror @error('auth_code'){{ $message }}@enderror</p>
+                <p class="sslx-hint" id="hostSwitchLink" hidden><a href="#" id="hostSwitchRegister">Register this domain instead →</a></p>
+                @if(!empty($pendingDomain))
+                    <p class="host-pending">Your {{ $pendingDomain['mode'] === 'transfer' ? 'transfer' : 'registration' }} of <strong>{{ $pendingDomain['domain'] }}</strong> is waiting for payment or completion. Finish it, then choose <em>I already have a registered domain</em> and press Check to continue.</p>
+                @endif
+
+                {{-- Important plan details, from the plan's own data. --}}
+                @if(!empty($quote['highlights']))
+                    <ul class="host-highlights" aria-label="Plan details">
+                        @foreach($quote['highlights'] as $line)
+                            <li>{{ $line }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <script type="application/json" id="hostModes">{!! json_encode($modes, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!}</script>
             </form>
         </section>
 

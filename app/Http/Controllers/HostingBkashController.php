@@ -273,7 +273,8 @@ class HostingBkashController extends Controller
             'total' => $order->total,
             'payment' => ['transaction_id' => $order->isPaid() ? $order->provider_payment_id : null],
             'plan' => [
-                'name' => $order->plan_name,
+                // "Plan A (10 GB | NVMe Storage)" from the snapshot saved at purchase.
+                'name' => $order->planLabel(),
                 'meta' => $order->product . ' · ' . $order->period_label,
             ],
             'items_heading' => 'Domain name',

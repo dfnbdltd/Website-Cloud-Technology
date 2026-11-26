@@ -192,7 +192,7 @@
 @php($cartCount = count(session('domain_cart', [])))
 @include('partials.site-navbar', ['navActive' => 'domains'])
 
-<main class="checkout-page">
+<main class="checkout-page">@include('partials.hosting-pending-banner')
     <div class="checkout-head co-anim">
         <div>
             <div class="checkout-breadcrumb"><a href="{{ route('cart.index') }}">← Back to cart</a><span>Checkout</span></div>

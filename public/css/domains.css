@@ -3704,3 +3704,5 @@ img.top-avatar,img.side-avatar{object-fit:cover}
         margin-left:-16px;
     }
 }
+/* Admin sidebar: red count of new paid hosting orders nobody has opened yet. */
+.domain-sidebar nav a .admin-badge{display:inline-block;margin-left:auto;min-width:20px;padding:1px 7px;border-radius:999px;background:#dc2626;color:#fff;font-style:normal;font-size:11px;font-weight:800;line-height:18px;text-align:center}

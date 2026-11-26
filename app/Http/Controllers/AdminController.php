@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\HostingHostedMail;
 use App\Mail\InvoiceMail;
+use App\Models\Admin;
 use App\Models\ChatMessage;
 use App\Models\DomainOrder;
 use App\Models\HostingOrder;
@@ -23,6 +24,7 @@ use App\Services\DomainTransferService;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -37,14 +39,38 @@ class AdminController extends Controller
     public function login(Request $request)
     {
         $data = $request->validate(['email' => ['required', 'email'], 'password' => ['required', 'string']]);
-        if (!$configEmail = config('services.admin.email')) {
-            return back()->withErrors(['email' => 'Admin access is not configured.']);
+        $email = trim($data['email']);
+
+        // 1) An active row in the admins table (bcrypt hash). A missing table or a
+        //    database hiccup simply falls through to the .env admin below.
+        $adminId = null;
+        $matched = false;
+        try {
+            if (Schema::hasTable('admins')) {
+                $admin = Admin::whereRaw('LOWER(email) = ?', [strtolower($email)])->where('is_active', 1)->first();
+                if ($admin && Hash::check($data['password'], $admin->password)) {
+                    $matched = true;
+                    $adminId = $admin->id;
+                    $email = $admin->email;
+                }
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Admin table login lookup failed, using the .env admin', ['error' => $exception->getMessage()]);
         }
-        if (!hash_equals($configEmail, $data['email']) || !hash_equals((string) config('services.admin.password'), $data['password'])) {
-            return back()->withErrors(['email' => 'Invalid admin credentials.'])->withInput();
+
+        // 2) Default: the .env ADMIN_EMAIL / ADMIN_PASSWORD (id stays null).
+        if (!$matched) {
+            if (!$configEmail = config('services.admin.email')) {
+                return back()->withErrors(['email' => 'Admin access is not configured.']);
+            }
+            if (!hash_equals(strtolower($configEmail), strtolower($email)) || !hash_equals((string) config('services.admin.password'), $data['password'])) {
+                return back()->withErrors(['email' => 'Invalid admin credentials.'])->withInput();
+            }
+            $email = $configEmail;
         }
+
         $request->session()->regenerate();
-        $request->session()->put('admin', ['email' => $data['email']]);
+        $request->session()->put('admin', ['id' => $adminId, 'email' => $email]);
         return redirect()->route('admin.dashboard');
     }
 
@@ -627,7 +653,7 @@ class AdminController extends Controller
         if (!$request->session()->get('admin')) { return redirect()->route('admin.login'); }
 
         if (!Schema::hasTable('hosting_orders')) {
-            return view('admin.hosting-orders', ['orders' => null, 'invoices' => collect(), 'tableMissing' => true]);
+            return view('admin.hosting-orders', ['orders' => null, 'invoices' => collect(), 'tableMissing' => true, 'newIds' => []]);
         }
 
         $orders = HostingOrder::with('owner')
@@ -643,7 +669,21 @@ class AdminController extends Controller
             ->get()
             ->keyBy('source_id');
 
-        return view('admin.hosting-orders', ['orders' => $orders, 'invoices' => $invoices, 'tableMissing' => false]);
+        // New-order alert: the unseen paid orders listed here get a NEW tag on this
+        // visit, then count as seen for every admin (the sidebar badge goes away).
+        $newIds = [];
+        if (HostingOrder::columnExists('admin_seen_at')) {
+            $newIds = $orders->getCollection()
+                ->filter(function ($row) { return $row->admin_seen_at === null; })
+                ->pluck('id')
+                ->all();
+
+            if ($newIds) {
+                HostingOrder::whereIn('id', $newIds)->whereNull('admin_seen_at')->update(['admin_seen_at' => now()]);
+            }
+        }
+
+        return view('admin.hosting-orders', ['orders' => $orders, 'invoices' => $invoices, 'tableMissing' => false, 'newIds' => $newIds]);
     }
 
     /**
@@ -660,18 +700,26 @@ class AdminController extends Controller
         $note = trim((string) ($data['note'] ?? ''));
 
         $firstTime = false;
-        $row = DB::transaction(function () use ($order, $note, &$firstTime) {
+        $adminId = $request->session()->get('admin.id');
+        $adminEmail = (string) $request->session()->get('admin.email');
+        $row = DB::transaction(function () use ($order, $note, $adminId, $adminEmail, &$firstTime) {
             $row = HostingOrder::whereKey($order)->lockForUpdate()->firstOrFail();
 
             if ($row->payment_status !== 'paid' || $row->isCancelled() || $row->isHosted()) {
                 return $row;
             }
 
-            $row->forceFill([
+            $attributes = [
                 'status' => HostingOrder::STATUS_HOSTED,
                 'hosted_at' => now(),
                 'admin_note' => $note !== '' ? $note : null,
-            ])->save();
+            ];
+            // Who confirmed it (admin screens only; never shown to customers).
+            if (HostingOrder::columnExists('hosted_by_admin_id')) {
+                $attributes['hosted_by_admin_id'] = $adminId ? (int) $adminId : null;
+                $attributes['hosted_by_admin_email'] = $adminEmail !== '' ? $adminEmail : null;
+            }
+            $row->forceFill($attributes)->save();
             $firstTime = true;
 
             return $row;

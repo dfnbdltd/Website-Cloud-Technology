@@ -9,6 +9,7 @@ use App\Services\HostingOrderService;
 use App\Services\InvoiceService;
 use App\Support\CustomerLookup;
 use App\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
@@ -68,6 +69,10 @@ class HostingCheckoutController extends Controller
             'quote' => $quote,
             'domain' => old('domain', $sameChoice ? ($cart['domain'] ?? '') : ''),
             'verified' => $verified && old('domain') === null,
+            // Whitelisted: the default for hosting is "I already have a registered domain".
+            'mode' => HostingDomainCheckService::normalizeMode(old('mode', $request->query('mode'))),
+            // The customer left for the domain register / transfer flow and has not finished yet.
+            'pendingDomain' => $sameChoice ? ($cart['pending_domain'] ?? null) : null,
         ]);
     }
 
@@ -77,9 +82,12 @@ class HostingCheckoutController extends Controller
      */
     public function checkDomain(Request $request)
     {
-        $data = $request->validate(['domain' => ['required', 'string', 'max:300']]);
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:300'],
+            'mode' => ['nullable', 'string', 'in:' . implode(',', HostingDomainCheckService::MODES)],
+        ]);
 
-        return response()->json($this->domainCheck->check($data['domain']));
+        return response()->json($this->domainCheck->checkForMode($data['mode'] ?? null, $data['domain']));
     }
 
     public function storeDomain(Request $request)
@@ -90,7 +98,10 @@ class HostingCheckoutController extends Controller
             'plan' => ['required', 'string', 'max:80'],
             'period' => ['required', 'string', 'max:20'],
             'domain' => ['required', 'string', 'max:300'],
+            'mode' => ['nullable', 'string', 'in:' . implode(',', HostingDomainCheckService::MODES)],
+            'auth_code' => ['nullable', 'string', 'max:255'],
         ]);
+        $mode = HostingDomainCheckService::normalizeMode($data['mode'] ?? null);
 
         $quote = $this->orders->quote($data['region'], $data['type'], $data['plan'], $data['period']);
         if (!$quote) {
@@ -98,22 +109,100 @@ class HostingCheckoutController extends Controller
         }
 
         // Checked again here: the tick in the browser is only feedback, this is the proof.
-        $check = $this->domainCheck->check($data['domain']);
+        $check = $this->domainCheck->checkForMode($mode, $data['domain']);
         if (!$check['ok']) {
-            return back()->withInput()->withErrors(['domain' => $check['message']]);
+            return back()->withInput($request->except('auth_code'))->withErrors(['domain' => $check['message']]);
         }
         $domain = $check['domain'];
 
-        $request->session()->put(self::CART_KEY, [
+        $cart = [
             'region' => $quote['region'],
             'type' => $quote['type'],
             'plan' => $quote['plan_id'],
             'period' => $quote['period'],
             'domain' => $domain,
-            'domain_checked' => true,
-        ]);
+            'domain_checked' => $mode === HostingDomainCheckService::MODE_OWN,
+        ];
 
-        return redirect()->route('hosting.checkout');
+        if ($mode === HostingDomainCheckService::MODE_OWN) {
+            $request->session()->put(self::CART_KEY, $cart);
+
+            return redirect()->route('hosting.checkout');
+        }
+
+        // Register / transfer: the hosting plan waits in the session while the customer
+        // goes through the normal domain flow and pays for it. Two separate payments:
+        // hosting checkout re-checks the domain on return (see resumeAfterDomain()).
+        if ($mode === HostingDomainCheckService::MODE_TRANSFER && trim((string) ($data['auth_code'] ?? '')) === '') {
+            return back()->withInput($request->except('auth_code'))->withErrors(['auth_code' => 'Enter the authorization (EPP) code from your current registrar.']);
+        }
+
+        $cart['pending_domain'] = ['mode' => $mode, 'domain' => $domain];
+        $request->session()->put(self::CART_KEY, $cart);
+
+        return $this->handOverToDomainFlow($request, $mode, $domain, $data);
+    }
+
+    /**
+     * Put the domain into the normal domain cart by calling the same DomainController
+     * actions the domain pages use (so prices, eligibility and the cart format are the
+     * domain flow's own), then land on the domain checkout.
+     */
+    private function handOverToDomainFlow(Request $request, $mode, $domain, array $data)
+    {
+        $sub = Request::create(
+            $mode === HostingDomainCheckService::MODE_TRANSFER ? route('domains.transfer') : route('domains.cart'),
+            'POST',
+            $mode === HostingDomainCheckService::MODE_TRANSFER
+                ? ['domain' => $domain, 'auth_code' => (string) $data['auth_code']]
+                : ['domain' => $domain, 'years' => 1]
+        );
+        $sub->setLaravelSession($request->session());
+        $sub->setUserResolver($request->getUserResolver());
+
+        $controller = app(DomainController::class);
+        $response = $mode === HostingDomainCheckService::MODE_TRANSFER
+            ? $controller->startTransfer($sub)
+            : $controller->addToCart($sub);
+
+        // Success = the domain flow sent us to its checkout. Anything else is a refusal
+        // whose message the domain flow already flashed; show it on this page.
+        if ($response instanceof RedirectResponse && strpos($response->getTargetUrl(), route('domains.checkout')) === 0) {
+            return $response;
+        }
+
+        $cart = $request->session()->get(self::CART_KEY, []);
+        unset($cart['pending_domain']);
+        $request->session()->put(self::CART_KEY, $cart);
+
+        return redirect()->back()->withInput($request->except('auth_code'));
+    }
+
+    /**
+     * AJAX: the buyer changed the Billing dropdown on checkout. Keeps session('hosting_cart')
+     * in sync (so a guest who signs in lands back on the same term) and answers with that
+     * term's label / price. The price always comes from the server.
+     */
+    public function updatePeriod(Request $request)
+    {
+        $data = $request->validate(['period' => ['required', 'string', 'max:20']]);
+
+        $cart = $this->cart($request);
+        $quote = $cart ? $this->orders->quote($cart['region'], $cart['type'], $cart['plan'], $data['period']) : null;
+        if (!$cart || !$quote) {
+            return response()->json(['message' => 'That billing term is not available for this plan.'], 422);
+        }
+
+        $cart['period'] = $quote['period'];
+        $request->session()->put(self::CART_KEY, $cart);
+
+        return response()->json([
+            'period' => $quote['period'],
+            'plan_label' => $quote['plan_label'],
+            'price_text' => HostingOrderService::money($quote['price']),
+            'total_text' => HostingOrderService::money($quote['total']),
+            'unit' => $quote['unit'],
+        ]);
     }
 
     /** Step 2 — sign in (guests) or choose who it is for and how to pay. */
@@ -130,14 +219,21 @@ class HostingCheckoutController extends Controller
             return $this->backToPlans($cart['region'] ?? null, $cart['type'] ?? null);
         }
 
+        // Back from the domain register / transfer flow? Confirm the domain is registered now.
+        if (empty($cart['domain_checked']) && !empty($cart['pending_domain'])) {
+            $cart = $this->resumeAfterDomain($request, $cart);
+        }
+
         // The domain must have passed the "is it registered" check (storeDomain sets the flag).
         if (empty($cart['domain_checked'])) {
+            $pending = !empty($cart['pending_domain']);
+
             return redirect()->route('hosting.connect', [
                 'region' => $quote['region'],
                 'type' => $quote['type'],
                 'plan' => $quote['plan_id'],
                 'period' => $quote['period'],
-            ]);
+            ])->withErrors($pending ? ['domain' => $cart['domain'] . ' is not registered with us yet. Finish and pay for your domain order first, then press Check.'] : []);
         }
 
         $user = $this->currentUser($request);
@@ -151,6 +247,8 @@ class HostingCheckoutController extends Controller
 
         return view('hosting.checkout', [
             'quote' => $quote,
+            // Every billing term this plan sells, for the Billing dropdown (JSON for the JS).
+            'terms' => $this->orders->termOptions($quote['region'], $quote['type'], $quote['plan_id']),
             'domain' => $cart['domain'],
             'user' => $user,
             'methods' => $methods,
@@ -177,6 +275,19 @@ class HostingCheckoutController extends Controller
             $request->session()->forget(self::CART_KEY);
 
             return $this->backToPlans($cart['region'] ?? null, $cart['type'] ?? null);
+        }
+
+        // The Billing dropdown is submitted with the order. The term is re-quoted on the
+        // server (any price in the request is ignored) and the cart is kept in sync.
+        $submittedPeriod = $request->input('period');
+        if (is_scalar($submittedPeriod) && (string) $submittedPeriod !== '' && (string) $submittedPeriod !== $cart['period']) {
+            $requote = $this->orders->quote($cart['region'], $cart['type'], $cart['plan'], $submittedPeriod);
+            if (!$requote) {
+                return back()->withInput()->withErrors(['period' => 'That billing term is not available for this plan. Please choose another.']);
+            }
+            $quote = $requote;
+            $cart['period'] = $requote['period'];
+            $request->session()->put(self::CART_KEY, $cart);
         }
 
         $buyingForCustomer = $request->input('purchase_for') === 'customer';
@@ -251,6 +362,24 @@ class HostingCheckoutController extends Controller
             'verified' => true,
             'customer' => CustomerLookup::profile($customer),
         ]);
+    }
+
+    /**
+     * The buyer went to register / transfer a domain and is back. The hosting order may
+     * only continue once the domain really is registered (same ResellerClub check as the
+     * "I already have a registered domain" mode); otherwise they stay on the connect page.
+     */
+    private function resumeAfterDomain(Request $request, array $cart)
+    {
+        $check = $this->domainCheck->check($cart['domain'], true);
+        if ($check['ok']) {
+            $cart['domain'] = $check['domain'];
+            $cart['domain_checked'] = true;
+            unset($cart['pending_domain']);
+            $request->session()->put(self::CART_KEY, $cart);
+        }
+
+        return $cart;
     }
 
     private function cart(Request $request)

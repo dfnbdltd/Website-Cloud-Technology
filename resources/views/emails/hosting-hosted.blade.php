@@ -4,7 +4,7 @@
 <p style="margin:0 0 18px">Good news — your domain <strong>{{ $order->domain }}</strong> is now hosted.</p>
 <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 16px;font-size:13px">
 <tr><td style="color:#6b7280">Domain</td><td align="right" style="font-weight:bold">{{ $order->domain }}</td></tr>
-<tr><td style="color:#6b7280">Plan</td><td align="right">{{ $order->product }} — {{ $order->plan_name }}</td></tr>
+<tr><td style="color:#6b7280">Plan</td><td align="right">{{ $order->product }} — {{ $order->planLabel() }}</td></tr>
 <tr><td style="color:#6b7280">Billing</td><td align="right">{{ $order->period_label }}</td></tr>
 <tr><td style="color:#6b7280">Order</td><td align="right">{{ $order->reference }}</td></tr>
 <tr><td style="color:#6b7280">Hosted on</td><td align="right">{{ ($order->hosted_at ?: $order->updated_at)->format('d M Y') }}</td></tr>

@@ -16,8 +16,41 @@ class InvoiceItem extends Model
 {
     protected $fillable = [
         'invoice_id', 'sl_no', 'description', 'item_type', 'years',
-        'quantity', 'unit_price', 'purchase_price', 'line_total',
+        'quantity', 'unit_price', 'purchase_price', 'line_total', 'period_label',
     ];
+
+    /** Cached: does invoice_items.period_label exist yet (database/hosting_flow_phase0.sql)? */
+    public static function hasPeriodLabelColumn()
+    {
+        static $has = false;
+
+        // Only a "yes" is remembered, so running the SQL takes effect at once.
+        if (!$has) {
+            try {
+                $has = \Illuminate\Support\Facades\Schema::hasColumn('invoice_items', 'period_label');
+            } catch (\Throwable $e) {
+                return false;
+            }
+        }
+
+        return $has;
+    }
+
+    /** "Monthly", "1 Year", "2 Years", "3 Years" for a hosting order's term in months. */
+    public static function periodLabelForMonths($months, $fallback = null)
+    {
+        $labels = [1 => 'Monthly', 12 => '1 Year', 24 => '2 Years', 36 => '3 Years'];
+
+        return $labels[(int) $months] ?? $fallback;
+    }
+
+    /** What the Years/Term column shows: the term label where set, else the years number, else a dash. */
+    public function termDisplay()
+    {
+        $label = trim((string) $this->period_label);
+
+        return $label !== '' ? $label : ($this->years ?: '—');
+    }
 
     protected $casts = [
         'sl_no' => 'integer',

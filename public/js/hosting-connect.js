@@ -5,7 +5,10 @@
    ResellerClub whether the domain is already registered (POST data-check-url).
    Only a registered domain gets the green tick and unlocks "Continue to Cart".
    Editing the field again takes the tick away. The server checks again when the
-   form is submitted, so this script is feedback only, never the proof. */
+   form is submitted, so this script is feedback only, never the proof.
+
+   The dropdown beside the box picks the mode (own | register | transfer); the same
+   value is sent with the check and with the form, and the server whitelists it. */
 (function () {
     'use strict';
 
@@ -18,16 +21,24 @@
     var checkBtn = document.getElementById('hostCheck');
     var hint = document.getElementById('hostDomainHint');
     var errorBox = document.getElementById('hostDomainError');
-    var registerLink = document.getElementById('hostRegisterLink');
+    var switchLink = document.getElementById('hostSwitchLink');
+    var modeSelect = document.getElementById('hostMode');
+    var authRow = document.getElementById('hostAuthRow');
+    var authInput = document.getElementById('hostAuth');
+    var modes = {};
+    try { modes = JSON.parse(document.getElementById('hostModes').textContent) || {}; } catch (e) { modes = {}; }
+    var currentMode = function () { return modeSelect ? modeSelect.value : 'own'; };
     var continueBtn = document.getElementById('hostContinue');
     var token = document.querySelector('meta[name="csrf-token"]');
     var checkUrl = form.getAttribute('data-check-url');
     var defaultHint = hint.getAttribute('data-default') || '';
+    var serverMessage = '';   // the server's own wording for the last good check (register / transfer)
 
     // Same hostname rule as App\Services\SslOrderService::DOMAIN_PATTERN.
     var pattern = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})$/i;
 
     var verifiedValue = null;   // the exact text that passed the check
+    var verifiedMode = null;    // ...and the mode it passed in
     var busy = false;
     var requestId = 0;
 
@@ -49,7 +60,13 @@
         errorBox.hidden = !text;
     };
 
-    var render = function (mode, message, registerUrl) {
+    var canContinue = function () {
+        var m = currentMode();
+        if (verifiedValue === null || verifiedValue !== input.value.trim() || verifiedMode !== m) { return false; }
+        return m !== 'transfer' || (authInput && authInput.value.trim() !== '');
+    };
+
+    var render = function (mode, message, showSwitch) {
         // mode: idle | checking | ok | bad
         field.classList.toggle('is-valid', mode === 'ok');
         field.classList.toggle('is-invalid', mode === 'bad');
@@ -57,24 +74,24 @@
         hint.classList.toggle('is-ok', mode === 'ok');
 
         var ok = mode === 'ok';
-        continueBtn.disabled = !ok;
-        continueBtn.setAttribute('aria-disabled', ok ? 'false' : 'true');
+        var enabled = ok && (currentMode() !== 'transfer' || (authInput && authInput.value.trim() !== ''));
+        continueBtn.disabled = !enabled;
+        continueBtn.setAttribute('aria-disabled', enabled ? 'false' : 'true');
 
         showError(mode === 'bad' ? message : '');
         if (mode === 'ok') {
-            hint.innerHTML = 'This plan will be connected to <strong>' + escapeHtml(clean(input.value)) + '</strong>';
+            if (currentMode() === 'own' || !serverMessage) {
+                hint.innerHTML = 'This plan will be connected to <strong>' + escapeHtml(clean(input.value)) + '</strong>';
+            } else {
+                hint.textContent = serverMessage;
+            }
         } else if (mode === 'checking') {
             hint.textContent = 'Checking the domain…';
         } else {
             hint.textContent = defaultHint;
         }
 
-        if (registerUrl) {
-            registerLink.querySelector('a').setAttribute('href', registerUrl);
-            registerLink.hidden = false;
-        } else {
-            registerLink.hidden = true;
-        }
+        switchLink.hidden = !showSwitch;
     };
 
     var runCheck = function () {
@@ -84,11 +101,13 @@
         var name = clean(typed);
         if (name === '' || !pattern.test(name)) {
             verifiedValue = null;
+            verifiedMode = null;
             render('bad', 'Enter a valid domain name, like example.com.');
             return;
         }
 
         busy = true;
+        var askedMode = currentMode();
         var mine = ++requestId;
         checkBtn.disabled = true;
         render('checking');
@@ -108,7 +127,7 @@
                     'X-CSRF-TOKEN': currentToken()
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ domain: typed })
+                body: JSON.stringify({ domain: typed, mode: askedMode })
             }).then(function (response) {
                 return response.json().catch(function () { return {}; }).then(function (body) {
                     return { status: response.status, body: body };
@@ -149,10 +168,14 @@
                 render('bad', 'Too many checks. Please wait a minute and try again.');
             } else if (result.body && result.body.ok === true) {
                 verifiedValue = typed;
+                verifiedMode = askedMode;
+                serverMessage = result.body.message || '';
                 render('ok');
             } else if (result.body && result.body.message) {
                 verifiedValue = null;
-                render('bad', result.body.message, result.body.state === 'available' ? result.body.register_url : null);
+                verifiedMode = null;
+                // A free name while "I already have a domain" is chosen: offer the right mode, not a detour.
+                render('bad', result.body.message, askedMode === 'own' && result.body.state === 'available');
             } else {
                 verifiedValue = null;
                 render('bad', 'We could not verify this domain right now. Please try again in a moment.');
@@ -173,7 +196,37 @@
         busy = false;
         checkBtn.disabled = false;
         verifiedValue = null;
+        verifiedMode = null;
         render('idle');
+    });
+
+    // Changing the option changes how the check works: reset the tick, wording and extra field.
+    var applyMode = function () {
+        var m = currentMode();
+        var meta = modes[m] || {};
+        requestId++;
+        busy = false;
+        verifiedValue = null;
+        verifiedMode = null;
+        serverMessage = '';
+        defaultHint = meta.hint || defaultHint;
+        input.setAttribute('placeholder', meta.placeholder || '');
+        checkBtn.textContent = meta.button || 'Check';
+        checkBtn.disabled = false;
+        if (authRow) { authRow.hidden = m !== 'transfer'; }
+        render('idle');
+    };
+    if (modeSelect) { modeSelect.addEventListener('change', applyMode); }
+    if (authInput) {
+        authInput.addEventListener('input', function () {
+            var stillVerified = verifiedValue !== null && verifiedMode === currentMode() && verifiedValue === input.value.trim();
+            render(stillVerified ? 'ok' : 'idle');
+        });
+    }
+    switchLink.querySelector('a').addEventListener('click', function (event) {
+        event.preventDefault();
+        if (modeSelect) { modeSelect.value = 'register'; applyMode(); }
+        if (input.value.trim() !== '') { runCheck(); }
     });
 
     checkBtn.addEventListener('click', runCheck);
@@ -182,22 +235,24 @@
     input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
             event.preventDefault();
-            if (verifiedValue === null || verifiedValue !== input.value.trim()) { runCheck(); }
-            else { form.submit(); }
+            if (verifiedValue === null || verifiedValue !== input.value.trim() || verifiedMode !== currentMode()) { runCheck(); }
+            else if (canContinue()) { form.submit(); }
+            else if (authInput) { authInput.focus(); }
         }
     });
 
     form.addEventListener('submit', function (event) {
-        if (verifiedValue === null || verifiedValue !== input.value.trim()) {
+        if (!canContinue()) {
             event.preventDefault();
-            input.focus();
+            if (verifiedValue !== null && verifiedMode === currentMode() && authInput) { authInput.focus(); } else { input.focus(); }
         }
     });
 
     // Reopened with a domain that already passed for this plan: keep the tick.
-    var serverError = errorBox.textContent.trim();
-    if (form.getAttribute('data-verified') === '1' && input.value.trim() !== '') {
+    var serverError = errorBox.textContent.replace(/\s+/g, ' ').trim();
+    if (form.getAttribute('data-verified') === '1' && input.value.trim() !== '' && currentMode() === 'own') {
         verifiedValue = input.value.trim();
+        verifiedMode = 'own';
         render('ok');
     } else if (serverError !== '') {
         // The server refused the submitted domain (it re-checks): show its reason.

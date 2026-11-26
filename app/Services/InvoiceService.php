@@ -180,15 +180,22 @@ class InvoiceService
                 'created_by' => $paid ? 'system' : null,
             ]);
 
-            $invoice->items()->create([
+            $line = [
                 'sl_no' => 1,
                 'description' => $order->product . ' — ' . $order->plan_name . ' (' . $order->period_label . ') for ' . $order->domain,
                 'item_type' => 'hosting',
                 'years' => $years,
                 'quantity' => 1,
+                // Multi-year terms: total divided by the years (monthly keeps the whole price).
                 'unit_price' => $years > 0 ? round((float) $order->total / $years, 2) : round((float) $order->total, 2),
                 'line_total' => round((float) $order->total, 2),
-            ]);
+            ];
+            // Term shown instead of the years number: Monthly, 1 Year, 2 Years, 3 Years.
+            if (InvoiceItem::hasPeriodLabelColumn()) {
+                $line['period_label'] = InvoiceItem::periodLabelForMonths($order->months, $order->period_label);
+            }
+
+            $invoice->items()->create($line);
 
             $this->recalculate($invoice);
 
@@ -370,6 +377,10 @@ class InvoiceService
                     'unit_price' => (float) $line['unit_price'],
                     'purchase_price' => $existingItem ? $existingItem->purchase_price : null,
                 ]);
+                // Keep a hosting row's term label through an admin edit.
+                if (InvoiceItem::hasPeriodLabelColumn()) {
+                    $item->period_label = $existingItem ? $existingItem->period_label : null;
+                }
                 $item->line_total = $item->computeLineTotal();
                 $invoice->items()->create($item->getAttributes());
             }

@@ -29,10 +29,14 @@
                 ? 'We are setting up your hosting. A receipt has been sent to ' . $order->customer_email . '.'
                 : ($order->isCancelled() ? 'No payment was taken. You can place the order again any time.' : 'We will set up your hosting as soon as the payment is confirmed.')) }}</p>
 
+            @if($order->isPaid() && !$order->isHosted() && !$order->isCancelled())
+                <p class="sslx-consultant" style="margin:0 0 18px;padding:12px 16px;border-radius:10px;background:#effcf6;color:#166534;font-size:14px;line-height:1.5">Our consultant team will contact you shortly and set up or update your hosting plan soon.</p>
+            @endif
+
             <div class="sslx-ref"><span>ORDER REFERENCE</span><strong>{{ $order->reference }}</strong></div>
 
             <div class="sslx-facts">
-                <div><small>Plan</small><strong>{{ $order->plan_name }}</strong></div>
+                <div><small>Plan</small><strong>{{ $order->planLabel() }}</strong></div>
                 <div><small>Product</small><strong>{{ $order->product }}</strong></div>
                 <div><small>Domain</small><strong>{{ $order->domain }}</strong></div>
                 <div><small>Billing</small><strong>{{ $order->period_label }}</strong></div>

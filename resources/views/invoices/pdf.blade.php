@@ -268,7 +268,7 @@
     <tr>
         <th class="sl-heading" style="width:7%">SL</th>
         <th>Description</th>
-        <th class="num" style="width:11%">Years</th>
+        <th class="num" style="width:11%">{{ $invoice->termHeading() }}</th>
         <th class="num" style="width:9%">Qty</th>
         <th class="num" style="width:16%">Unit price</th>
         <th class="num" style="width:15%">Total</th>
@@ -276,8 +276,8 @@
     @foreach($invoice->items as $item)
         <tr>
             <td>{{ $item->sl_no }}</td>
-            <td>{{ $item->description }}<br><small>{{ $item->item_type ? str_replace('-', ' ', $item->item_type) : 'manual item' }}</small></td>
-            <td class="num">{{ $item->years ?: '—' }}</td>
+            <td>{{ $item->description }}<br><small>{{ $invoice->itemSubtitle($item) }}</small></td>
+            <td class="num">{{ $item->termDisplay() }}</td>
             <td class="num">{{ $item->quantity }}</td>
             <td class="num">BDT {{ number_format($item->unit_price, 2) }}</td>
             <td class="num"><b>BDT {{ number_format($item->line_total, 2) }}</b></td>

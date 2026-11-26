@@ -50,6 +50,12 @@ class HostingDomainCheckService
         'co.za', 'co.jp', 'co.kr', 'com.tr', 'com.mx', 'com.ar', 'com.eg',
     ];
 
+    /** How the "Check" button works (the dropdown beside the search box). */
+    const MODE_OWN = 'own';           // I already have a registered domain (default)
+    const MODE_REGISTER = 'register'; // Register a new domain
+    const MODE_TRANSFER = 'transfer'; // Transfer a domain in
+    const MODES = [self::MODE_OWN, self::MODE_REGISTER, self::MODE_TRANSFER];
+
     private $resellerClub;
 
     public function __construct(ResellerClubClient $resellerClub)
@@ -68,7 +74,7 @@ class HostingDomainCheckService
      *   'register_url'=> string|null  only when the domain is not registered yet,
      * ]
      */
-    public function check($input)
+    public function check($input, $fresh = false)
     {
         $domain = HostingOrderService::normalizeDomain($input);
         $parts = $domain === null ? null : self::registrableParts($domain);
@@ -85,7 +91,8 @@ class HostingDomainCheckService
         }
 
         $cacheKey = 'hosting.domaincheck.v1.' . $registrable;
-        $state = Cache::get($cacheKey);
+        // $fresh skips the remembered answer (used when the buyer comes back from registering the domain).
+        $state = $fresh ? null : Cache::get($cacheKey);
 
         if (!in_array($state, [self::STATE_OK, self::STATE_AVAILABLE], true)) {
             $state = $this->lookup($parts['name'], $parts['tld']);
@@ -116,6 +123,135 @@ class HostingDomainCheckService
             $registrable,
             'We could not verify this domain right now. Please try again in a moment.'
         );
+    }
+
+    /** Whitelist: anything that is not a known mode is the default (own domain). */
+    public static function normalizeMode($mode)
+    {
+        $mode = is_scalar($mode) ? strtolower(trim((string) $mode)) : '';
+
+        return in_array($mode, self::MODES, true) ? $mode : self::MODE_OWN;
+    }
+
+    /**
+     * The "Check" button for the chosen mode. Same result shape as check(), plus
+     *   'mode'  the mode that was used,
+     *   'price' BDT price (registration for 1 year / transfer) or null.
+     *
+     *   own      -> check(): the domain must already be registered (ResellerClub).
+     *   register -> the name must be FREE (ResellerClubClient::checkAvailability) and sold here.
+     *   transfer -> the name must be eligible to transfer in (ResellerClubClient::validateDomainTransferIn)
+     *               and a live transfer price must exist.
+     *
+     * Registering / transferring is then done by the normal domain flow
+     * (HostingCheckoutController::storeDomain hands the customer over to it).
+     */
+    public function checkForMode($mode, $input)
+    {
+        $mode = self::normalizeMode($mode);
+
+        if ($mode === self::MODE_OWN) {
+            return $this->withMode($this->check($input), $mode, null);
+        }
+
+        $domain = HostingOrderService::normalizeDomain($input);
+        $parts = $domain === null ? null : self::registrableParts($domain);
+        if ($domain === null || $parts === null) {
+            return $this->withMode($this->result(self::STATE_INVALID, $domain, null, 'Enter a valid domain name, like example.com.'), $mode, null);
+        }
+
+        $registrable = $parts['name'] . '.' . $parts['tld'];
+
+        return $mode === self::MODE_REGISTER
+            ? $this->checkRegister($parts, $registrable)
+            : $this->checkTransfer($parts, $registrable);
+    }
+
+    private function checkRegister(array $parts, $registrable)
+    {
+        $mode = self::MODE_REGISTER;
+        $plan = null;
+        try {
+            $plan = $this->resellerClub->catalog()[$parts['tld']] ?? null;
+        } catch (\Throwable $e) {
+            \Log::warning('Hosting register check could not read the catalog', ['error' => $e->getMessage()]);
+        }
+        if (!$plan) {
+            return $this->withMode($this->result(self::STATE_INVALID, $registrable, $registrable, '.' . $parts['tld'] . ' domains cannot be registered here. Try .com, .net or another extension we sell.'), $mode, null);
+        }
+
+        $state = $this->lookup($parts['name'], $parts['tld']);
+        $price = isset($plan['price']) ? (float) $plan['price'] : null;
+
+        if ($state === self::STATE_AVAILABLE) {
+            return $this->withMode($this->result(
+                self::STATE_AVAILABLE,
+                $registrable,
+                $registrable,
+                $registrable . ' is available' . ($price ? ' for ৳' . HostingOrderService::money($price) . ' / year' : '') . '. Continue to register it, then you will come back to pay for hosting.'
+            ), $mode, $price, true);
+        }
+
+        if ($state === self::STATE_OK) {
+            return $this->withMode($this->result(
+                self::STATE_OK,
+                $registrable,
+                $registrable,
+                $registrable . ' is already registered. If it is yours, choose "I already have a registered domain".'
+            ), $mode, null, false);
+        }
+
+        return $this->withMode($this->result(self::STATE_UNVERIFIED, $registrable, $registrable, 'We could not check this domain right now. Please try again in a moment.'), $mode, null);
+    }
+
+    private function checkTransfer(array $parts, $registrable)
+    {
+        $mode = self::MODE_TRANSFER;
+
+        try {
+            $eligible = $this->resellerClub->validateDomainTransferIn($registrable);
+        } catch (\Throwable $e) {
+            \Log::warning('Hosting transfer check failed', ['domain' => $registrable, 'error' => $e->getMessage()]);
+            $eligible = null;
+        }
+
+        if ($eligible === null) {
+            return $this->withMode($this->result(self::STATE_UNVERIFIED, $registrable, $registrable, 'We could not verify this domain’s transfer eligibility. No payment has been taken; please try again shortly.'), $mode, null);
+        }
+        if (!$eligible) {
+            return $this->withMode($this->result(self::STATE_INVALID, $registrable, $registrable, 'This domain is not eligible for transfer. Disable its transfer lock at the current registrar and check the 60-day transfer rule.'), $mode, null);
+        }
+
+        $price = null;
+        try {
+            $price = $this->resellerClub->liveTransferPrice($parts['tld']);
+        } catch (\Throwable $e) {
+            \Log::warning('Hosting transfer price lookup failed', ['domain' => $registrable, 'error' => $e->getMessage()]);
+        }
+        if ($price === null) {
+            return $this->withMode($this->result(self::STATE_UNVERIFIED, $registrable, $registrable, 'A live transfer price is not available for this domain extension. Please contact support.'), $mode, null);
+        }
+
+        return $this->withMode($this->result(
+            self::STATE_OK,
+            $registrable,
+            $registrable,
+            $registrable . ' can be transferred for ৳' . HostingOrderService::money($price) . '. Enter its authorization (EPP) code, then continue.'
+        ), $mode, (float) $price, true);
+    }
+
+    /** Add the mode + price to a result(); $ok overrides 'ok' for the register/transfer modes. */
+    private function withMode(array $result, $mode, $price, $ok = null)
+    {
+        $result['mode'] = $mode;
+        $result['price'] = $price;
+        if ($ok !== null) {
+            $result['ok'] = $ok;
+        } elseif ($mode !== self::MODE_OWN) {
+            $result['ok'] = false;
+        }
+
+        return $result;
     }
 
     /**

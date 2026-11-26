@@ -49,6 +49,27 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class)->orderBy('sl_no');
     }
 
+    /** Column heading: "Term" when a hosting row carries a term label, else "Years" (domain invoices unchanged). */
+    public function termHeading()
+    {
+        return $this->items->contains(function ($item) {
+            return trim((string) $item->period_label) !== '';
+        }) ? 'Term' : 'Years';
+    }
+
+    /** The small grey line under an item: the PLAN LABEL for a hosting row, else the item type. */
+    public function itemSubtitle(InvoiceItem $item)
+    {
+        if ($item->item_type === 'hosting' && $this->source_type === HostingOrder::class) {
+            $order = $this->source;
+            if ($order instanceof HostingOrder && $order->planLabel() !== '') {
+                return $order->planLabel();
+            }
+        }
+
+        return $item->item_type ? str_replace('-', ' ', $item->item_type) : 'manual item';
+    }
+
     /** Row produced the invoice (DomainOrder, Topup, ...), if any. */
     public function source()
     {
