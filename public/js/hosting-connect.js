@@ -214,8 +214,26 @@
         checkBtn.textContent = meta.button || 'Check';
         checkBtn.disabled = false;
         if (authRow) { authRow.hidden = m !== 'transfer'; }
+        if (typeof paintCards === 'function') { paintCards(); }
         render('idle');
     };
+    // The option cards drive the (hidden) select, so one value feeds the check and the form.
+    var cards = Array.prototype.slice.call(document.querySelectorAll('[data-mode-card]'));
+    var paintCards = function () {
+        cards.forEach(function (card) {
+            var on = card.getAttribute('data-mode-card') === currentMode();
+            card.classList.toggle('is-active', on);
+            card.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+    };
+    cards.forEach(function (card) {
+        card.addEventListener('click', function () {
+            if (!modeSelect || modeSelect.value === card.getAttribute('data-mode-card')) { input.focus(); return; }
+            modeSelect.value = card.getAttribute('data-mode-card');
+            applyMode();
+            input.focus();
+        });
+    });
     if (modeSelect) { modeSelect.addEventListener('change', applyMode); }
     if (authInput) {
         authInput.addEventListener('input', function () {

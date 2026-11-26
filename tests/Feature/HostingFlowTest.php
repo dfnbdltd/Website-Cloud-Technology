@@ -125,16 +125,24 @@ class HostingFlowTest extends TestCase
 
     // ------------------------------------------------------------ phase 1
 
-    public function test_connect_page_has_the_mode_dropdown_defaulting_to_own_domain_and_plan_details()
+    public function test_connect_page_has_the_option_cards_defaulting_to_register_and_plan_details()
     {
         $plan = $this->plan();
         $html = $this->get(route('hosting.connect', ['region' => 'local', 'type' => 'shared', 'plan' => $plan->id, 'period' => 'monthly']))
             ->assertOk()->getContent();
 
         $this->assertStringContainsString('id="hostMode"', $html);
-        $this->assertStringContainsString('<option value="own" selected>', $html);
-        $this->assertStringContainsString('Register a new domain', $html);
-        $this->assertStringContainsString('Transfer a domain', $html);
+        $this->assertStringContainsString('<option value="register" selected>', $html);
+        $this->assertStringContainsString('data-mode-card="register"', $html);
+        $this->assertStringContainsString('Register a New Domain', $html);
+        $this->assertStringContainsString('Transfer Domain', $html);
+        $this->assertStringContainsString('Use My Domain', $html);
+
+        // Coming back with ?mode=own (or a bogus value) is whitelisted by the server.
+        $own = $this->get(route('hosting.connect', ['region' => 'local', 'type' => 'shared', 'plan' => $plan->id, 'period' => 'monthly', 'mode' => 'own']))->getContent();
+        $this->assertStringContainsString('<option value="own" selected>', $own);
+        $bogus = $this->get(route('hosting.connect', ['region' => 'local', 'type' => 'shared', 'plan' => $plan->id, 'period' => 'monthly', 'mode' => '<x>']))->getContent();
+        $this->assertStringContainsString('<option value="own" selected>', $bogus);
         $this->assertStringNotContainsString('Pay with bKash or Nagad', $html);
         $this->assertStringContainsString('host-highlights', $html);
     }

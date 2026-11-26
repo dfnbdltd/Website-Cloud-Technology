@@ -469,14 +469,22 @@
 .sslx-hint a:hover { text-decoration: underline; }
 .sslx-hint.is-ok { color: var(--x-green); }
 
-/* ---- Hosting connect page: option dropdown beside the search box ---- */
-.sslx-form-host { max-width: 840px; }
-.host-search { display: flex; gap: 12px; align-items: stretch; }
-.host-search .sslx-field { flex: 1 1 auto; min-width: 0; }
-.host-mode { position: relative; flex: 0 0 290px; display: flex; flex-direction: column; justify-content: center; padding: 8px 14px 8px 16px; background: #fff; border: 1.5px solid var(--x-line); border-radius: 14px; box-shadow: 0 10px 30px rgba(31, 70, 120, .07); text-align: left; }
-.host-mode:focus-within { border-color: var(--x-blue); box-shadow: 0 0 0 4px rgba(37, 99, 235, .12), 0 10px 30px rgba(31, 70, 120, .07); }
-.host-mode-label { color: var(--x-mute); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.host-mode select { width: 100%; margin-top: 2px; padding: 2px 18px 2px 0; border: 0; outline: 0; background: transparent; color: var(--x-ink); font-family: inherit; font-size: 14px; font-weight: 700; line-height: 1.3; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, #6b7d92 50%), linear-gradient(135deg, #6b7d92 50%, transparent 50%); background-position: calc(100% - 7px) 55%, calc(100% - 2px) 55%; background-size: 5px 5px; background-repeat: no-repeat; text-overflow: ellipsis; }
+/* ---- Hosting connect page: option cards above the search box ---- */
+.sslx-form-host { max-width: 880px; }
+.host-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 0 0 18px; }
+.host-option { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 16px 20px; background: #fff; border: 1.5px solid var(--x-line); border-radius: 18px; box-shadow: 0 8px 24px rgba(31, 70, 120, .06); text-align: center; font-family: inherit; cursor: pointer; transition: border-color .18s, box-shadow .18s, transform .18s, background .18s; }
+.host-option:hover { transform: translateY(-2px); border-color: #b9cdf3; box-shadow: 0 14px 30px rgba(31, 70, 120, .11); }
+.host-option:focus-visible { outline: 0; box-shadow: 0 0 0 4px rgba(37, 99, 235, .18); }
+.host-option-icon { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; margin-bottom: 6px; border-radius: 16px; background: #eef3fb; color: #5b7396; transition: background .18s, color .18s, box-shadow .18s; }
+.host-option-icon svg { width: 26px; height: 26px; }
+.host-option strong { color: var(--x-ink); font-size: 15.5px; font-weight: 800; line-height: 1.25; }
+.host-option small { color: var(--x-mute); font-size: 12.8px; line-height: 1.45; }
+.host-option-tick { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--x-blue); color: #fff; opacity: 0; transform: scale(.6); transition: opacity .18s, transform .18s; }
+.host-option-tick svg { width: 13px; height: 13px; }
+.host-option.is-active { border-color: var(--x-blue); background: linear-gradient(180deg, #f4f8ff 0%, #fff 70%); box-shadow: 0 0 0 4px rgba(37, 99, 235, .10), 0 14px 30px rgba(31, 70, 120, .10); }
+.host-option.is-active .host-option-icon { background: linear-gradient(135deg, #2f74ec, #1b55c9); color: #fff; box-shadow: 0 8px 18px rgba(37, 99, 235, .32); }
+.host-option.is-active .host-option-tick { opacity: 1; transform: scale(1); }
+.host-mode-native { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); opacity: 0; pointer-events: none; }
 .host-auth { margin-top: 10px; text-align: left; }
 .host-auth[hidden] { display: none; }
 .host-auth input { width: 100%; padding: 14px 16px; background: #fff; border: 1.5px solid var(--x-line); border-radius: 14px; font-family: inherit; font-size: 15px; font-weight: 600; color: var(--x-ink); outline: 0; box-sizing: border-box; }
@@ -488,8 +496,11 @@
 .host-highlights li { display: inline-flex; align-items: center; gap: 8px; }
 .host-highlights li::before { content: '\2713'; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: #e3f6ee; color: var(--x-green); font-size: 11px; font-weight: 800; }
 @media (max-width: 680px) {
-    .host-search { flex-direction: column; }
-    .host-mode { flex: 1 1 auto; }
+    .host-options { grid-template-columns: 1fr; gap: 10px; }
+    .host-option { display: grid; grid-template-columns: 46px 1fr; column-gap: 14px; align-items: center; padding: 14px 44px 14px 14px; text-align: left; }
+    .host-option-icon { grid-row: 1 / span 2; width: 46px; height: 46px; margin: 0; }
+    .host-option strong, .host-option small { grid-column: 2; }
+}
 }
 
 /* ---- Hosting checkout: summary tweaks ---- */

@@ -62,41 +62,88 @@ WHERE NOT EXISTS (SELECT 1 FROM (SELECT `migration` FROM `migrations`) m WHERE m
 UPDATE `hosting_orders` SET `admin_seen_at` = NOW()
 WHERE `payment_status` = 'paid' AND `admin_seen_at` IS NULL;
 
--- (b) Existing hosting invoices get their term label from the hosting order
---     (Monthly / Yearly -> "1 Year" / "2 Years" / "3 Years").
+-- (b) Existing hosting invoices get their term label from the hosting order.
+--     Four short statements (one per term) so phpMyAdmin's checker accepts them.
 UPDATE `invoice_items` ii
-JOIN `invoices` i ON i.`id` = ii.`invoice_id` AND i.`source_type` LIKE '%HostingOrder'
+JOIN `invoices` i ON i.`id` = ii.`invoice_id`
 JOIN `hosting_orders` h ON h.`id` = i.`source_id`
-SET ii.`period_label` = CASE h.`months`
-    WHEN 1 THEN 'Monthly'
-    WHEN 12 THEN '1 Year'
-    WHEN 24 THEN '2 Years'
-    WHEN 36 THEN '3 Years'
-    ELSE h.`period_label` END
-WHERE ii.`item_type` = 'hosting' AND ii.`period_label` IS NULL;
+SET ii.`period_label` = 'Monthly'
+WHERE i.`source_type` LIKE '%HostingOrder' AND ii.`item_type` = 'hosting' AND ii.`period_label` IS NULL AND h.`months` = 1;
+
+UPDATE `invoice_items` ii
+JOIN `invoices` i ON i.`id` = ii.`invoice_id`
+JOIN `hosting_orders` h ON h.`id` = i.`source_id`
+SET ii.`period_label` = '1 Year'
+WHERE i.`source_type` LIKE '%HostingOrder' AND ii.`item_type` = 'hosting' AND ii.`period_label` IS NULL AND h.`months` = 12;
+
+UPDATE `invoice_items` ii
+JOIN `invoices` i ON i.`id` = ii.`invoice_id`
+JOIN `hosting_orders` h ON h.`id` = i.`source_id`
+SET ii.`period_label` = '2 Years'
+WHERE i.`source_type` LIKE '%HostingOrder' AND ii.`item_type` = 'hosting' AND ii.`period_label` IS NULL AND h.`months` = 24;
+
+UPDATE `invoice_items` ii
+JOIN `invoices` i ON i.`id` = ii.`invoice_id`
+JOIN `hosting_orders` h ON h.`id` = i.`source_id`
+SET ii.`period_label` = '3 Years'
+WHERE i.`source_type` LIKE '%HostingOrder' AND ii.`item_type` = 'hosting' AND ii.`period_label` IS NULL AND h.`months` = 36;
 
 -- (c) Rebuild plan_specs for existing orders from the plan's CURRENT storage feature
---     (the term's own feature set, else the Monthly set). Orders whose plan is gone,
---     or whose feature has no readable size, stay NULL and show the plan name only.
+--     ("10 GB NVMe storage" -> "10 GB | NVMe Storage"). One statement per term:
+--     the term's own feature wins, the Monthly feature is the fallback. Orders whose
+--     plan is gone, or whose feature has no readable size, stay NULL (plan name only).
+--     Works on MySQL 5.7+ and MariaDB (no window functions).
 UPDATE `hosting_orders` h
-JOIN (
-  SELECT o.`id` AS order_id,
-         TRIM(f.`value_monthly`) AS line,
-         ROW_NUMBER() OVER (PARTITION BY o.`id` ORDER BY (f.`billing_term` = (CASE o.`period` WHEN 'yearly' THEN 'yearly' WHEN 'twoYear' THEN 'two_year' WHEN 'threeYear' THEN 'three_year' ELSE 'monthly' END)) DESC, f.`id`) AS rn
-  FROM `hosting_orders` o
-  JOIN `hosting_plan_features` f ON f.`hosting_plan_id` = CAST(o.`plan_id` AS UNSIGNED)
-  WHERE o.`plan_specs` IS NULL
-    AND f.`feature_group` = 'primary' AND f.`is_available` = 1
-    AND f.`value_monthly` REGEXP '(storage|nvme|ssd|disk)'
-    AND f.`value_monthly` REGEXP '^[0-9]+(\\.[0-9]+)? ?(TB|GB|MB)'
-    AND f.`billing_term` IN ('monthly', CASE o.`period` WHEN 'yearly' THEN 'yearly' WHEN 'twoYear' THEN 'two_year' WHEN 'threeYear' THEN 'three_year' ELSE 'monthly' END)
-) x ON x.order_id = h.`id` AND x.rn = 1
-SET h.`plan_specs` = CONCAT(
-    UPPER(REPLACE(SUBSTRING_INDEX(x.line, ' ', 2), 'gb', 'GB')),
-    ' | ',
-    CASE WHEN x.line LIKE '%nvme%' THEN 'NVMe Storage' WHEN x.line LIKE '%ssd%' THEN 'SSD Storage' ELSE 'Storage' END);
--- NOTE: (c) needs MySQL 8+ / MariaDB 10.2+ (ROW_NUMBER). On older servers skip it:
---       old orders simply show the plan name only.
+SET h.`plan_specs` = (
+    SELECT CONCAT(UPPER(SUBSTRING_INDEX(TRIM(f.`value_monthly`), ' ', 2)), ' | ',
+                  IF(f.`value_monthly` LIKE '%nvme%', 'NVMe Storage', IF(f.`value_monthly` LIKE '%ssd%', 'SSD Storage', 'Storage')))
+    FROM `hosting_plan_features` f
+    WHERE f.`hosting_plan_id` = CAST(h.`plan_id` AS UNSIGNED)
+      AND f.`feature_group` = 'primary' AND f.`is_available` = 1
+      AND f.`value_monthly` REGEXP '(storage|nvme|ssd|disk)'
+      AND f.`value_monthly` REGEXP '^[0-9]+(\\.[0-9]+)? ?(TB|GB|MB)'
+      AND f.`billing_term` = 'monthly'
+    ORDER BY f.`id` LIMIT 1)
+WHERE h.`plan_specs` IS NULL AND h.`period` = 'monthly';
+
+UPDATE `hosting_orders` h
+SET h.`plan_specs` = (
+    SELECT CONCAT(UPPER(SUBSTRING_INDEX(TRIM(f.`value_monthly`), ' ', 2)), ' | ',
+                  IF(f.`value_monthly` LIKE '%nvme%', 'NVMe Storage', IF(f.`value_monthly` LIKE '%ssd%', 'SSD Storage', 'Storage')))
+    FROM `hosting_plan_features` f
+    WHERE f.`hosting_plan_id` = CAST(h.`plan_id` AS UNSIGNED)
+      AND f.`feature_group` = 'primary' AND f.`is_available` = 1
+      AND f.`value_monthly` REGEXP '(storage|nvme|ssd|disk)'
+      AND f.`value_monthly` REGEXP '^[0-9]+(\\.[0-9]+)? ?(TB|GB|MB)'
+      AND f.`billing_term` IN ('monthly', 'yearly')
+    ORDER BY (f.`billing_term` = 'yearly') DESC, f.`id` LIMIT 1)
+WHERE h.`plan_specs` IS NULL AND h.`period` = 'yearly';
+
+UPDATE `hosting_orders` h
+SET h.`plan_specs` = (
+    SELECT CONCAT(UPPER(SUBSTRING_INDEX(TRIM(f.`value_monthly`), ' ', 2)), ' | ',
+                  IF(f.`value_monthly` LIKE '%nvme%', 'NVMe Storage', IF(f.`value_monthly` LIKE '%ssd%', 'SSD Storage', 'Storage')))
+    FROM `hosting_plan_features` f
+    WHERE f.`hosting_plan_id` = CAST(h.`plan_id` AS UNSIGNED)
+      AND f.`feature_group` = 'primary' AND f.`is_available` = 1
+      AND f.`value_monthly` REGEXP '(storage|nvme|ssd|disk)'
+      AND f.`value_monthly` REGEXP '^[0-9]+(\\.[0-9]+)? ?(TB|GB|MB)'
+      AND f.`billing_term` IN ('monthly', 'two_year')
+    ORDER BY (f.`billing_term` = 'two_year') DESC, f.`id` LIMIT 1)
+WHERE h.`plan_specs` IS NULL AND h.`period` = 'twoYear';
+
+UPDATE `hosting_orders` h
+SET h.`plan_specs` = (
+    SELECT CONCAT(UPPER(SUBSTRING_INDEX(TRIM(f.`value_monthly`), ' ', 2)), ' | ',
+                  IF(f.`value_monthly` LIKE '%nvme%', 'NVMe Storage', IF(f.`value_monthly` LIKE '%ssd%', 'SSD Storage', 'Storage')))
+    FROM `hosting_plan_features` f
+    WHERE f.`hosting_plan_id` = CAST(h.`plan_id` AS UNSIGNED)
+      AND f.`feature_group` = 'primary' AND f.`is_available` = 1
+      AND f.`value_monthly` REGEXP '(storage|nvme|ssd|disk)'
+      AND f.`value_monthly` REGEXP '^[0-9]+(\\.[0-9]+)? ?(TB|GB|MB)'
+      AND f.`billing_term` IN ('monthly', 'three_year')
+    ORDER BY (f.`billing_term` = 'three_year') DESC, f.`id` LIMIT 1)
+WHERE h.`plan_specs` IS NULL AND h.`period` = 'threeYear';
 
 -- ---------------------------------------------------------------------
 -- STEP 5 - admins: INSERT TEMPLATE (used by phase 5; until then the .env admin still logs in).

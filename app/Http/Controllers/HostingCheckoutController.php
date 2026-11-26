@@ -69,8 +69,9 @@ class HostingCheckoutController extends Controller
             'quote' => $quote,
             'domain' => old('domain', $sameChoice ? ($cart['domain'] ?? '') : ''),
             'verified' => $verified && old('domain') === null,
-            // Whitelisted: the default for hosting is "I already have a registered domain".
-            'mode' => HostingDomainCheckService::normalizeMode(old('mode', $request->query('mode'))),
+            // Whitelisted. Default: Register a New Domain; but "use my domain" when the buyer
+            // is coming back (already verified, or finishing a domain order).
+            'mode' => $this->connectMode(old('mode', $request->query('mode')), $verified || ($sameChoice && !empty($cart['pending_domain']))),
             // The customer left for the domain register / transfer flow and has not finished yet.
             'pendingDomain' => $sameChoice ? ($cart['pending_domain'] ?? null) : null,
         ]);
@@ -380,6 +381,15 @@ class HostingCheckoutController extends Controller
         }
 
         return $cart;
+    }
+
+    private function connectMode($requested, $returning)
+    {
+        if ($requested === null || $requested === '') {
+            return $returning ? HostingDomainCheckService::MODE_OWN : HostingDomainCheckService::MODE_REGISTER;
+        }
+
+        return HostingDomainCheckService::normalizeMode($requested);
     }
 
     private function cart(Request $request)
